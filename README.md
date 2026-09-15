@@ -11,7 +11,7 @@ Giovanni Pisoni, Giovanni Rinchiuso.
 - Node.js >= 20.19
 - Docker (for MongoDB)
 
-##  Local launch
+## Local launch
 
 ```bash
 git clone https://github.com/<user>/ecotrail.git
@@ -32,11 +32,11 @@ npm run dev
 
 ## Comandi utili
 
-| Command | What it does |
-|---|---|
-| `npm run dev` | starts the client and server together |
-| `npm run lint` | checks the code with ESLint |
-| `npm run format` | formats the code with Prettier |
+| Command          | What it does                          |
+| ---------------- | ------------------------------------- |
+| `npm run dev`    | starts the client and server together |
+| `npm run lint`   | checks the code with ESLint           |
+| `npm run format` | formats the code with Prettier        |
 
 ## How we work
 
