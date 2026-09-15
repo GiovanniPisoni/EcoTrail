@@ -8,7 +8,7 @@ Giovanni Pisoni, Giovanni Rinchiuso.
 
 ## Requirements
 
-- Node.js >= 20.19
+- Node.js >= 22.18
 - Docker (for MongoDB)
 
 ## Local launch
