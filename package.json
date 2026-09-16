@@ -16,7 +16,8 @@
     "dev:server": "npm run dev -w server",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "seed": "npm run seed -w server"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
