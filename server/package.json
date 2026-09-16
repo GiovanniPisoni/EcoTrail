@@ -6,11 +6,19 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "node --watch src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "seed": "node src/seed.js",
+    "test": "vitest run"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.0.0",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "mongoose": "^9.10.1"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^11.2.0",
+    "vitest": "^5.0.1"
   }
 }

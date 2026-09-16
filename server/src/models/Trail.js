@@ -1,0 +1,36 @@
+import mongoose from 'mongoose'
+
+const lineStringSchema = new mongoose.Schema(
+  {
+    type: { type: String, enum: ['LineString'], default: 'LineString' },
+    coordinates: { type: [[Number]], required: true },
+  },
+  { _id: false },
+)
+
+const fragileSegmentSchema = new mongoose.Schema(
+  {
+    label: { type: String },
+    path: { type: lineStringSchema, required: true },
+  },
+  { _id: false },
+)
+
+const trailSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    path: { type: lineStringSchema, required: true },
+    status: {
+      type: String,
+      enum: ['free', 'crowded', 'at_risk', 'closed'],
+      default: 'free',
+    },
+    fragileSegments: { type: [fragileSegmentSchema], default: [] },
+  },
+  { timestamps: true },
+)
+
+trailSchema.index({ path: '2dsphere' })
+trailSchema.index({ 'fragileSegments.path': '2dsphere' })
+
+export default mongoose.model('Trail', trailSchema)
