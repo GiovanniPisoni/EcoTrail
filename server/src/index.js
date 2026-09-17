@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import mongoose from 'mongoose'
 import authRouter from './routes/auth.js'
+import pushRouter from './routes/push.js'
 
 const app = express()
 
@@ -14,6 +15,7 @@ app.get('/api/health', (req, res) => {
 })
 
 app.use('/api/auth', authRouter)
+app.use('/api/push', pushRouter)
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const PORT = process.env.PORT || 3000
