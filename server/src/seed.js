@@ -12,7 +12,7 @@ const trails = JSON.parse(readFileSync(path.join(__dirname, 'data', 'trails-anda
 
 async function seed() {
   await mongoose.connect(process.env.MONGODB_URI)
-  console.log('Connesso a MongoDB, svuoto le collezioni...')
+  console.log('Connected to MongoDB, clearing collections...')
 
   await User.deleteMany({})
   await Trail.deleteMany({})
@@ -27,12 +27,12 @@ async function seed() {
 
   await Trail.create(trails)
 
-  console.log(`Seed completato: 2 utenti e ${trails.length} sentieri creati.`)
+  console.log(`Seed completed: 2 users and ${trails.length} trails created.`)
   await mongoose.connection.close()
   process.exit(0)
 }
 
 seed().catch((err) => {
-  console.error('Errore durante il seed:', err)
+  console.error('Error while seeding:', err)
   process.exit(1)
 })
