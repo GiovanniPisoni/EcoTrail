@@ -17,10 +17,10 @@ async function handleSubmit() {
 
   try {
     await auth.login(email.value, password.value)
-    router.push('/')
+    router.push(auth.isAdmin ? '/admin' : '/')
   } catch (err) {
     error.value =
-      err.response?.status === 401 ? 'Credenziali non valide' : 'Errore di connessione al server'
+      err.response?.status === 401 ? 'Invalid credentials' : 'Error connecting to the server'
   } finally {
     isSubmitting.value = false
   }
@@ -29,7 +29,7 @@ async function handleSubmit() {
 
 <template>
   <main class="auth-page">
-    <h1>Accedi</h1>
+    <h1>Log in</h1>
     <form @submit.prevent="handleSubmit">
       <label>
         Email
@@ -41,10 +41,10 @@ async function handleSubmit() {
       </label>
       <p v-if="error" class="error" role="alert">{{ error }}</p>
       <button type="submit" :disabled="isSubmitting">
-        {{ isSubmitting ? 'Accesso in corso...' : 'Accedi' }}
+        {{ isSubmitting ? 'Logging in...' : 'Log in' }}
       </button>
     </form>
-    <p>Non hai un account? <RouterLink to="/register">Registrati</RouterLink></p>
+    <p>Don’t have an account? <RouterLink to="/register">Sign up</RouterLink></p>
   </main>
 </template>
 

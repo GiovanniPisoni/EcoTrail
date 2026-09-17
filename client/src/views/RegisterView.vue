@@ -16,7 +16,7 @@ async function handleSubmit() {
   error.value = ''
 
   if (password.value !== confirmPassword.value) {
-    error.value = 'Le due password non coincidono'
+    error.value = 'The two passwords do not match'
     return
   }
 
@@ -24,12 +24,12 @@ async function handleSubmit() {
 
   try {
     await auth.register(email.value, password.value)
-    router.push('/')
+    router.push(auth.isAdmin ? '/admin' : '/')
   } catch (err) {
     error.value =
       err.response?.status === 409
-        ? 'Email già registrata'
-        : 'Errore durante la registrazione, riprova'
+        ? 'Email already registered'
+        : 'Error during registration, please try again'
   } finally {
     isSubmitting.value = false
   }
@@ -38,7 +38,7 @@ async function handleSubmit() {
 
 <template>
   <main class="auth-page">
-    <h1>Registrati</h1>
+    <h1>Sign up</h1>
     <form @submit.prevent="handleSubmit">
       <label>
         Email
@@ -49,15 +49,15 @@ async function handleSubmit() {
         <input v-model="password" type="password" required autocomplete="new-password" />
       </label>
       <label>
-        Conferma password
+        Confirm password
         <input v-model="confirmPassword" type="password" required autocomplete="new-password" />
       </label>
       <p v-if="error" class="error" role="alert">{{ error }}</p>
       <button type="submit" :disabled="isSubmitting">
-        {{ isSubmitting ? 'Registrazione in corso...' : 'Registrati' }}
+        {{ isSubmitting ? 'Registration in progress...' : 'Register' }}
       </button>
     </form>
-    <p>Hai già un account? <RouterLink to="/login">Accedi</RouterLink></p>
+    <p>Already have an account? <RouterLink to="/login">Log in</RouterLink></p>
   </main>
 </template>
 
