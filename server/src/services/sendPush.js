@@ -1,12 +1,21 @@
 import webpush from 'web-push'
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT,
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY,
-)
+let configured = false
+
+function ensureConfigured() {
+  if (!configured) {
+    webpush.setVapidDetails(
+      process.env.VAPID_SUBJECT,
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY,
+    )
+    configured = true
+  }
+}
 
 export async function sendPush(user, payload) {
+  ensureConfigured()
+
   const message = JSON.stringify(payload)
   const stillValid = []
 
