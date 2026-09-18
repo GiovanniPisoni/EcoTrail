@@ -52,6 +52,49 @@ async function loadTrails() {
   }).addTo(map)
 }
 
+let locationMarker = null
+
+function locateUser() {
+  if (!navigator.geolocation) {
+    console.error('Geolocation is not supported by this browser.')
+    return
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const { latitude, longitude } = position.coords
+      map.setView([latitude, longitude], 15)
+
+      locationMarker?.remove()
+      locationMarker = L.circleMarker([latitude, longitude], {
+        radius: 8,
+        color: '#1976d2',
+        fillColor: '#1976d2',
+        fillOpacity: 0.8,
+      }).addTo(map)
+    },
+    (err) => {
+      console.error('Failed to get current location:', err)
+    },
+  )
+}
+
+function addLocateControl() {
+  const control = L.control({ position: 'topleft' })
+
+  control.onAdd = () => {
+    const button = L.DomUtil.create('button', 'locate-button')
+    button.type = 'button'
+    button.textContent = '📍'
+    button.title = 'Center on my location'
+    L.DomEvent.disableClickPropagation(button)
+    button.addEventListener('click', locateUser)
+    return button
+  }
+
+  control.addTo(map)
+}
+
 function addLegend() {
   const legend = L.control({ position: 'bottomright' })
 
@@ -88,6 +131,7 @@ onMounted(() => {
     maxZoom: 19,
   }).addTo(map)
 
+  addLocateControl()
   addLegend()
 
   map.on('moveend zoomend', loadTrails)
@@ -113,6 +157,21 @@ onUnmounted(() => {
 </style>
 
 <style>
+.locate-button {
+  background: white;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  width: 34px;
+  height: 34px;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.locate-button:hover {
+  background: #f4f4f4;
+}
+
 .trail-legend {
   background: white;
   padding: 8px 10px;
