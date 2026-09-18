@@ -1,16 +1,15 @@
-<script setup></script>
+<script setup>
+import TrailsMap from '@/components/TrailsMap.vue'
+</script>
 
 <template>
-  <main class="placeholder">
-    <h1>Map of the hiking trails</h1>
-    <p>
-      Hiker section &mdash; the map with the real hiking trails will be available in the next tasks.
-    </p>
+  <main class="map-page">
+    <TrailsMap />
   </main>
 </template>
 
 <style scoped>
-.placeholder {
-  padding: 2rem 1.5rem;
+.map-page {
+  height: calc(100vh - 65px);
 }
 </style>
