@@ -5,6 +5,7 @@ import mongoose from 'mongoose'
 import { pathToFileURL } from 'node:url'
 import authRouter from './routes/auth.js'
 import pushRouter from './routes/push.js'
+import trailsRouter from './routes/trails.js'
 
 const app = express()
 
@@ -17,6 +18,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRouter)
 app.use('/api/push', pushRouter)
+app.use('/api/trails', trailsRouter)
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const PORT = process.env.PORT || 3000
