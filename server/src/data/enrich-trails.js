@@ -4,7 +4,7 @@ const MEDIUM_MAX_KM = 14
 const HARD_NAME_KEYWORDS = ['attrezzato', 'alpinistico', 'canalone']
 const WALKING_SPEED_KMH = { easy: 4, medium: 3, hard: 2.5 }
 
-export const PLACEHOLDER_PHOTO_URL = '/images/trail-placeholder.svg'
+export const PLACEHOLDER_PHOTO_URL = '/images/trail-placeholder.jpg'
 
 function toRadians(degrees) {
   return (degrees * Math.PI) / 180

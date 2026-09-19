@@ -57,14 +57,14 @@ describe('base models', () => {
       distanceKm: 4.2,
       durationMinutes: 90,
       difficulty: 'medium',
-      photoUrl: '/images/trail-placeholder.svg',
+      photoUrl: '/images/trail-placeholder.jpg',
     })
 
     const saved = await Trail.findById(trail._id)
     expect(saved.distanceKm).toBe(4.2)
     expect(saved.durationMinutes).toBe(90)
     expect(saved.difficulty).toBe('medium')
-    expect(saved.photoUrl).toBe('/images/trail-placeholder.svg')
+    expect(saved.photoUrl).toBe('/images/trail-placeholder.jpg')
   })
 
   it('rejects a trail with an invalid difficulty or a negative distance', async () => {
