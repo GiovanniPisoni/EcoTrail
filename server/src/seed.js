@@ -6,9 +6,11 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import User from './models/User.js'
 import Trail from './models/Trail.js'
+import { enrichTrail } from './data/enrich-trails.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const trails = JSON.parse(readFileSync(path.join(__dirname, 'data', 'trails-andalo.json'), 'utf-8'))
+const rawTrails = JSON.parse(readFileSync(path.join(__dirname, 'data', 'trails-andalo.json'), 'utf-8'))
+const trails = rawTrails.map(enrichTrail)
 
 async function seed() {
   await mongoose.connect(process.env.MONGODB_URI)
