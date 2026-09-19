@@ -31,6 +31,10 @@ erDiagram
         string name
         GeoJSON path "LineString, 2dsphere"
         string status "free | crowded | at_risk | closed"
+        number distanceKm
+        number durationMinutes "estimate"
+        string difficulty "easy | medium | hard, estimate"
+        string photoUrl
         array fragileSegments "embedded, 2dsphere"
     }
 
@@ -92,6 +96,10 @@ Un sentiero reale: dove passa, come si chiama, in che stato è. È l'oggetto att
 | `name` | String | Mostrato su mappa, popup e dashboard (1.8, 2.8) |
 | `path` | GeoJSON LineString | Il tracciato disegnato da Leaflet e usato dalle query geografiche (`$geoWithin`, 1.7) |
 | `status` | enum `free`/`crowded`/`at_risk`/`closed` | Colore/icona sulla mappa (1.8) e innesco delle notifiche quando cambia (2.7, 3.6, 3.7) |
+| `distanceKm` | Number, opzionale | Lunghezza del sentiero in km, calcolata dalla geometria di `path`; mostrata nella sidebar dei sentieri (1.10) |
+| `durationMinutes` | Number, opzionale | Tempo di percorrenza **stimato** in minuti (non ci sono dati di dislivello); mostrato nella sidebar |
+| `difficulty` | enum `easy`/`medium`/`hard`, opzionale | Difficoltà **stimata** (i dati importati non hanno il tag OSM `sac_scale`); pallino colorato e etichetta nella sidebar |
+| `photoUrl` | String, opzionale | URL di una foto del sentiero; per ora un placeholder generico, la sidebar mostra l'immagine solo se il campo esiste |
 | `fragileSegments[]` | array embedded, sotto-geometrie proprie | Individuano i tratti su cui contare gli utenti attivi per il sovraffollamento (3.8), con indice geografico indipendente dal tracciato principale |
 
 ### `Report` 
