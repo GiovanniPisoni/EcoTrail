@@ -18,10 +18,10 @@ const bbox = {
 await mongoose.connect(process.env.MONGODB_URI)
 
 const trailsInArea = await Trail.find({
-  path: { $geoWithin: { $geometry: bbox } }
+  path: { $geoIntersects: { $geometry: bbox } }
 }).select('name')
 
-console.log(`Sentieri trovati nel rettangolo dell'area pilota: ${trailsInArea.length}`)
+console.log(`Sentieri che intersecano il rettangolo dell'area pilota: ${trailsInArea.length}`)
 for (const t of trailsInArea) {
   console.log(' -', t.name)
 }

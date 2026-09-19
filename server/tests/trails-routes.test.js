@@ -25,7 +25,7 @@ beforeEach(async () => {
 const BBOX = '10,40,11,41'
 
 describe('GET /api/trails', () => {
-  it('returns only the trails fully inside the requested bbox', async () => {
+  it('returns trails that intersect the requested bbox, even partially', async () => {
     await Trail.create([
       {
         name: 'Dentro il rettangolo',
@@ -63,10 +63,26 @@ describe('GET /api/trails', () => {
 
     expect(res.status).toBe(200)
     expect(res.body.type).toBe('FeatureCollection')
-    expect(res.body.features).toHaveLength(1)
-    expect(res.body.features[0].properties.name).toBe('Dentro il rettangolo')
-    expect(res.body.features[0].type).toBe('Feature')
-    expect(res.body.features[0].geometry.type).toBe('LineString')
+    const names = res.body.features.map((f) => f.properties.name).sort()
+    expect(names).toEqual(['A cavallo del bordo', 'Dentro il rettangolo'])
+  })
+
+  it('excludes trails that do not touch the requested bbox at all', async () => {
+    await Trail.create({
+      name: 'Completamente fuori',
+      path: {
+        type: 'LineString',
+        coordinates: [
+          [20, 50],
+          [20.1, 50.1]
+        ]
+      }
+    })
+
+    const res = await request(app).get('/api/trails').query({ bbox: BBOX })
+
+    expect(res.status).toBe(200)
+    expect(res.body.features).toHaveLength(0)
   })
 
   it('changes the results when the requested bbox changes', async () => {
