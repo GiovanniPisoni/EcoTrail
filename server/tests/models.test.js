@@ -40,6 +40,44 @@ describe('base models', () => {
       },
     })
     expect(trail.status).toBe('free')
+    expect(trail.distanceKm).toBeUndefined()
+    expect(trail.difficulty).toBeUndefined()
+  })
+
+  it('stores the optional distance, duration, difficulty and photo of a trail', async () => {
+    const trail = await Trail.create({
+      name: 'Trail with details',
+      path: {
+        type: 'LineString',
+        coordinates: [
+          [11, 44],
+          [11.01, 44.01],
+        ],
+      },
+      distanceKm: 4.2,
+      durationMinutes: 90,
+      difficulty: 'medium',
+      photoUrl: '/images/trail-placeholder.svg',
+    })
+
+    const saved = await Trail.findById(trail._id)
+    expect(saved.distanceKm).toBe(4.2)
+    expect(saved.durationMinutes).toBe(90)
+    expect(saved.difficulty).toBe('medium')
+    expect(saved.photoUrl).toBe('/images/trail-placeholder.svg')
+  })
+
+  it('rejects a trail with an invalid difficulty or a negative distance', async () => {
+    const path = {
+      type: 'LineString',
+      coordinates: [
+        [11, 44],
+        [11.01, 44.01],
+      ],
+    }
+
+    await expect(Trail.create({ name: 'Bad difficulty', path, difficulty: 'extreme' })).rejects.toThrow()
+    await expect(Trail.create({ name: 'Bad distance', path, distanceKm: -1 })).rejects.toThrow()
   })
 
   it('creates a valid report, linked to a user and a trail', async () => {
