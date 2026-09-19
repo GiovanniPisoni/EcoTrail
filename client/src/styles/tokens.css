@@ -1,0 +1,36 @@
+:root {
+  --color-primary: #1a3e2f;
+  --color-primary-pressed: #5c4636;
+  --color-secondary: #5c4636;
+
+  --color-status-open: #10b981;
+  --color-status-crowded: #f59e0b;
+  --color-status-at-risk: #f97316;
+  --color-status-closed: #ef4444;
+
+  --color-background: #fcfbf7;
+  --color-surface: #ffffff;
+  --color-text: #1a3e2f;
+  --color-text-muted: #6b6257;
+
+  --font-heading: 'Instrument Serif', Georgia, serif;
+  --font-body: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --radius-pill: 999px;
+  --radius-card: 16px;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+.brand {
+  font-family: var(--font-heading);
+  font-weight: 400;
+}

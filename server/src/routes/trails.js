@@ -43,7 +43,11 @@ function trailToFeature(trail, { includeFragileSegments = false } = {}) {
   const properties = {
     id: trail._id,
     name: trail.name,
-    status: trail.status
+    status: trail.status,
+    distanceKm: trail.distanceKm,
+    durationMinutes: trail.durationMinutes,
+    difficulty: trail.difficulty,
+    photoUrl: trail.photoUrl
   }
   if (includeFragileSegments) {
     properties.fragileSegments = trail.fragileSegments

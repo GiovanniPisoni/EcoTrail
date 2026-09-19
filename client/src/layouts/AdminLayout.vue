@@ -30,13 +30,13 @@ function handleLogout() {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  background-color: #37474f;
-  color: white;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border-bottom: 1px solid rgba(26, 62, 47, 0.1);
 }
 
 .brand {
-  font-weight: bold;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
 }
 
 nav {
@@ -52,7 +52,14 @@ nav {
 button {
   padding: 0.4rem 0.8rem;
   cursor: pointer;
-  border: none;
-  border-radius: 4px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-body);
+}
+
+button:hover {
+  background-color: var(--color-background);
 }
 </style>

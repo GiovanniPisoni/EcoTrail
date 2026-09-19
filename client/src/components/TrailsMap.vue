@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import api from '@/api/client.js'
@@ -8,9 +8,20 @@ import { TRAIL_STATUSES, getTrailStatusColor, getTrailStatusLabel } from '@/conf
 const PILOT_AREA_CENTER = [46.1667, 10.9167]
 const PILOT_AREA_ZOOM = 13
 
+const props = defineProps({
+  selectedTrailId: {
+    type: String,
+    default: null
+  }
+})
+
+const emit = defineEmits(['trails-loaded', 'trail-selected'])
+
 const mapContainer = ref(null)
 let map = null
 let trailsLayer = null
+let lastTrailsData = null
+let resizeObserver = null
 
 function buildPopupContent(feature) {
   const container = document.createElement('div')
@@ -28,6 +39,24 @@ function buildPopupContent(feature) {
   return container
 }
 
+function renderTrailsLayer() {
+  if (!lastTrailsData) return
+
+  trailsLayer?.remove()
+  trailsLayer = L.geoJSON(lastTrailsData, {
+    filter: (feature) =>
+      !props.selectedTrailId || String(feature.properties.id) === String(props.selectedTrailId),
+    style: (feature) => ({
+      color: getTrailStatusColor(feature.properties.status),
+      weight: props.selectedTrailId ? 6 : 4
+    }),
+    onEachFeature: (feature, layer) => {
+      layer.bindPopup(buildPopupContent(feature))
+      layer.on('click', () => emit('trail-selected', String(feature.properties.id)))
+    }
+  }).addTo(map)
+}
+
 async function loadTrails() {
   const bounds = map.getBounds()
   const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(',')
@@ -40,17 +69,16 @@ async function loadTrails() {
     return
   }
 
-  trailsLayer?.remove()
-  trailsLayer = L.geoJSON(data, {
-    style: (feature) => ({
-      color: getTrailStatusColor(feature.properties.status),
-      weight: 4,
-    }),
-    onEachFeature: (feature, layer) => {
-      layer.bindPopup(buildPopupContent(feature))
-    },
-  }).addTo(map)
+  lastTrailsData = data
+  renderTrailsLayer()
+
+  emit('trails-loaded', data.features ?? [])
 }
+
+watch(
+  () => props.selectedTrailId,
+  () => renderTrailsLayer()
+)
 
 let locationMarker = null
 
@@ -70,12 +98,12 @@ function locateUser() {
         radius: 8,
         color: '#1976d2',
         fillColor: '#1976d2',
-        fillOpacity: 0.8,
+        fillOpacity: 0.8
       }).addTo(map)
     },
     (err) => {
       console.error('Failed to get current location:', err)
-    },
+    }
   )
 }
 
@@ -85,7 +113,8 @@ function addLocateControl() {
   control.onAdd = () => {
     const button = L.DomUtil.create('button', 'locate-button')
     button.type = 'button'
-    button.textContent = '📍'
+    button.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-7.58 7-13a7 7 0 1 0-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/><circle cx="12" cy="9" r="0.6" fill="currentColor" stroke="none"/></svg>'
     button.title = 'Center on my location'
     L.DomEvent.disableClickPropagation(button)
     button.addEventListener('click', locateUser)
@@ -101,7 +130,7 @@ function addLegend() {
   legend.onAdd = () => {
     const div = L.DomUtil.create('div', 'trail-legend')
 
-    Object.values(TRAIL_STATUSES).forEach(({ label, color }) => {
+    Object.values(TRAIL_STATUSES).forEach(({ label, color, icon }) => {
       const item = document.createElement('div')
       item.className = 'trail-legend-item'
 
@@ -111,7 +140,7 @@ function addLegend() {
       item.append(swatch)
 
       const text = document.createElement('span')
-      text.textContent = label
+      text.innerHTML = `<span class="trail-legend-icon">${icon}</span> ${label}`
       item.append(text)
 
       div.append(item)
@@ -127,18 +156,26 @@ onMounted(() => {
   map = L.map(mapContainer.value).setView(PILOT_AREA_CENTER, PILOT_AREA_ZOOM)
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19,
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
   }).addTo(map)
 
   addLocateControl()
   addLegend()
+
+  resizeObserver = new ResizeObserver(() => {
+    map?.invalidateSize()
+  })
+  resizeObserver.observe(mapContainer.value)
 
   map.on('moveend zoomend', loadTrails)
   loadTrails()
 })
 
 onUnmounted(() => {
+  resizeObserver?.disconnect()
+  resizeObserver = null
   map?.remove()
   map = null
 })
@@ -158,18 +195,47 @@ onUnmounted(() => {
 
 <style>
 .locate-button {
-  background: white;
-  border: 2px solid rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  width: 34px;
-  height: 34px;
-  font-size: 1.1rem;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-pill);
+  width: 44px;
+  height: 44px;
   cursor: pointer;
+  color: var(--color-primary);
+  box-shadow: 0 1px 4px rgba(26, 62, 47, 0.12);
+}
+
+.locate-button svg {
+  width: 22px;
+  height: 22px;
 }
 
 .locate-button:hover {
-  background: #f4f4f4;
+  background: var(--color-background);
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: 0 1px 4px rgba(26, 62, 47, 0.12) !important;
+  overflow: hidden;
+}
+
+.leaflet-control-zoom a {
+  background-color: var(--color-surface) !important;
+  color: var(--color-primary) !important;
+  border: none !important;
+  width: 40px !important;
+  height: 40px !important;
+  line-height: 40px !important;
+  font-size: 1.2rem !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: var(--color-background) !important;
 }
 
 .trail-legend {
@@ -192,5 +258,15 @@ onUnmounted(() => {
   width: 12px;
   height: 12px;
   border-radius: 2px;
+}
+
+.trail-legend-icon {
+  display: inline-flex;
+  vertical-align: -3px;
+}
+
+.trail-legend-icon svg {
+  width: 14px;
+  height: 14px;
 }
 </style>
