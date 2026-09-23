@@ -1,8 +1,15 @@
 import { Router } from 'express'
 import Report from '../models/Report.js'
 import { requireAuth } from '../middleware/auth.js'
+import { uploadReportPhoto } from '../middleware/uploadReportPhoto.js'
 import { validateReportInput } from '../services/validateReportInput.js'
 import { findNearestTrail, MAX_TRAIL_DISTANCE_METERS } from '../services/findNearestTrail.js'
+import {
+  InvalidPhotoError,
+  deleteReportPhoto,
+  processReportPhoto,
+  storeReportPhoto,
+} from '../services/reportPhoto.js'
 
 const router = Router()
 
@@ -14,6 +21,7 @@ function reportToResponse(report, trail) {
     type: report.type,
     severity: report.severity,
     description: report.description,
+    photoUrl: report.photoUrl,
     latitude,
     longitude,
     trail: { id: trail._id, name: trail.name },
@@ -22,11 +30,25 @@ function reportToResponse(report, trail) {
   }
 }
 
-router.post('/', requireAuth, async (req, res) => {
-  const { value, errors } = validateReportInput(req.body)
-  if (errors) {
+router.post('/', requireAuth, uploadReportPhoto, async (req, res) => {
+  const validation = validateReportInput(req.body)
+  const errors = { ...validation.errors }
+
+  let jpeg
+  if (req.file) {
+    try {
+      jpeg = await processReportPhoto(req.file.buffer)
+    } catch (err) {
+      if (!(err instanceof InvalidPhotoError)) throw err
+      errors.photo = err.message
+    }
+  }
+
+  if (Object.keys(errors).length > 0) {
     return res.status(400).json({ error: 'Invalid report data', details: errors })
   }
+
+  const { value } = validation
 
   const trail = await findNearestTrail(value.latitude, value.longitude)
   if (!trail) {
@@ -35,14 +57,23 @@ router.post('/', requireAuth, async (req, res) => {
       .json({ error: `No trail within ${MAX_TRAIL_DISTANCE_METERS} m of the given position` })
   }
 
-  const report = await Report.create({
-    author: req.user.id,
-    type: value.type,
-    severity: value.severity,
-    description: value.description,
-    location: { type: 'Point', coordinates: [value.longitude, value.latitude] },
-    trail: trail._id,
-  })
+  const photoUrl = jpeg ? await storeReportPhoto(jpeg) : undefined
+
+  let report
+  try {
+    report = await Report.create({
+      author: req.user.id,
+      type: value.type,
+      severity: value.severity,
+      description: value.description,
+      photoUrl,
+      location: { type: 'Point', coordinates: [value.longitude, value.latitude] },
+      trail: trail._id,
+    })
+  } catch (err) {
+    await deleteReportPhoto(photoUrl)
+    throw err
+  }
 
   res.status(201).json(reportToResponse(report, trail))
 })

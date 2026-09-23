@@ -20,7 +20,7 @@ export class InvalidPhotoError extends Error {
   }
 }
 
-async function convertToJpeg(buffer) {
+export async function processReportPhoto(buffer) {
   try {
     const image = sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS })
 
@@ -46,9 +46,7 @@ async function convertToJpeg(buffer) {
   }
 }
 
-export async function saveReportPhoto(buffer) {
-  const jpeg = await convertToJpeg(buffer)
-
+export async function storeReportPhoto(jpeg) {
   const directory = path.join(getUploadsDir(), REPORTS_SUBDIR)
   await mkdir(directory, { recursive: true })
 
@@ -58,6 +56,9 @@ export async function saveReportPhoto(buffer) {
   return `${PHOTO_URL_PREFIX}${filename}`
 }
 
+export async function saveReportPhoto(buffer) {
+  return storeReportPhoto(await processReportPhoto(buffer))
+}
 
 export async function deleteReportPhoto(photoUrl) {
   if (typeof photoUrl !== 'string' || !photoUrl.startsWith(PHOTO_URL_PREFIX)) return
