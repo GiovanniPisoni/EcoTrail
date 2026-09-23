@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import User from './models/User.js'
 import Trail from './models/Trail.js'
+import Report from './models/Report.js'
 import { enrichTrail } from './data/enrich-trails.js'
+import { deleteAllReportPhotos } from './services/reportPhoto.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rawTrails = JSON.parse(readFileSync(path.join(__dirname, 'data', 'trails-andalo.json'), 'utf-8'))
@@ -18,6 +20,8 @@ async function seed() {
 
   await User.deleteMany({})
   await Trail.deleteMany({})
+  await Report.deleteMany({})
+  await deleteAllReportPhotos()
 
   const hikerPassword = await bcrypt.hash('hiker123', 10)
   const adminPassword = await bcrypt.hash('admin123', 10)

@@ -7,6 +7,7 @@ import {
   InvalidPhotoError,
   MAX_PHOTO_DIMENSION,
   PHOTO_URL_PREFIX,
+  deleteAllReportPhotos,
   deleteReportPhoto,
   saveReportPhoto,
 } from '../src/services/reportPhoto.js'
@@ -152,6 +153,27 @@ describe('saveReportPhoto', () => {
 
       await expect(saveReportPhoto(jpeg.subarray(0, 200))).rejects.toThrow(InvalidPhotoError)
     })
+  })
+})
+
+describe('deleteAllReportPhotos', () => {
+  it('removes every saved photo but leaves the rest of the uploads folder alone', async () => {
+    const first = await saveReportPhoto(await solid(100, 100).jpeg().toBuffer())
+    const second = await saveReportPhoto(await solid(100, 100).jpeg().toBuffer())
+    const other = path.join(uploadsDir, 'other-file.txt')
+    await writeFile(other, 'not a report photo')
+
+    await deleteAllReportPhotos()
+
+    expect(await exists(pathOf(first))).toBe(false)
+    expect(await exists(pathOf(second))).toBe(false)
+    expect(await exists(other)).toBe(true)
+  })
+
+  it('does nothing when there are no photos yet', async () => {
+    await deleteAllReportPhotos()
+
+    await expect(deleteAllReportPhotos()).resolves.toBeUndefined()
   })
 })
 

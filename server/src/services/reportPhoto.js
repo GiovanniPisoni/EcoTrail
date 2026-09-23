@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { mkdir, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, rm, unlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import sharp from 'sharp'
 import { getUploadsDir } from '../config/uploads.js'
@@ -58,6 +58,10 @@ export async function storeReportPhoto(jpeg) {
 
 export async function saveReportPhoto(buffer) {
   return storeReportPhoto(await processReportPhoto(buffer))
+}
+
+export async function deleteAllReportPhotos() {
+  await rm(path.join(getUploadsDir(), REPORTS_SUBDIR), { recursive: true, force: true })
 }
 
 export async function deleteReportPhoto(photoUrl) {
