@@ -118,6 +118,19 @@ describe('POST /api/reports with a photo', () => {
     expect(saved.photoUrl).toBe(res.body.photoUrl)
   })
 
+  it('makes the returned photo URL open the stored image', async () => {
+    const { token } = await createUserAndToken()
+    await Trail.create(trailAt('Near trail', 46.18))
+    const created = await submit(token, { photo: smallJpeg })
+
+    const res = await request(app).get(created.body.photoUrl)
+
+    expect(res.status).toBe(200)
+    expect(res.headers['content-type']).toBe('image/jpeg')
+    const metadata = await sharp(res.body).metadata()
+    expect([metadata.width, metadata.height]).toEqual([800, 600])
+  })
+
   it('shrinks a photo of several MB to a few hundred KB', async () => {
     const { token } = await createUserAndToken()
     await Trail.create(trailAt('Near trail', 46.18))
