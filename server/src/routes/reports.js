@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import Report from '../models/Report.js'
+import Report, { REPORT_TYPES } from '../models/Report.js'
 import { requireAuth } from '../middleware/auth.js'
 import { uploadReportPhoto } from '../middleware/uploadReportPhoto.js'
 import { validateReportInput } from '../services/validateReportInput.js'
@@ -8,10 +8,64 @@ import {
   InvalidPhotoError,
   deleteReportPhoto,
   processReportPhoto,
-  storeReportPhoto,
+  storeReportPhoto
 } from '../services/reportPhoto.js'
+import { parseBbox } from '../utils/bbox.js'
 
 const router = Router()
+
+function reportToFeature(report) {
+  return {
+    type: 'Feature',
+    geometry: report.location,
+    properties: {
+      id: report._id,
+      type: report.type,
+      severity: report.severity,
+      description: report.description,
+      photoUrl: report.photoUrl,
+      trail: { id: report.trail._id, name: report.trail.name },
+      validationStatus: report.validationStatus,
+      createdAt: report.createdAt
+    }
+  }
+}
+
+router.get('/', async (req, res) => {
+  const { bbox, type, since } = req.query
+
+  const { polygon, error } = parseBbox(bbox)
+  if (error) {
+    return res.status(400).json({ error })
+  }
+
+  const query = {
+    validationStatus: 'validated',
+    location: { $geoWithin: { $geometry: polygon } }
+  }
+
+  if (type) {
+    if (!REPORT_TYPES.includes(type)) {
+      return res.status(400).json({ error: `type must be one of: ${REPORT_TYPES.join(', ')}` })
+    }
+    query.type = type
+  }
+
+  if (since) {
+    const sinceDate = new Date(since)
+    if (Number.isNaN(sinceDate.getTime())) {
+      return res.status(400).json({ error: 'since must be a valid ISO date' })
+    }
+    query.createdAt = { $gte: sinceDate }
+  }
+
+  const reports = await Report.find(query).populate('trail', 'name')
+
+  res.json({
+    type: 'FeatureCollection',
+    features: reports.map(reportToFeature)
+  })
+})
 
 function reportToResponse(report, trail) {
   const [longitude, latitude] = report.location.coordinates
@@ -26,7 +80,7 @@ function reportToResponse(report, trail) {
     longitude,
     trail: { id: trail._id, name: trail.name },
     validationStatus: report.validationStatus,
-    createdAt: report.createdAt,
+    createdAt: report.createdAt
   }
 }
 
@@ -68,7 +122,7 @@ router.post('/', requireAuth, uploadReportPhoto, async (req, res) => {
       description: value.description,
       photoUrl,
       location: { type: 'Point', coordinates: [value.longitude, value.latitude] },
-      trail: trail._id,
+      trail: trail._id
     })
   } catch (err) {
     await deleteReportPhoto(photoUrl)
