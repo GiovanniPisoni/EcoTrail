@@ -11,8 +11,44 @@ import { enrichTrail } from './data/enrich-trails.js'
 import { deleteAllReportPhotos } from './services/reportPhoto.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const rawTrails = JSON.parse(readFileSync(path.join(__dirname, 'data', 'trails-andalo.json'), 'utf-8'))
+const rawTrails = JSON.parse(
+  readFileSync(path.join(__dirname, 'data', 'trails-andalo.json'), 'utf-8')
+)
 const trails = rawTrails.map(enrichTrail)
+
+const HOURS_AGO = (hours) => new Date(Date.now() - hours * 60 * 60 * 1000)
+
+
+const FAKE_REPORTS = [
+  { type: 'fallen_tree', severity: 'high', validationStatus: 'validated', createdAt: HOURS_AGO(3) },
+  {
+    type: 'overcrowding',
+    severity: 'low',
+    validationStatus: 'validated',
+    createdAt: HOURS_AGO(18)
+  },
+  { type: 'landslide', severity: 'high', validationStatus: 'validated', createdAt: HOURS_AGO(60) },
+  {
+    type: 'flooding',
+    severity: 'medium',
+    validationStatus: 'validated',
+    createdAt: HOURS_AGO(24 * 10)
+  },
+  {
+    type: 'vegetation_damage',
+    severity: 'low',
+    validationStatus: 'validated',
+    createdAt: HOURS_AGO(24 * 25)
+  },
+  {
+    type: 'other',
+    severity: 'medium',
+    validationStatus: 'validated',
+    createdAt: HOURS_AGO(24 * 45)
+  },
+  { type: 'fallen_tree', severity: 'medium', validationStatus: 'pending', createdAt: HOURS_AGO(2) },
+  { type: 'overcrowding', severity: 'high', validationStatus: 'rejected', createdAt: HOURS_AGO(5) }
+]
 
 async function seed() {
   await mongoose.connect(process.env.MONGODB_URI)
@@ -31,9 +67,26 @@ async function seed() {
     { email: 'admin@ecotrail.test', password: adminPassword, role: 'admin' }
   ])
 
-  await Trail.create(trails)
+  const [hiker] = await User.find({ role: 'hiker' })
+  const createdTrails = await Trail.create(trails)
 
-  console.log(`Seed completed: 2 users and ${trails.length} trails created.`)
+  const fakeReports = FAKE_REPORTS.map((report, index) => {
+    const trail = createdTrails[index % createdTrails.length]
+    const [longitude, latitude] = trail.path.coordinates[0]
+
+    return {
+      author: hiker._id,
+      trail: trail._id,
+      location: { type: 'Point', coordinates: [longitude, latitude] },
+      description: `Seed report on ${trail.name}`,
+      ...report
+    }
+  })
+  await Report.create(fakeReports)
+
+  console.log(
+    `Seed completed: 2 users, ${trails.length} trails and ${fakeReports.length} reports created.`
+  )
   await mongoose.connection.close()
   process.exit(0)
 }
