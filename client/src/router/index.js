@@ -8,36 +8,36 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/views/LoginView.vue'),
-      meta: { public: true },
+      meta: { public: true }
     },
     {
       path: '/register',
       name: 'register',
       component: () => import('@/views/RegisterView.vue'),
-      meta: { public: true },
+      meta: { public: true }
     },
     {
       path: '/',
       component: () => import('@/layouts/HikerLayout.vue'),
       meta: { requiresAuth: true, role: 'hiker' },
       children: [
-        { path: '', name: 'hiker-home', component: () => import('@/views/HikerHomeView.vue') },
-      ],
+        { path: '', name: 'hiker-home', component: () => import('@/views/HikerHomeView.vue') }
+      ]
     },
     {
       path: '/admin',
       component: () => import('@/layouts/AdminLayout.vue'),
       meta: { requiresAuth: true, role: 'admin' },
       children: [
-        { path: '', name: 'admin-home', component: () => import('@/views/AdminHomeView.vue') },
-      ],
+        { path: '', name: 'admin-home', component: () => import('@/views/AdminHomeView.vue') }
+      ]
     },
     {
       path: '/push-test',
       name: 'push-test',
-      component: () => import('@/views/PushTest.vue'),
-    },
-  ],
+      component: () => import('@/views/PushTest.vue')
+    }
+  ]
 })
 
 router.beforeEach((to) => {

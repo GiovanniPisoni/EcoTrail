@@ -125,7 +125,7 @@ function addLocateControl() {
 }
 
 function addLegend() {
-  const legend = L.control({ position: 'bottomright' })
+  const legend = L.control({ position: 'topright' })
 
   legend.onAdd = () => {
     const div = L.DomUtil.create('div', 'trail-legend')
@@ -239,7 +239,8 @@ onUnmounted(() => {
 }
 
 .trail-legend {
-  background: white;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
   padding: 8px 10px;
   border-radius: 4px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
