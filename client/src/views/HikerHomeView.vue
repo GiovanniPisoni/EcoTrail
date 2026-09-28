@@ -3,9 +3,11 @@ import { ref } from 'vue'
 import SendReportView from '@/views/SendReportView.vue'
 import TrailsMap from '@/components/TrailsMap.vue'
 import TrailsSidebar from '@/components/TrailsSidebar.vue'
+import ReportsLayer from '@/components/ReportsLayer.vue'
 
 const visibleTrails = ref([])
 const reportDialogOpen = ref(false)
+const mapInstance = ref(null)
 
 const selectedTrailId = ref(null)
 
@@ -46,12 +48,16 @@ const sidebarOpen = ref(true)
       </svg>
     </button>
 
-    <TrailsMap
-      :selected-trail-id="selectedTrailId"
-      class="map-page__map"
-      @trails-loaded="visibleTrails = $event"
-      @trail-selected="toggleSelection"
-    />
+    <div class="map-page__map-wrap">
+      <TrailsMap
+        :selected-trail-id="selectedTrailId"
+        class="map-page__map"
+        @trails-loaded="visibleTrails = $event"
+        @trail-selected="toggleSelection"
+        @map-ready="mapInstance = $event"
+      />
+      <ReportsLayer v-if="mapInstance" :map="mapInstance" :sidebar-open="sidebarOpen" />
+    </div>
 
     <button
       type="button"
@@ -95,8 +101,8 @@ const sidebarOpen = ref(true)
 
 .map-page__sidebar-toggle {
   position: absolute;
-  bottom: 16px;
-  left: 16px;
+  bottom: 10px;
+  left: 10px;
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -120,9 +126,15 @@ const sidebarOpen = ref(true)
   height: 22px;
 }
 
-.map-page__map {
+.map-page__map-wrap {
+  position: relative;
   flex: 1;
   min-width: 0;
+}
+
+.map-page__map {
+  width: 100%;
+  height: 100%;
 }
 
 .map-page__new-report {
@@ -167,7 +179,7 @@ const sidebarOpen = ref(true)
     order: 2;
   }
 
-  .map-page__map {
+  .map-page__map-wrap {
     min-height: 60vh;
     order: 1;
   }

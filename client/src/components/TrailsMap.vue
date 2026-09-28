@@ -15,7 +15,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['trails-loaded', 'trail-selected'])
+const emit = defineEmits(['trails-loaded', 'trail-selected', 'map-ready'])
 
 const mapContainer = ref(null)
 let map = null
@@ -171,6 +171,8 @@ onMounted(() => {
 
   map.on('moveend zoomend', loadTrails)
   loadTrails()
+
+  emit('map-ready', map)
 })
 
 onUnmounted(() => {
