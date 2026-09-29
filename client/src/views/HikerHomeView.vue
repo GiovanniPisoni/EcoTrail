@@ -1,13 +1,9 @@
 <script setup>
 import { ref } from 'vue'
-import SendReportView from '@/views/SendReportView.vue'
 import TrailsMap from '@/components/TrailsMap.vue'
 import TrailsSidebar from '@/components/TrailsSidebar.vue'
-import ReportsLayer from '@/components/ReportsLayer.vue'
 
 const visibleTrails = ref([])
-const reportDialogOpen = ref(false)
-const mapInstance = ref(null)
 
 const selectedTrailId = ref(null)
 
@@ -48,41 +44,12 @@ const sidebarOpen = ref(true)
       </svg>
     </button>
 
-    <div class="map-page__map-wrap">
-      <TrailsMap
-        :selected-trail-id="selectedTrailId"
-        class="map-page__map"
-        @trails-loaded="visibleTrails = $event"
-        @trail-selected="toggleSelection"
-        @map-ready="mapInstance = $event"
-      />
-      <ReportsLayer v-if="mapInstance" :map="mapInstance" :sidebar-open="sidebarOpen" />
-    </div>
-
-    <button
-      type="button"
-      class="map-page__new-report"
-      title="New report"
-      @click="reportDialogOpen = true"
-    >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path
-          d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-        />
-        <line x1="12" y1="9" x2="12" y2="13" />
-        <line x1="12" y1="17" x2="12.01" y2="17" />
-      </svg>
-      <span>New Report</span>
-    </button>
-
-    <SendReportView v-if="reportDialogOpen" @close="reportDialogOpen = false" />
+    <TrailsMap
+      :selected-trail-id="selectedTrailId"
+      class="map-page__map"
+      @trails-loaded="visibleTrails = $event"
+      @trail-selected="toggleSelection"
+    />
   </main>
 </template>
 
@@ -102,8 +69,8 @@ const sidebarOpen = ref(true)
 
 .map-page__sidebar-toggle {
   position: absolute;
-  bottom: 10px;
-  left: 10px;
+  bottom: 16px;
+  left: 16px;
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -127,58 +94,9 @@ const sidebarOpen = ref(true)
   height: 22px;
 }
 
-.map-page__map-wrap {
-  position: relative;
+.map-page__map {
   flex: 1;
   min-width: 0;
-}
-
-.map-page__map {
-  width: 100%;
-  height: 100%;
-}
-
-.map-page__new-report {
-  position: absolute;
-  bottom: 16px;
-  right: 16px;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  height: 52px;
-  padding: 0 1.25rem;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: var(--color-primary);
-  color: var(--color-surface);
-  font-family: var(--font-body);
-  font-weight: 600;
-  font-size: 0.95rem;
-  box-shadow: 0 2px 6px rgba(26, 62, 47, 0.3);
-  cursor: pointer;
-}
-
-.map-page__new-report:hover {
-  background: var(--color-primary-pressed);
-}
-
-.map-page__new-report svg {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-}
-
-@media (max-width: 640px) {
-  .map-page__new-report span {
-    display: none;
-  }
-
-  .map-page__new-report {
-    width: 52px;
-    padding: 0;
-    justify-content: center;
-  }
 }
 
 @media (max-width: 640px) {
@@ -196,7 +114,7 @@ const sidebarOpen = ref(true)
     order: 2;
   }
 
-  .map-page__map-wrap {
+  .map-page__map {
     min-height: 60vh;
     order: 1;
   }
