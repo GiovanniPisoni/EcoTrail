@@ -19,9 +19,9 @@ const props = defineProps({
 const emit = defineEmits(['select', 'reports-loaded', 'reviewed'])
 
 const TAB_OPTIONS = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'validated', label: 'Validated' },
-  { value: 'rejected', label: 'Rejected' }
+  { value: 'pending', label: 'Review Queue' },
+  { value: 'validated', label: 'Verified Logs' },
+  { value: 'rejected', label: 'Flagged/Archived' }
 ]
 
 const tab = ref('pending')
@@ -30,6 +30,13 @@ const reports = ref([])
 const loading = ref(false)
 const noteDraft = ref('')
 const reviewing = ref(false)
+
+function tabLabel(option) {
+  if (option.value === 'pending' && props.pendingCount !== null) {
+    return `${option.label} (${props.pendingCount})`
+  }
+  return option.label
+}
 
 function reportId(report) {
   return String(report.id)
@@ -122,7 +129,7 @@ onMounted(loadReports)
         :class="{ 'admin-reports-sidebar__tab--selected': tab === option.value }"
         @click="tab = option.value"
       >
-        {{ option.label }}
+        {{ tabLabel(option) }}
       </button>
     </div>
 

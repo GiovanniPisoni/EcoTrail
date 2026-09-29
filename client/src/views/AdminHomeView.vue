@@ -77,15 +77,18 @@ onMounted(() => {
     />
 
     <div class="admin-page__side">
-      <div class="admin-page__map-wrap">
-        <TrailsMap class="admin-page__map" @map-ready="mapInstance = $event" />
-        <AdminReportsLayer
-          v-if="mapInstance"
-          :map="mapInstance"
-          :reports="visibleReports"
-          :selected-id="selectedId"
-          @select="selectedId = $event"
-        />
+      <div class="admin-page__map-card">
+        <div class="admin-page__map-wrap">
+          <TrailsMap class="admin-page__map" @map-ready="mapInstance = $event" />
+          <AdminReportsLayer
+            v-if="mapInstance"
+            :map="mapInstance"
+            :reports="visibleReports"
+            :selected-id="selectedId"
+            @select="selectedId = $event"
+          />
+        </div>
+        <p class="admin-page__map-caption">Park district live hazard map</p>
       </div>
 
       <div class="admin-page__activity">
@@ -125,12 +128,22 @@ onMounted(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+.admin-page__map-card {
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  box-shadow: 0 1px 4px rgba(26, 62, 47, 0.12);
+  background-color: var(--color-surface);
 }
 
 .admin-page__map-wrap {
   position: relative;
-  flex: 1;
-  min-height: 0;
+  height: 260px;
 }
 
 .admin-page__map {
@@ -138,12 +151,20 @@ onMounted(() => {
   height: 100%;
 }
 
+.admin-page__map-caption {
+  margin: 0;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
 .admin-page__activity {
-  flex-shrink: 0;
-  max-height: 220px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 1rem;
-  border-top: 1px solid rgba(26, 62, 47, 0.1);
+  border-radius: var(--radius-card);
+  box-shadow: 0 1px 4px rgba(26, 62, 47, 0.12);
   background-color: var(--color-surface);
 }
 
@@ -205,10 +226,6 @@ onMounted(() => {
 
   .admin-page__side {
     order: 2;
-  }
-
-  .admin-page__map-wrap {
-    min-height: 50vh;
   }
 }
 </style>

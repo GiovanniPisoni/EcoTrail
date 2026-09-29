@@ -79,6 +79,7 @@ const sidebarOpen = ref(true)
         <line x1="12" y1="9" x2="12" y2="13" />
         <line x1="12" y1="17" x2="12.01" y2="17" />
       </svg>
+      <span>New Report</span>
     </button>
 
     <SendReportView v-if="reportDialogOpen" @close="reportDialogOpen = false" />
@@ -144,13 +145,16 @@ const sidebarOpen = ref(true)
   z-index: 1000;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
+  gap: 0.5rem;
+  height: 52px;
+  padding: 0 1.25rem;
   border: none;
   border-radius: var(--radius-pill);
   background: var(--color-primary);
   color: var(--color-surface);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
   box-shadow: 0 2px 6px rgba(26, 62, 47, 0.3);
   cursor: pointer;
 }
@@ -160,8 +164,21 @@ const sidebarOpen = ref(true)
 }
 
 .map-page__new-report svg {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .map-page__new-report span {
+    display: none;
+  }
+
+  .map-page__new-report {
+    width: 52px;
+    padding: 0;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 640px) {
