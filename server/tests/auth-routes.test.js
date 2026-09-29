@@ -84,4 +84,30 @@ describe('GET /api/auth/me', () => {
     const res = await request(app).get('/api/auth/me')
     expect(res.status).toBe(401)
   })
+
+  it('returns the real user data from the database, not just the token payload', async () => {
+    const hashed = await bcrypt.hash('password123', 10)
+    const user = await User.create({
+      email: 'profile@ecotrail.test',
+      password: hashed,
+      role: 'hiker',
+      reputation: 7,
+    })
+
+    const login = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'profile@ecotrail.test', password: 'password123' })
+
+    const res = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${login.body.token}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual({
+      id: user._id.toString(),
+      email: 'profile@ecotrail.test',
+      role: 'hiker',
+      reputation: 7,
+    })
+  })
 })
