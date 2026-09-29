@@ -46,8 +46,13 @@ router.post('/login', async (req, res) => {
   res.json({ token })
 })
 
-router.get('/me', requireAuth, (req, res) => {
-  res.json(req.user)
+router.get('/me', requireAuth, async (req, res) => {
+  const user = await User.findById(req.user.id)
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' })
+  }
+
+  res.json({ id: user._id, email: user.email, role: user.role, reputation: user.reputation })
 })
 
 export default router
