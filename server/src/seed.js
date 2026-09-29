@@ -7,6 +7,7 @@ import path from 'node:path'
 import User from './models/User.js'
 import Trail from './models/Trail.js'
 import Report from './models/Report.js'
+import TrailStatusHistory from './models/TrailStatusHistory.js'
 import { enrichTrail } from './data/enrich-trails.js'
 import { deleteAllReportPhotos } from './services/reportPhoto.js'
 
@@ -57,6 +58,7 @@ async function seed() {
   await User.deleteMany({})
   await Trail.deleteMany({})
   await Report.deleteMany({})
+  await TrailStatusHistory.deleteMany({})
   await deleteAllReportPhotos()
 
   const hikerPassword = await bcrypt.hash('hiker123', 10)

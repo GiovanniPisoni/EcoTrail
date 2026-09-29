@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url'
 import authRouter from './routes/auth.js'
 import pushRouter from './routes/push.js'
 import trailsRouter from './routes/trails.js'
+import trailStatusRouter from './routes/trailStatus.js'
 import reportsRouter from './routes/reports.js'
 import { serveUploads } from './middleware/serveUploads.js'
 
@@ -21,6 +22,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRouter)
 app.use('/api/push', pushRouter)
 app.use('/api/trails', trailsRouter)
+app.use('/api/trails', trailStatusRouter)
 app.use('/api/reports', reportsRouter)
 app.use('/api/uploads', serveUploads)
 
