@@ -1,15 +1,5 @@
 import mongoose from 'mongoose'
 
-export const REPORT_TYPES = [
-  'fallen_tree',
-  'landslide',
-  'flooding',
-  'vegetation_damage',
-  'overcrowding',
-  'other',
-]
-export const REPORT_SEVERITIES = ['low', 'medium', 'high']
-
 const pointSchema = new mongoose.Schema(
   {
     type: { type: String, enum: ['Point'], default: 'Point' },
@@ -21,8 +11,12 @@ const pointSchema = new mongoose.Schema(
 const reportSchema = new mongoose.Schema(
   {
     author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    type: { type: String, enum: REPORT_TYPES, required: true },
-    severity: { type: String, enum: REPORT_SEVERITIES, required: true },
+    type: {
+      type: String,
+      enum: ['fallen_tree', 'landslide', 'flooding', 'vegetation_damage', 'overcrowding', 'other'],
+      required: true,
+    },
+    severity: { type: String, enum: ['low', 'medium', 'high'], required: true },
     description: { type: String },
     photoUrl: { type: String },
     location: { type: pointSchema, required: true },

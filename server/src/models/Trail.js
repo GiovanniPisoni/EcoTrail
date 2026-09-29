@@ -1,7 +1,5 @@
 import mongoose from 'mongoose'
 
-export const TRAIL_STATUSES = ['free', 'crowded', 'at_risk', 'closed']
-
 const lineStringSchema = new mongoose.Schema(
   {
     type: { type: String, enum: ['LineString'], default: 'LineString' },
@@ -24,7 +22,7 @@ const trailSchema = new mongoose.Schema(
     path: { type: lineStringSchema, required: true },
     status: {
       type: String,
-      enum: TRAIL_STATUSES,
+      enum: ['free', 'crowded', 'at_risk', 'closed'],
       default: 'free',
     },
     distanceKm: { type: Number, min: 0 },

@@ -6,16 +6,10 @@ const props = defineProps({
   status: {
     type: String,
     required: true
-  },
-  statuses: {
-    type: Object,
-    default: () => TRAIL_STATUSES
   }
 })
 
-const statusInfo = computed(
-  () => props.statuses[props.status] ?? Object.values(props.statuses)[0]
-)
+const statusInfo = computed(() => TRAIL_STATUSES[props.status] ?? TRAIL_STATUSES.free)
 </script>
 
 <template>
