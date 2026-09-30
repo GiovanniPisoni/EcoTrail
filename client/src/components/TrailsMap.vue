@@ -181,6 +181,8 @@ onUnmounted(() => {
   map?.remove()
   map = null
 })
+
+defineExpose({ refresh: loadTrails })
 </script>
 
 <template>
