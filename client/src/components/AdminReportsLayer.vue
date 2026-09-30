@@ -48,7 +48,8 @@ function buildPopupContent(report) {
   const container = document.createElement('div')
 
   const title = document.createElement('strong')
-  title.textContent = REPORT_TYPE_OPTIONS.find((option) => option.value === report.type)?.label ?? report.type
+  title.textContent =
+    REPORT_TYPE_OPTIONS.find((option) => option.value === report.type)?.label ?? report.type
   container.append(title)
 
   container.append(document.createElement('br'))
@@ -80,11 +81,7 @@ function renderMarkers() {
   }
 }
 
-watch(
-  () => props.reports,
-  renderMarkers,
-  { immediate: true }
-)
+watch(() => props.reports, renderMarkers, { immediate: true })
 
 watch(
   () => props.selectedId,

@@ -5,17 +5,17 @@ export const TRAIL_STATUSES = ['free', 'crowded', 'at_risk', 'closed']
 const lineStringSchema = new mongoose.Schema(
   {
     type: { type: String, enum: ['LineString'], default: 'LineString' },
-    coordinates: { type: [[Number]], required: true },
+    coordinates: { type: [[Number]], required: true }
   },
-  { _id: false },
+  { _id: false }
 )
 
 const fragileSegmentSchema = new mongoose.Schema(
   {
     label: { type: String },
-    path: { type: lineStringSchema, required: true },
+    path: { type: lineStringSchema, required: true }
   },
-  { _id: false },
+  { _id: false }
 )
 
 const trailSchema = new mongoose.Schema(
@@ -25,15 +25,15 @@ const trailSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: TRAIL_STATUSES,
-      default: 'free',
+      default: 'free'
     },
     distanceKm: { type: Number, min: 0 },
     durationMinutes: { type: Number, min: 0 },
     difficulty: { type: String, enum: ['easy', 'medium', 'hard'] },
     photoUrl: { type: String },
-    fragileSegments: { type: [fragileSegmentSchema], default: [] },
+    fragileSegments: { type: [fragileSegmentSchema], default: [] }
   },
-  { timestamps: true },
+  { timestamps: true }
 )
 
 trailSchema.index({ path: '2dsphere' })

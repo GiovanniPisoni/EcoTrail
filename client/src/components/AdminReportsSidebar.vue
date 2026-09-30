@@ -169,10 +169,17 @@ onMounted(loadReports)
           @click="onSelect(report)"
         >
           <div class="admin-reports-sidebar__row">
-            <span class="admin-reports-sidebar__icon" v-html="reportTypeOption(report.type)?.icon" />
+            <span
+              class="admin-reports-sidebar__icon"
+              v-html="reportTypeOption(report.type)?.icon"
+            />
             <div class="admin-reports-sidebar__row-text">
-              <span class="admin-reports-sidebar__name">{{ reportTypeOption(report.type)?.label ?? report.type }}</span>
-              <span class="admin-reports-sidebar__trail">{{ report.trail?.name ?? 'Unknown trail' }}</span>
+              <span class="admin-reports-sidebar__name">{{
+                reportTypeOption(report.type)?.label ?? report.type
+              }}</span>
+              <span class="admin-reports-sidebar__trail">{{
+                report.trail?.name ?? 'Unknown trail'
+              }}</span>
             </div>
             <span
               class="admin-reports-sidebar__severity"
@@ -195,7 +202,9 @@ onMounted(loadReports)
               {{ report.description }}
             </p>
 
-            <p class="admin-reports-sidebar__author">Reported by {{ report.author?.email ?? 'unknown' }}</p>
+            <p class="admin-reports-sidebar__author">
+              Reported by {{ report.author?.email ?? 'unknown' }}
+            </p>
 
             <label v-if="tab === 'pending'" class="admin-reports-sidebar__note-field">
               <span>Note (optional)</span>
@@ -203,10 +212,16 @@ onMounted(loadReports)
             </label>
 
             <div v-if="tab === 'pending'" class="admin-reports-sidebar__actions" @click.stop>
-              <BaseButton variant="secondary" :disabled="reviewing" @click="review(report, 'rejected')">
+              <BaseButton
+                variant="secondary"
+                :disabled="reviewing"
+                @click="review(report, 'rejected')"
+              >
                 Reject
               </BaseButton>
-              <BaseButton :disabled="reviewing" @click="review(report, 'validated')">Validate</BaseButton>
+              <BaseButton :disabled="reviewing" @click="review(report, 'validated')"
+                >Validate</BaseButton
+              >
             </div>
 
             <p v-else-if="report.validationNote" class="admin-reports-sidebar__note-readonly">

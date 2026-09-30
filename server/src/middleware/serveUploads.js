@@ -5,7 +5,7 @@ const options = {
   maxAge: '7d',
   immutable: true,
   index: false,
-  setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff'),
+  setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff')
 }
 
 let cached = { dir: null, handler: null }

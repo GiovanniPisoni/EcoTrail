@@ -19,7 +19,7 @@ async function login() {
   const res = await fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'hiker@ecotrail.test', password: 'hiker123' }),
+    body: JSON.stringify({ email: 'hiker@ecotrail.test', password: 'hiker123' })
   })
   const data = await res.json()
 
@@ -58,16 +58,16 @@ async function subscribe() {
 
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(publicKey),
+    applicationServerKey: urlBase64ToUint8Array(publicKey)
   })
 
   const res = await fetch('/api/push/subscribe', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token.value}`,
+      Authorization: `Bearer ${token.value}`
     },
-    body: JSON.stringify(subscription.toJSON()),
+    body: JSON.stringify(subscription.toJSON())
   })
   const data = await res.json()
 
@@ -77,7 +77,7 @@ async function subscribe() {
 async function sendTest() {
   const res = await fetch('/api/push/test', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token.value}` },
+    headers: { Authorization: `Bearer ${token.value}` }
   })
   const data = await res.json()
 

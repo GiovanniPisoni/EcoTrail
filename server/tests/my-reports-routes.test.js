@@ -19,9 +19,9 @@ function trailAt(name, latitude) {
       type: 'LineString',
       coordinates: [
         [10.9, latitude],
-        [10.91, latitude],
-      ],
-    },
+        [10.91, latitude]
+      ]
+    }
   }
 }
 
@@ -39,7 +39,7 @@ async function createReport(author, trail, overrides = {}) {
     severity: 'medium',
     location: { type: 'Point', coordinates: [10.905, 46.18] },
     validationStatus: 'pending',
-    ...overrides,
+    ...overrides
   })
 }
 
@@ -82,10 +82,7 @@ describe('GET /api/reports/me', () => {
     const res = await request(app).get('/api/reports/me').set('Authorization', `Bearer ${token}`)
 
     expect(res.status).toBe(200)
-    expect(res.body.reports.map((r) => r.id)).toEqual([
-      newer._id.toString(),
-      older._id.toString(),
-    ])
+    expect(res.body.reports.map((r) => r.id)).toEqual([newer._id.toString(), older._id.toString()])
     expect(res.body.reports[0].trail).toEqual({ id: trail._id.toString(), name: 'Test trail' })
   })
 
@@ -144,7 +141,7 @@ describe('PATCH /api/reports/:id/withdraw', () => {
 
       expect(res.status).toBe(409)
       expect((await Report.findById(report._id)).validationStatus).toBe(validationStatus)
-    },
+    }
   )
 
   it('withdraws a pending report owned by the caller', async () => {

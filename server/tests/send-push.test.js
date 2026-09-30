@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeAll } from 'vitest'
 vi.mock('web-push', () => ({
   default: {
     setVapidDetails: vi.fn(),
-    sendNotification: vi.fn(),
-  },
+    sendNotification: vi.fn()
+  }
 }))
 
 let webpush
@@ -22,7 +22,7 @@ beforeAll(async () => {
 function fakeUser(subscriptions) {
   return {
     pushSubscriptions: subscriptions,
-    save: vi.fn(async function () {}),
+    save: vi.fn(async function () {})
   }
 }
 
@@ -44,7 +44,7 @@ describe('sendPush', () => {
 
     const user = fakeUser([
       { endpoint: 'https://push.test/valid', keys: { p256dh: 'x', auth: 'y' } },
-      { endpoint: 'https://push.test/expired', keys: { p256dh: 'x', auth: 'y' } },
+      { endpoint: 'https://push.test/expired', keys: { p256dh: 'x', auth: 'y' } }
     ])
 
     await sendPush(user, { title: 'Test' })
@@ -55,7 +55,9 @@ describe('sendPush', () => {
   })
 
   it('propagates unexpected errors instead of silently dropping the subscription', async () => {
-    webpush.sendNotification.mockRejectedValueOnce(Object.assign(new Error('Boom'), { statusCode: 500 }))
+    webpush.sendNotification.mockRejectedValueOnce(
+      Object.assign(new Error('Boom'), { statusCode: 500 })
+    )
     const user = fakeUser([{ endpoint: 'https://push.test/a', keys: { p256dh: 'x', auth: 'y' } }])
 
     await expect(sendPush(user, { title: 'Test' })).rejects.toThrow('Boom')
