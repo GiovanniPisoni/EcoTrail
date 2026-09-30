@@ -34,7 +34,12 @@ const router = createRouter({
       component: () => import('@/layouts/AdminLayout.vue'),
       meta: { requiresAuth: true, role: 'admin' },
       children: [
-        { path: '', name: 'admin-home', component: () => import('@/views/AdminHomeView.vue') }
+        { path: '', name: 'admin-home', component: () => import('@/views/AdminHomeView.vue') },
+        {
+          path: 'trails',
+          name: 'admin-trails',
+          component: () => import('@/views/AdminTrailsView.vue')
+        }
       ]
     },
     {
