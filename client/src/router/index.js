@@ -21,7 +21,8 @@ const router = createRouter({
       component: () => import('@/layouts/HikerLayout.vue'),
       meta: { requiresAuth: true, role: 'hiker' },
       children: [
-        { path: '', name: 'hiker-home', component: () => import('@/views/HikerHomeView.vue') }
+        { path: '', name: 'hiker-home', component: () => import('@/views/HikerHomeView.vue') },
+        { path: 'profile', name: 'hiker-profile', component: () => import('@/views/ProfileView.vue') }
       ]
     },
     {

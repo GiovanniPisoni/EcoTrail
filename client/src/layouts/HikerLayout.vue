@@ -1,5 +1,5 @@
 <script setup>
-import { RouterView, useRouter } from 'vue-router'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -16,6 +16,7 @@ function handleLogout() {
     <header class="layout-header">
       <span class="brand">EcoTrail</span>
       <nav>
+        <RouterLink to="/profile" class="profile-link">My profile</RouterLink>
         <span class="user-email">{{ auth.user?.email }}</span>
         <button type="button" @click="handleLogout">Log out</button>
       </nav>
@@ -47,6 +48,17 @@ nav {
 
 .user-email {
   font-size: 0.9rem;
+}
+
+.profile-link {
+  color: var(--color-primary);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.profile-link:hover {
+  text-decoration: underline;
 }
 
 button {

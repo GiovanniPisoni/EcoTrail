@@ -30,7 +30,7 @@ const reportSchema = new mongoose.Schema(
 
     validationStatus: {
       type: String,
-      enum: ['pending', 'validated', 'rejected'],
+      enum: ['pending', 'validated', 'rejected', 'withdrawn'],
       default: 'pending',
     },
     validationNote: { type: String },
