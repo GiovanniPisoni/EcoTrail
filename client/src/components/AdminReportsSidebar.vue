@@ -19,8 +19,8 @@ const props = defineProps({
 const emit = defineEmits(['select', 'reports-loaded', 'reviewed'])
 
 const TAB_OPTIONS = [
-  { value: 'pending', label: 'Review Queue' },
-  { value: 'validated', label: 'Verified Logs' },
+  { value: 'pending', label: 'Review queue' },
+  { value: 'validated', label: 'Verified logs' },
   { value: 'rejected', label: 'Flagged/Archived' }
 ]
 
@@ -199,7 +199,7 @@ onMounted(loadReports)
             />
 
             <p v-if="report.description" class="admin-reports-sidebar__description">
-              {{ report.description }}
+              &ldquo;{{ report.description }}&rdquo;
             </p>
 
             <p class="admin-reports-sidebar__author">
@@ -231,6 +231,8 @@ onMounted(loadReports)
         </BaseCard>
       </li>
     </ul>
+
+    <slot name="footer" />
   </aside>
 </template>
 
@@ -278,6 +280,7 @@ onMounted(loadReports)
 
 .admin-reports-sidebar__tab {
   flex: 1;
+  min-width: 0;
   padding: 0.5rem 0.75rem;
   border: none;
   border-radius: var(--radius-pill);
@@ -286,6 +289,7 @@ onMounted(loadReports)
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.85rem;
+  overflow-wrap: break-word;
   cursor: pointer;
 }
 
@@ -412,6 +416,7 @@ onMounted(loadReports)
 .admin-reports-sidebar__description {
   margin: 0;
   font-size: 0.9rem;
+  font-style: italic;
 }
 
 .admin-reports-sidebar__author {
@@ -451,5 +456,23 @@ onMounted(loadReports)
 
 .admin-reports-sidebar__actions > * {
   flex: 1;
+}
+
+@media (max-width: 640px) {
+  .admin-reports-sidebar__tabs {
+    flex-wrap: wrap;
+    row-gap: 0.4rem;
+  }
+
+  .admin-reports-sidebar__tab {
+    flex: 0 1 auto;
+    white-space: nowrap;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.8rem;
+  }
+
+  .admin-reports-sidebar__severity-option {
+    flex: 0 0 auto;
+  }
 }
 </style>
