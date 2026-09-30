@@ -27,6 +27,25 @@ router.post('/subscribe', requireAuth, async (req, res) => {
   res.status(201).json({ ok: true })
 })
 
+router.delete('/subscribe', requireAuth, async (req, res) => {
+  const { endpoint } = req.body
+
+  if (!endpoint) {
+    return res.status(400).json({ error: 'endpoint is required' })
+  }
+
+  const user = await User.findById(req.user.id)
+  const initialLength = user.pushSubscriptions.length
+  user.pushSubscriptions = user.pushSubscriptions.filter((sub) => sub.endpoint !== endpoint)
+
+  if (user.pushSubscriptions.length === initialLength) {
+    return res.status(404).json({ error: 'Subscription not found' })
+  }
+
+  await user.save()
+  res.json({ ok: true })
+})
+
 router.post('/test', requireAuth, async (req, res) => {
   const user = await User.findById(req.user.id)
 
