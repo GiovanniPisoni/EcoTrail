@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import User from '../models/User.js'
+import Trail from '../models/Trail.js'
 import { requireAuth } from '../middleware/auth.js'
 import { sendPush } from '../services/sendPush.js'
 
@@ -53,10 +54,19 @@ router.post('/test', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'No push subscription registered for this user' })
   }
 
-  await sendPush(user, {
-    title: 'EcoTrail',
-    body: 'Notification test successful!'
-  })
+  const payload = { title: 'EcoTrail', body: 'Notification test successful!' }
+
+  const { trailId } = req.body || {}
+  if (trailId) {
+    const trail = await Trail.findById(trailId).catch(() => null)
+    if (!trail) {
+      return res.status(404).json({ error: 'Trail not found' })
+    }
+    payload.body = `Test alert for ${trail.name}`
+    payload.url = `/?trail=${trail._id}`
+  }
+
+  await sendPush(user, payload)
 
   res.json({ ok: true })
 })

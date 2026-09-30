@@ -3,6 +3,7 @@ import { ref } from 'vue'
 
 const log = ref([])
 const token = ref('')
+const trailId = ref('')
 
 function addLog(message) {
   log.value.push(message)
@@ -79,7 +80,11 @@ async function subscribe() {
 async function sendTest() {
   const res = await fetch('/api/push/test', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token.value}` }
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token.value}`
+    },
+    body: JSON.stringify(trailId.value ? { trailId: trailId.value } : {})
   })
   const data = await res.json()
 
@@ -94,7 +99,10 @@ async function sendTest() {
       <li><button @click="login">Log in as test user</button></li>
       <li><button @click="registerServiceWorker">Register Service Worker</button></li>
       <li><button @click="subscribe">Request permission and subscribe</button></li>
-      <li><button @click="sendTest">Send test notification</button></li>
+      <li>
+        <button @click="sendTest">Send test notification</button>
+        <input v-model="trailId" placeholder="Trail id (optional, to test the click-through)" size="40" />
+      </li>
     </ol>
 
     <h3>Log</h3>
