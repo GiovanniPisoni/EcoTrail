@@ -33,7 +33,9 @@ async function login() {
 }
 
 async function registerServiceWorker() {
-  const registration = await navigator.serviceWorker.register('/sw.js')
+  const { registerSW } = await import('virtual:pwa-register')
+  registerSW({ immediate: true })
+  const registration = await navigator.serviceWorker.ready
   addLog('Service Worker registered.')
   return registration
 }
