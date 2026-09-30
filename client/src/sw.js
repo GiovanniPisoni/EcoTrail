@@ -7,21 +7,28 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'EcoTrail'
   const options = {
     body: data.body || '',
-    icon: '/favicon.ico'
+    icon: '/favicon.ico',
+    data: { url: data.url || '/' }
   }
 
   event.waitUntil(self.registration.showNotification(title, options))
 })
 
 self.addEventListener('notificationclick', (event) => {
+  const url = event.notification.data?.url || '/'
   event.notification.close()
 
   event.waitUntil(
-    self.clients.matchAll({ type: 'window' }).then((windowClients) => {
-      if (windowClients.length > 0) {
-        return windowClients[0].focus()
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windowClients) => {
+      for (const client of windowClients) {
+        if ('focus' in client) {
+          if ('navigate' in client) {
+            await client.navigate(url)
+          }
+          return client.focus()
+        }
       }
-      return self.clients.openWindow('/')
+      return self.clients.openWindow(url)
     })
   )
 })
