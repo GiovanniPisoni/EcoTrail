@@ -22,7 +22,7 @@ describe('base models', () => {
     const user = await User.create({
       email: 'test@ecotrail.test',
       password: 'hashed',
-      role: 'hiker',
+      role: 'hiker'
     })
     expect(user.email).toBe('test@ecotrail.test')
     expect(user.role).toBe('hiker')
@@ -35,9 +35,9 @@ describe('base models', () => {
         type: 'LineString',
         coordinates: [
           [11, 44],
-          [11.01, 44.01],
-        ],
-      },
+          [11.01, 44.01]
+        ]
+      }
     })
     expect(trail.status).toBe('free')
     expect(trail.distanceKm).toBeUndefined()
@@ -51,13 +51,13 @@ describe('base models', () => {
         type: 'LineString',
         coordinates: [
           [11, 44],
-          [11.01, 44.01],
-        ],
+          [11.01, 44.01]
+        ]
       },
       distanceKm: 4.2,
       durationMinutes: 90,
       difficulty: 'medium',
-      photoUrl: '/images/trail-placeholder.jpg',
+      photoUrl: '/images/trail-placeholder.jpg'
     })
 
     const saved = await Trail.findById(trail._id)
@@ -72,11 +72,13 @@ describe('base models', () => {
       type: 'LineString',
       coordinates: [
         [11, 44],
-        [11.01, 44.01],
-      ],
+        [11.01, 44.01]
+      ]
     }
 
-    await expect(Trail.create({ name: 'Bad difficulty', path, difficulty: 'extreme' })).rejects.toThrow()
+    await expect(
+      Trail.create({ name: 'Bad difficulty', path, difficulty: 'extreme' })
+    ).rejects.toThrow()
     await expect(Trail.create({ name: 'Bad distance', path, distanceKm: -1 })).rejects.toThrow()
   })
 
@@ -84,7 +86,7 @@ describe('base models', () => {
     const author = await User.create({
       email: 'author@ecotrail.test',
       password: 'hashed',
-      role: 'hiker',
+      role: 'hiker'
     })
     const trail = await Trail.create({
       name: 'Test trail for report',
@@ -92,9 +94,9 @@ describe('base models', () => {
         type: 'LineString',
         coordinates: [
           [11, 44],
-          [11.01, 44.01],
-        ],
-      },
+          [11.01, 44.01]
+        ]
+      }
     })
 
     const report = await Report.create({
@@ -102,7 +104,7 @@ describe('base models', () => {
       type: 'fallen_tree',
       severity: 'medium',
       location: { type: 'Point', coordinates: [11.005, 44.005] },
-      trail: trail._id,
+      trail: trail._id
     })
 
     expect(report.validationStatus).toBe('pending')

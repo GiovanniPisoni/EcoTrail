@@ -3,15 +3,15 @@ import mongoose from 'mongoose'
 const pointSchema = new mongoose.Schema(
   {
     type: { type: String, enum: ['Point'], default: 'Point' },
-    coordinates: { type: [Number], required: true }, 
+    coordinates: { type: [Number], required: true }
   },
-  { _id: false },
+  { _id: false }
 )
 
 const userPresenceSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
   location: { type: pointSchema, required: true },
-  updatedAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 })
 
 userPresenceSchema.index({ location: '2dsphere' })

@@ -40,14 +40,19 @@ router.post('/login', async (req, res) => {
   }
 
   const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: TOKEN_EXPIRY,
+    expiresIn: TOKEN_EXPIRY
   })
 
   res.json({ token })
 })
 
-router.get('/me', requireAuth, (req, res) => {
-  res.json(req.user)
+router.get('/me', requireAuth, async (req, res) => {
+  const user = await User.findById(req.user.id)
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' })
+  }
+
+  res.json({ id: user._id, email: user.email, role: user.role, reputation: user.reputation })
 })
 
 export default router

@@ -49,6 +49,6 @@ export function enrichTrail(trail) {
     distanceKm,
     difficulty,
     durationMinutes: trail.durationMinutes ?? estimateDurationMinutes(distanceKm, difficulty),
-    photoUrl: trail.photoUrl ?? PLACEHOLDER_PHOTO_URL,
+    photoUrl: trail.photoUrl ?? PLACEHOLDER_PHOTO_URL
   }
 }

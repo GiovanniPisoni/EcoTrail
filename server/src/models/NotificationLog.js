@@ -6,9 +6,9 @@ const notificationLogSchema = new mongoose.Schema(
     type: { type: String, enum: ['emergency', 'approach', 'overcrowd'], required: true },
     relatedTrail: { type: mongoose.Schema.Types.ObjectId, ref: 'Trail' },
     relatedReport: { type: mongoose.Schema.Types.ObjectId, ref: 'Report' },
-    message: { type: String, required: true },
+    message: { type: String, required: true }
   },
-  { timestamps: { createdAt: 'sentAt', updatedAt: false } },
+  { timestamps: { createdAt: 'sentAt', updatedAt: false } }
 )
 
 notificationLogSchema.index({ recipient: 1, sentAt: -1 })

@@ -3,7 +3,7 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'EcoTrail'
   const options = {
     body: data.body || '',
-    icon: '/favicon.ico',
+    icon: '/favicon.ico'
   }
 
   event.waitUntil(self.registration.showNotification(title, options))
@@ -18,6 +18,6 @@ self.addEventListener('notificationclick', (event) => {
         return windowClients[0].focus()
       }
       return self.clients.openWindow('/')
-    }),
+    })
   )
 })
