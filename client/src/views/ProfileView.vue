@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/client.js'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -57,7 +58,22 @@ onMounted(loadReports)
 <template>
   <main class="profile-page">
     <BaseCard class="profile-page__account">
-      <h1 class="profile-page__title">My profile</h1>
+      <div class="profile-page__header">
+        <h1 class="profile-page__title">My profile</h1>
+        <RouterLink to="/" class="profile-page__close" title="Back to map">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </RouterLink>
+      </div>
       <dl class="profile-page__account-stats">
         <div>
           <dt>Email</dt>
@@ -141,9 +157,38 @@ onMounted(loadReports)
   gap: 1.5rem;
 }
 
+.profile-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
 .profile-page__title {
-  margin: 0 0 1rem;
+  margin: 0;
   font-size: 1.4rem;
+}
+
+.profile-page__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.profile-page__close:hover {
+  background: var(--color-background);
+  color: var(--color-primary);
+}
+
+.profile-page__close svg {
+  width: 20px;
+  height: 20px;
 }
 
 .profile-page__account-stats {
