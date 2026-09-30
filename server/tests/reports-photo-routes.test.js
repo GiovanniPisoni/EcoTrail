@@ -21,7 +21,7 @@ const validFields = {
   severity: 'medium',
   description: 'Big pine across the path',
   latitude: 46.1805,
-  longitude: 10.905,
+  longitude: 10.905
 }
 
 let mongod
@@ -37,14 +37,18 @@ function trailAt(name, latitude) {
       type: 'LineString',
       coordinates: [
         [10.9, latitude],
-        [10.91, latitude],
-      ],
-    },
+        [10.91, latitude]
+      ]
+    }
   }
 }
 
 async function createUserAndToken() {
-  const user = await User.create({ email: 'hiker@ecotrail.test', password: 'hashed', role: 'hiker' })
+  const user = await User.create({
+    email: 'hiker@ecotrail.test',
+    password: 'hashed',
+    role: 'hiker'
+  })
   const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' })
   return { user, token }
 }
@@ -71,11 +75,18 @@ beforeAll(async () => {
   await mongoose.connect(mongod.getUri())
   await Trail.init()
 
-  smallJpeg = await sharp({ create: { width: 800, height: 600, channels: 3, background: '#336699' } })
+  smallJpeg = await sharp({
+    create: { width: 800, height: 600, channels: 3, background: '#336699' }
+  })
     .jpeg()
     .toBuffer()
   bigJpeg = await sharp({
-    create: { width: 4000, height: 3000, channels: 3, noise: { type: 'gaussian', mean: 128, sigma: 30 } },
+    create: {
+      width: 4000,
+      height: 3000,
+      channels: 3,
+      noise: { type: 'gaussian', mean: 128, sigma: 30 }
+    }
   })
     .jpeg({ quality: 85 })
     .toBuffer()
@@ -175,7 +186,7 @@ describe('POST /api/reports with a photo', () => {
 
     const res = await submit(token, {
       fields: { ...validFields, type: 'tree' },
-      photo: Buffer.from('definitely not an image'),
+      photo: Buffer.from('definitely not an image')
     })
 
     expect(res.status).toBe(400)
@@ -211,7 +222,7 @@ describe('POST /api/reports with a photo', () => {
 
     const res = await submit(token, { photo: smallJpeg }).attach('photo', smallJpeg, {
       filename: 'second.jpg',
-      contentType: 'image/jpeg',
+      contentType: 'image/jpeg'
     })
 
     expect(res.status).toBe(400)

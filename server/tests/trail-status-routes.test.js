@@ -18,8 +18,8 @@ function samplePath() {
     type: 'LineString',
     coordinates: [
       [10.9, 46.18],
-      [10.91, 46.18],
-    ],
+      [10.91, 46.18]
+    ]
   }
 }
 
@@ -131,7 +131,7 @@ describe('PATCH /api/trails/:id/status', () => {
 
     const res = await patchStatus(trail._id, token, {
       status: 'at_risk',
-      reason: '  Rockfall reported  ',
+      reason: '  Rockfall reported  '
     })
 
     trailEvents.off(TRAIL_STATUS_CHANGED, listener)
@@ -158,8 +158,8 @@ describe('PATCH /api/trails/:id/status', () => {
         trailName: 'Test trail',
         previousStatus: 'free',
         newStatus: 'at_risk',
-        reason: 'Rockfall reported',
-      }),
+        reason: 'Rockfall reported'
+      })
     )
   })
 })

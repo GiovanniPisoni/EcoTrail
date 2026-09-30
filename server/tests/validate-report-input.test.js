@@ -6,7 +6,7 @@ const validBody = {
   severity: 'medium',
   description: 'Big pine across the path',
   latitude: 46.18,
-  longitude: 10.9,
+  longitude: 10.9
 }
 
 describe('validateReportInput', () => {
@@ -15,7 +15,11 @@ describe('validateReportInput', () => {
   })
 
   it('accepts numeric strings for the coordinates (multipart/form-data)', () => {
-    const { value, errors } = validateReportInput({ ...validBody, latitude: '46.18', longitude: ' 10.9 ' })
+    const { value, errors } = validateReportInput({
+      ...validBody,
+      latitude: '46.18',
+      longitude: ' 10.9 '
+    })
 
     expect(errors).toBeUndefined()
     expect(value.latitude).toBe(46.18)
@@ -39,13 +43,15 @@ describe('validateReportInput', () => {
       const atLimit = 'a'.repeat(MAX_DESCRIPTION_LENGTH)
 
       expect(validateReportInput({ ...validBody, description: atLimit }).errors).toBeUndefined()
-      expect(validateReportInput({ ...validBody, description: atLimit + 'a' }).errors).toHaveProperty(
-        'description',
-      )
+      expect(
+        validateReportInput({ ...validBody, description: atLimit + 'a' }).errors
+      ).toHaveProperty('description')
     })
 
     it('rejects a value that is not a string', () => {
-      expect(validateReportInput({ ...validBody, description: 123 }).errors).toHaveProperty('description')
+      expect(validateReportInput({ ...validBody, description: 123 }).errors).toHaveProperty(
+        'description'
+      )
     })
   })
 
@@ -67,25 +73,37 @@ describe('validateReportInput', () => {
   })
 
   describe('coordinates', () => {
-    it.each([91, -91, 'abc', '', null, undefined, true, 'Infinity'])('rejects the latitude %j', (latitude) => {
-      expect(validateReportInput({ ...validBody, latitude }).errors).toHaveProperty('latitude')
-    })
+    it.each([91, -91, 'abc', '', null, undefined, true, 'Infinity'])(
+      'rejects the latitude %j',
+      (latitude) => {
+        expect(validateReportInput({ ...validBody, latitude }).errors).toHaveProperty('latitude')
+      }
+    )
 
     it.each([181, -181, 'abc', '', null, undefined, false, 'Infinity'])(
       'rejects the longitude %j',
       (longitude) => {
         expect(validateReportInput({ ...validBody, longitude }).errors).toHaveProperty('longitude')
-      },
+      }
     )
 
     it('accepts the extreme valid values', () => {
-      expect(validateReportInput({ ...validBody, latitude: 90, longitude: -180 }).errors).toBeUndefined()
-      expect(validateReportInput({ ...validBody, latitude: -90, longitude: 180 }).errors).toBeUndefined()
+      expect(
+        validateReportInput({ ...validBody, latitude: 90, longitude: -180 }).errors
+      ).toBeUndefined()
+      expect(
+        validateReportInput({ ...validBody, latitude: -90, longitude: 180 }).errors
+      ).toBeUndefined()
     })
   })
 
   it('reports every invalid field at once', () => {
-    const { errors, value } = validateReportInput({ type: 'x', severity: 'y', latitude: 'a', longitude: 'b' })
+    const { errors, value } = validateReportInput({
+      type: 'x',
+      severity: 'y',
+      latitude: 'a',
+      longitude: 'b'
+    })
 
     expect(value).toBeUndefined()
     expect(Object.keys(errors).sort()).toEqual(['latitude', 'longitude', 'severity', 'type'])
@@ -96,7 +114,7 @@ describe('validateReportInput', () => {
       'latitude',
       'longitude',
       'severity',
-      'type',
+      'type'
     ])
   })
 })

@@ -4,7 +4,7 @@ export const MAX_PHOTO_BYTES = 10 * 1024 * 1024
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_PHOTO_BYTES, files: 1, fields: 10, fieldSize: 10 * 1024 },
+  limits: { fileSize: MAX_PHOTO_BYTES, files: 1, fields: 10, fieldSize: 10 * 1024 }
 }).single('photo')
 
 export function uploadReportPhoto(req, res, next) {

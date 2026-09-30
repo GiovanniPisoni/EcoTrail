@@ -91,7 +91,7 @@ describe('GET /api/auth/me', () => {
       email: 'profile@ecotrail.test',
       password: hashed,
       role: 'hiker',
-      reputation: 7,
+      reputation: 7
     })
 
     const login = await request(app)
@@ -107,7 +107,7 @@ describe('GET /api/auth/me', () => {
       id: user._id.toString(),
       email: 'profile@ecotrail.test',
       role: 'hiker',
-      reputation: 7,
+      reputation: 7
     })
   })
 })

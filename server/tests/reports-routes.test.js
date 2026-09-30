@@ -19,9 +19,9 @@ function trailAt(name, latitude) {
       type: 'LineString',
       coordinates: [
         [10.9, latitude],
-        [10.91, latitude],
-      ],
-    },
+        [10.91, latitude]
+      ]
+    }
   }
 }
 
@@ -30,7 +30,7 @@ const validBody = {
   severity: 'medium',
   description: 'Big pine across the path',
   latitude: 46.1805,
-  longitude: 10.905,
+  longitude: 10.905
 }
 
 async function createUser(role = 'hiker', email = 'hiker@ecotrail.test') {
@@ -82,7 +82,7 @@ describe('POST /api/reports', () => {
       latitude: 46.1805,
       longitude: 10.905,
       validationStatus: 'pending',
-      trail: { id: near._id.toString(), name: 'Near trail' },
+      trail: { id: near._id.toString(), name: 'Near trail' }
     })
     expect(res.body.id).toBeDefined()
     expect(res.body.createdAt).toBeDefined()
@@ -135,7 +135,7 @@ describe('POST /api/reports', () => {
       author: other._id.toString(),
       validationStatus: 'validated',
       trustScore: 99,
-      isSuspicious: true,
+      isSuspicious: true
     })
 
     expect(res.status).toBe(201)
@@ -154,7 +154,12 @@ describe('POST /api/reports', () => {
 
     expect(res.status).toBe(400)
     expect(res.body.error).toBe('Invalid report data')
-    expect(Object.keys(res.body.details).sort()).toEqual(['latitude', 'longitude', 'severity', 'type'])
+    expect(Object.keys(res.body.details).sort()).toEqual([
+      'latitude',
+      'longitude',
+      'severity',
+      'type'
+    ])
     expect(await Report.countDocuments()).toBe(0)
   })
 

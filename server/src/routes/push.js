@@ -36,7 +36,7 @@ router.post('/test', requireAuth, async (req, res) => {
 
   await sendPush(user, {
     title: 'EcoTrail',
-    body: 'Notification test successful!',
+    body: 'Notification test successful!'
   })
 
   res.json({ ok: true })

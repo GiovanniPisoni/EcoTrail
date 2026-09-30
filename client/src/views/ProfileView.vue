@@ -111,7 +111,10 @@ onMounted(loadReports)
                   report.trail?.name ?? 'Unknown trail'
                 }}</span>
               </div>
-              <StatusBadge :status="report.validationStatus" :statuses="REPORT_VALIDATION_STATUSES" />
+              <StatusBadge
+                :status="report.validationStatus"
+                :statuses="REPORT_VALIDATION_STATUSES"
+              />
             </div>
 
             <img
@@ -125,7 +128,10 @@ onMounted(loadReports)
               {{ report.description }}
             </p>
 
-            <p v-if="report.validationStatus === 'rejected' && report.validationNote" class="profile-page__item-note">
+            <p
+              v-if="report.validationStatus === 'rejected' && report.validationNote"
+              class="profile-page__item-note"
+            >
               Reason: {{ report.validationNote }}
             </p>
 

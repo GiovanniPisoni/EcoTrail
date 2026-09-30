@@ -7,8 +7,8 @@ import jwt from 'jsonwebtoken'
 vi.mock('web-push', () => ({
   default: {
     setVapidDetails: vi.fn(),
-    sendNotification: vi.fn().mockResolvedValue(),
-  },
+    sendNotification: vi.fn().mockResolvedValue()
+  }
 }))
 
 let mongod
@@ -40,7 +40,11 @@ beforeEach(async () => {
 })
 
 async function createUserAndToken() {
-  const user = await User.create({ email: 'hiker@ecotrail.test', password: 'hashed', role: 'hiker' })
+  const user = await User.create({
+    email: 'hiker@ecotrail.test',
+    password: 'hashed',
+    role: 'hiker'
+  })
   const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' })
   return { user, token }
 }
@@ -78,8 +82,14 @@ describe('POST /api/push/subscribe', () => {
     const { token } = await createUserAndToken()
     const body = { endpoint: 'https://push.test/a', keys: { p256dh: 'x', auth: 'y' } }
 
-    await request(app).post('/api/push/subscribe').set('Authorization', `Bearer ${token}`).send(body)
-    const res = await request(app).post('/api/push/subscribe').set('Authorization', `Bearer ${token}`).send(body)
+    await request(app)
+      .post('/api/push/subscribe')
+      .set('Authorization', `Bearer ${token}`)
+      .send(body)
+    const res = await request(app)
+      .post('/api/push/subscribe')
+      .set('Authorization', `Bearer ${token}`)
+      .send(body)
 
     expect(res.status).toBe(201)
     const updated = await User.findOne({ email: 'hiker@ecotrail.test' })

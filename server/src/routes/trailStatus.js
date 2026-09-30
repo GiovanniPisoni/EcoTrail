@@ -17,7 +17,7 @@ function historyEntryToResponse(entry) {
     newStatus: entry.newStatus,
     reason: entry.reason,
     changedBy: entry.changedBy ? { id: entry.changedBy._id, email: entry.changedBy.email } : null,
-    changedAt: entry.changedAt,
+    changedAt: entry.changedAt
   }
 }
 
@@ -57,7 +57,7 @@ router.patch('/:id/status', requireAuth, requireRole('admin'), async (req, res) 
     previousStatus,
     newStatus: status,
     reason,
-    changedBy: req.user.id,
+    changedBy: req.user.id
   })
 
   trailEvents.emit(TRAIL_STATUS_CHANGED, {
@@ -66,14 +66,14 @@ router.patch('/:id/status', requireAuth, requireRole('admin'), async (req, res) 
     previousStatus,
     newStatus: status,
     reason,
-    changedBy: req.user.id,
+    changedBy: req.user.id
   })
 
   res.json({
     id: trail._id,
     name: trail.name,
     status: trail.status,
-    historyEntry: historyEntryToResponse(historyEntry),
+    historyEntry: historyEntryToResponse(historyEntry)
   })
 })
 

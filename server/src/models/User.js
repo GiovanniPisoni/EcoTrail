@@ -5,10 +5,10 @@ const pushSubscriptionSchema = new mongoose.Schema(
     endpoint: { type: String, required: true },
     keys: {
       p256dh: { type: String, required: true },
-      auth: { type: String, required: true },
-    },
+      auth: { type: String, required: true }
+    }
   },
-  { timestamps: true, _id: false },
+  { timestamps: true, _id: false }
 )
 
 const userSchema = new mongoose.Schema(
@@ -21,10 +21,10 @@ const userSchema = new mongoose.Schema(
 
     notificationPreferences: {
       radiusMeters: { type: Number, default: 1000 },
-      alertTypes: { type: [String], default: ['emergency', 'approach', 'overcrowd'] },
-    },
+      alertTypes: { type: [String], default: ['emergency', 'approach', 'overcrowd'] }
+    }
   },
-  { timestamps: true },
+  { timestamps: true }
 )
 
 export default mongoose.model('User', userSchema)

@@ -13,9 +13,7 @@ const props = defineProps({
   }
 })
 
-const statusInfo = computed(
-  () => props.statuses[props.status] ?? Object.values(props.statuses)[0]
-)
+const statusInfo = computed(() => props.statuses[props.status] ?? Object.values(props.statuses)[0])
 </script>
 
 <template>

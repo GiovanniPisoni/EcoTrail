@@ -15,7 +15,7 @@ describe('trailEvents', () => {
       previousStatus: 'free',
       newStatus: 'at_risk',
       reason: 'Rockfall reported',
-      changedBy: 'user-1',
+      changedBy: 'user-1'
     })
 
     expect(logSpy).toHaveBeenCalledTimes(1)
@@ -44,7 +44,7 @@ describe('trailEvents', () => {
       previousStatus: 'free',
       newStatus: 'closed',
       reason: 'Test',
-      changedBy: 'user-1',
+      changedBy: 'user-1'
     })
 
     expect(extraListener).toHaveBeenCalledTimes(1)

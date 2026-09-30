@@ -19,7 +19,6 @@ const trails = rawTrails.map(enrichTrail)
 
 const HOURS_AGO = (hours) => new Date(Date.now() - hours * 60 * 60 * 1000)
 
-
 const FAKE_REPORTS = [
   { type: 'fallen_tree', severity: 'high', validationStatus: 'validated', createdAt: HOURS_AGO(3) },
   {

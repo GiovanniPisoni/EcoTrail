@@ -9,7 +9,7 @@ import {
   PHOTO_URL_PREFIX,
   deleteAllReportPhotos,
   deleteReportPhoto,
-  saveReportPhoto,
+  saveReportPhoto
 } from '../src/services/reportPhoto.js'
 
 let uploadsDir
@@ -17,7 +17,7 @@ let originalUploadsDir
 
 function solid(width, height, options = {}) {
   return sharp({
-    create: { width, height, channels: 3, background: options.background ?? '#336699' },
+    create: { width, height, channels: 3, background: options.background ?? '#336699' }
   })
 }
 
@@ -52,7 +52,12 @@ afterAll(async () => {
 describe('saveReportPhoto', () => {
   it('shrinks a photo of several MB to a few hundred KB', async () => {
     const bigPhoto = await sharp({
-      create: { width: 4000, height: 3000, channels: 3, noise: { type: 'gaussian', mean: 128, sigma: 30 } },
+      create: {
+        width: 4000,
+        height: 3000,
+        channels: 3,
+        noise: { type: 'gaussian', mean: 128, sigma: 30 }
+      }
     })
       .jpeg({ quality: 85 })
       .toBuffer()
@@ -114,7 +119,10 @@ describe('saveReportPhoto', () => {
   })
 
   it('accepts PNG and WebP and always saves a JPEG', async () => {
-    for (const buffer of [await solid(100, 100).png().toBuffer(), await solid(100, 100).webp().toBuffer()]) {
+    for (const buffer of [
+      await solid(100, 100).png().toBuffer(),
+      await solid(100, 100).webp().toBuffer()
+    ]) {
       const photoUrl = await saveReportPhoto(buffer)
       expect((await sharp(pathOf(photoUrl)).metadata()).format).toBe('jpeg')
     }
@@ -122,7 +130,7 @@ describe('saveReportPhoto', () => {
 
   it('puts transparent PNGs on a white background', async () => {
     const transparent = await sharp({
-      create: { width: 50, height: 50, channels: 4, background: { r: 255, g: 0, b: 0, alpha: 0 } },
+      create: { width: 50, height: 50, channels: 4, background: { r: 255, g: 0, b: 0, alpha: 0 } }
     })
       .png()
       .toBuffer()
@@ -135,7 +143,9 @@ describe('saveReportPhoto', () => {
 
   describe('rejects files that are not usable photos', () => {
     it('rejects data that is not an image', async () => {
-      await expect(saveReportPhoto(Buffer.from('this is not an image'))).rejects.toThrow(InvalidPhotoError)
+      await expect(saveReportPhoto(Buffer.from('this is not an image'))).rejects.toThrow(
+        InvalidPhotoError
+      )
     })
 
     it('rejects an empty file', async () => {
@@ -203,7 +213,7 @@ describe('deleteReportPhoto', () => {
       decoy,
       '',
       undefined,
-      null,
+      null
     ]) {
       await expect(deleteReportPhoto(url)).resolves.toBeUndefined()
     }

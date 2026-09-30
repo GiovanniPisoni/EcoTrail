@@ -13,9 +13,9 @@ function trailAt(name, latitude) {
       type: 'LineString',
       coordinates: [
         [10.9, latitude],
-        [10.91, latitude],
-      ],
-    },
+        [10.91, latitude]
+      ]
+    }
   }
 }
 

@@ -4,7 +4,7 @@ import {
   computeDistanceKm,
   enrichTrail,
   estimateDifficulty,
-  estimateDurationMinutes,
+  estimateDurationMinutes
 } from '../src/data/enrich-trails.js'
 
 describe('computeDistanceKm', () => {
@@ -12,8 +12,8 @@ describe('computeDistanceKm', () => {
     expect(
       computeDistanceKm([
         [10, 45],
-        [10, 46],
-      ]),
+        [10, 46]
+      ])
     ).toBe(111.2)
   })
 
@@ -22,8 +22,8 @@ describe('computeDistanceKm', () => {
       computeDistanceKm([
         [0, 0],
         [0, 1],
-        [0, 2],
-      ]),
+        [0, 2]
+      ])
     ).toBe(222.4)
   })
 
@@ -32,15 +32,15 @@ describe('computeDistanceKm', () => {
     expect(
       computeDistanceKm([
         [11, 44],
-        [11, 44],
-      ]),
+        [11, 44]
+      ])
     ).toBe(0)
   })
 
   it('rounds to one decimal place', () => {
     const km = computeDistanceKm([
       [11, 44],
-      [11.013, 44.007],
+      [11.013, 44.007]
     ])
     expect(km).toBe(Math.round(km * 10) / 10)
   })
@@ -54,12 +54,13 @@ describe('estimateDifficulty', () => {
     expect(estimateDifficulty('Giro del Lago', 14.1)).toBe('hard')
   })
 
-  it.each(['Sentiero attrezzato Donini', 'Sentiero ALPINISTICO Banal', 'Sentiero canalone Battisti'])(
-    'marks "%s" as hard even when it is short',
-    (name) => {
-      expect(estimateDifficulty(name, 0.5)).toBe('hard')
-    },
-  )
+  it.each([
+    'Sentiero attrezzato Donini',
+    'Sentiero ALPINISTICO Banal',
+    'Sentiero canalone Battisti'
+  ])('marks "%s" as hard even when it is short', (name) => {
+    expect(estimateDifficulty(name, 0.5)).toBe('hard')
+  })
 })
 
 describe('estimateDurationMinutes', () => {
@@ -87,9 +88,9 @@ describe('enrichTrail', () => {
       type: 'LineString',
       coordinates: [
         [10, 45],
-        [10, 45.1],
-      ],
-    },
+        [10, 45.1]
+      ]
+    }
   }
 
   it('adds distance, difficulty, duration and the placeholder photo', () => {
@@ -116,7 +117,7 @@ describe('enrichTrail', () => {
       distanceKm: 3,
       difficulty: 'easy',
       durationMinutes: 45,
-      photoUrl: 'https://example.test/trail.jpg',
+      photoUrl: 'https://example.test/trail.jpg'
     })
 
     expect(enriched.distanceKm).toBe(3)

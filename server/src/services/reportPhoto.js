@@ -36,7 +36,7 @@ export async function processReportPhoto(buffer) {
         width: MAX_PHOTO_DIMENSION,
         height: MAX_PHOTO_DIMENSION,
         fit: 'inside',
-        withoutEnlargement: true,
+        withoutEnlargement: true
       })
       .jpeg({ quality: JPEG_QUALITY })
       .toBuffer()

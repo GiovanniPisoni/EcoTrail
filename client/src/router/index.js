@@ -22,7 +22,11 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'hiker' },
       children: [
         { path: '', name: 'hiker-home', component: () => import('@/views/HikerHomeView.vue') },
-        { path: 'profile', name: 'hiker-profile', component: () => import('@/views/ProfileView.vue') }
+        {
+          path: 'profile',
+          name: 'hiker-profile',
+          component: () => import('@/views/ProfileView.vue')
+        }
       ]
     },
     {
@@ -30,7 +34,12 @@ const router = createRouter({
       component: () => import('@/layouts/AdminLayout.vue'),
       meta: { requiresAuth: true, role: 'admin' },
       children: [
-        { path: '', name: 'admin-home', component: () => import('@/views/AdminHomeView.vue') }
+        { path: '', name: 'admin-home', component: () => import('@/views/AdminHomeView.vue') },
+        {
+          path: 'trails',
+          name: 'admin-trails',
+          component: () => import('@/views/AdminTrailsView.vue')
+        }
       ]
     },
     {
