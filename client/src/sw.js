@@ -2,6 +2,11 @@ import { precacheAndRoute } from 'workbox-precaching'
 
 precacheAndRoute(self.__WB_MANIFEST)
 
+self.skipWaiting()
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim())
+})
+
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {}
   const title = data.title || 'EcoTrail'
@@ -20,13 +25,13 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windowClients) => {
-      for (const client of windowClients) {
-        if ('focus' in client) {
-          if ('navigate' in client) {
-            await client.navigate(url)
-          }
-          return client.focus()
-        }
+      const client = windowClients.find((c) => 'focus' in c)
+
+      if (client) {
+        if (!('navigate' in client)) return client.focus()
+
+        const navigated = await client.navigate(url).catch(() => null)
+        if (navigated) return navigated.focus()
       }
       return self.clients.openWindow(url)
     })
