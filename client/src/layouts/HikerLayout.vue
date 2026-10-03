@@ -1,6 +1,7 @@
 <script setup>
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import NotificationToggle from '@/components/NotificationToggle.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -16,6 +17,7 @@ function handleLogout() {
     <header class="layout-header">
       <span class="brand">EcoTrail</span>
       <nav>
+        <NotificationToggle />
         <RouterLink to="/profile" class="profile-link">My profile</RouterLink>
         <span class="user-email">{{ auth.user?.email }}</span>
         <button type="button" @click="handleLogout">Log out</button>
@@ -28,8 +30,10 @@ function handleLogout() {
 <style scoped>
 .layout-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem 1rem;
   padding: 1rem 1.5rem;
   background-color: var(--color-surface);
   color: var(--color-text);
@@ -42,8 +46,9 @@ function handleLogout() {
 
 nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem 1rem;
 }
 
 .user-email {

@@ -12,6 +12,10 @@ const props = defineProps({
   selectedTrailId: {
     type: String,
     default: null
+  },
+  focusTrailId: {
+    type: String,
+    default: null
   }
 })
 
@@ -152,7 +156,24 @@ function addLegend() {
   legend.addTo(map)
 }
 
-onMounted(() => {
+async function focusOnTrail(trailId) {
+  let feature
+  try {
+    ;({ data: feature } = await api.get(`/trails/${trailId}`))
+  } catch (err) {
+    console.error('Failed to load the trail to focus on:', err)
+    return false
+  }
+
+  const bounds = L.geoJSON(feature).getBounds()
+  if (!bounds.isValid()) return false
+
+  map.fitBounds(bounds, { maxZoom: 16 })
+  emit('trail-selected', String(feature.properties.id))
+  return true
+}
+
+onMounted(async () => {
   map = L.map(mapContainer.value).setView(PILOT_AREA_CENTER, PILOT_AREA_ZOOM)
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -170,7 +191,9 @@ onMounted(() => {
   resizeObserver.observe(mapContainer.value)
 
   map.on('moveend zoomend', loadTrails)
-  loadTrails()
+
+  const focused = props.focusTrailId && (await focusOnTrail(props.focusTrailId))
+  if (!focused) loadTrails()
 
   emit('map-ready', map)
 })
