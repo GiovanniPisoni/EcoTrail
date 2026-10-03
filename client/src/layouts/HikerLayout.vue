@@ -1,12 +1,19 @@
 <script setup>
-import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { onBeforeUnmount, onMounted } from 'vue'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import NotificationToggle from '@/components/NotificationToggle.vue'
+import { hikeModeActive, resumeHikeModeIfEnabled, stopHikeMode } from '@/utils/hikeMode.js'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+
+onMounted(resumeHikeModeIfEnabled)
+onBeforeUnmount(() => stopHikeMode())
 
 function handleLogout() {
+  stopHikeMode()
   auth.logout()
   router.push('/login')
 }
@@ -17,6 +24,15 @@ function handleLogout() {
     <header class="layout-header">
       <span class="brand">EcoTrail</span>
       <nav>
+        <button
+          v-if="hikeModeActive && route.name !== 'hiker-home'"
+          type="button"
+          class="hike-pill"
+          title="Tap to stop sharing your position"
+          @click="stopHikeMode()"
+        >
+          Hike mode on
+        </button>
         <NotificationToggle />
         <RouterLink to="/profile" class="profile-link">My profile</RouterLink>
         <span class="user-email">{{ auth.user?.email }}</span>
@@ -78,5 +94,16 @@ button {
 
 button:hover {
   background-color: var(--color-background);
+}
+
+.hike-pill {
+  border-color: var(--color-status-open);
+  background-color: var(--color-status-open);
+  color: var(--color-surface);
+}
+
+.hike-pill:hover {
+  background-color: var(--color-status-open);
+  filter: brightness(0.95);
 }
 </style>
