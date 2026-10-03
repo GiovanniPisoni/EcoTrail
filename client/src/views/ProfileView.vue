@@ -1,8 +1,9 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/client.js'
+import { onRealtime, RECONNECTED } from '@/utils/realtime.js'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
@@ -52,7 +53,17 @@ async function withdraw(report) {
   }
 }
 
-onMounted(loadReports)
+let stopRealtime = []
+
+onMounted(() => {
+  loadReports()
+  stopRealtime = [onRealtime('report:updated', loadReports), onRealtime(RECONNECTED, loadReports)]
+})
+
+onUnmounted(() => {
+  stopRealtime.forEach((stop) => stop())
+  stopRealtime = []
+})
 </script>
 
 <template>
