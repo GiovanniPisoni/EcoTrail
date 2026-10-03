@@ -7,7 +7,7 @@ const trailStatusHistorySchema = new mongoose.Schema(
     previousStatus: { type: String, enum: TRAIL_STATUSES, required: true },
     newStatus: { type: String, enum: TRAIL_STATUSES, required: true },
     reason: { type: String, required: true },
-    changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+    changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
   },
   { timestamps: { createdAt: 'changedAt', updatedAt: false } }
 )

@@ -8,6 +8,7 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "seed": "node src/seed.js",
+    "simulate:crowd": "node scripts/simulate-crowd.js",
     "test": "vitest run"
   },
   "dependencies": {
