@@ -101,7 +101,11 @@ async function sendTest() {
       <li><button @click="subscribe">Request permission and subscribe</button></li>
       <li>
         <button @click="sendTest">Send test notification</button>
-        <input v-model="trailId" placeholder="Trail id (optional, to test the click-through)" size="40" />
+        <input
+          v-model="trailId"
+          placeholder="Trail id (optional, to test the click-through)"
+          size="40"
+        />
       </li>
     </ol>
 

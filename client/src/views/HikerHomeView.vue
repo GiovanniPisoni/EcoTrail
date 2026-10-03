@@ -5,6 +5,7 @@ import SendReportView from '@/views/SendReportView.vue'
 import TrailsMap from '@/components/TrailsMap.vue'
 import TrailsSidebar from '@/components/TrailsSidebar.vue'
 import ReportsLayer from '@/components/ReportsLayer.vue'
+import HikeModeToggle from '@/components/HikeModeToggle.vue'
 
 const route = useRoute()
 
@@ -62,6 +63,7 @@ const sidebarOpen = ref(true)
         @map-ready="mapInstance = $event"
       />
       <ReportsLayer v-if="mapInstance" :map="mapInstance" :sidebar-open="sidebarOpen" />
+      <HikeModeToggle />
     </div>
 
     <button

@@ -1,6 +1,7 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import {
+  PUSH_SUBSCRIPTION_CHANGED,
   getExistingSubscription,
   isPushSupported,
   subscribeToPush,
@@ -15,15 +16,20 @@ const error = ref('')
 const explaining = ref(false)
 const showBlockedHelp = ref(false)
 
+async function refreshState() {
+  permission.value = Notification.permission
+  subscribed.value = permission.value === 'granted' && !!(await getExistingSubscription())
+}
+
 onMounted(async () => {
   supported.value = isPushSupported()
   if (!supported.value) return
 
-  permission.value = Notification.permission
-  if (permission.value === 'granted') {
-    subscribed.value = !!(await getExistingSubscription())
-  }
+  await refreshState()
+  window.addEventListener(PUSH_SUBSCRIPTION_CHANGED, refreshState)
 })
+
+onBeforeUnmount(() => window.removeEventListener(PUSH_SUBSCRIPTION_CHANGED, refreshState))
 
 async function enable() {
   loading.value = true
@@ -141,7 +147,12 @@ async function disable() {
             <button type="button" class="notification-toggle__cancel" @click="explaining = false">
               Not now
             </button>
-            <button type="button" class="notification-toggle__confirm" :disabled="loading" @click="enable">
+            <button
+              type="button"
+              class="notification-toggle__confirm"
+              :disabled="loading"
+              @click="enable"
+            >
               {{ loading ? 'Enabling…' : 'Enable alerts' }}
             </button>
           </div>
@@ -155,12 +166,16 @@ async function disable() {
           <h2>Trail alerts are blocked</h2>
           <p>
             You previously denied notification permission for EcoTrail, so the browser won't ask
-            again automatically. To turn trail alerts back on, open your browser's site settings
-            for this page (usually via the lock or info icon next to the address bar) and allow
+            again automatically. To turn trail alerts back on, open your browser's site settings for
+            this page (usually via the lock or info icon next to the address bar) and allow
             notifications, then reload the page.
           </p>
           <div class="notification-toggle__dialog-actions">
-            <button type="button" class="notification-toggle__cancel" @click="showBlockedHelp = false">
+            <button
+              type="button"
+              class="notification-toggle__cancel"
+              @click="showBlockedHelp = false"
+            >
               Got it
             </button>
           </div>

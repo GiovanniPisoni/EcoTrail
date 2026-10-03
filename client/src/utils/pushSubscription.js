@@ -1,5 +1,7 @@
 import api from '@/api/client.js'
 
+export const PUSH_SUBSCRIPTION_CHANGED = 'push-subscription-changed'
+
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
@@ -26,6 +28,7 @@ export async function subscribeToPush() {
   })
 
   await api.post('/push/subscribe', subscription.toJSON())
+  window.dispatchEvent(new Event(PUSH_SUBSCRIPTION_CHANGED))
   return subscription
 }
 
