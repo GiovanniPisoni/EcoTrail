@@ -2,7 +2,7 @@ import { REPORT_SEVERITIES, REPORT_TYPES } from '../models/Report.js'
 
 export const MAX_DESCRIPTION_LENGTH = 1000
 
-function parseCoordinate(raw) {
+export function parseCoordinate(raw) {
   if (typeof raw === 'number') return Number.isFinite(raw) ? raw : null
   if (typeof raw === 'string' && raw.trim() !== '') {
     const value = Number(raw)
