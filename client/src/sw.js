@@ -24,16 +24,18 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windowClients) => {
-      const client = windowClients.find((c) => 'focus' in c)
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then(async (windowClients) => {
+        const client = windowClients.find((c) => 'focus' in c)
 
-      if (client) {
-        if (!('navigate' in client)) return client.focus()
+        if (client) {
+          if (!('navigate' in client)) return client.focus()
 
-        const navigated = await client.navigate(url).catch(() => null)
-        if (navigated) return navigated.focus()
-      }
-      return self.clients.openWindow(url)
-    })
+          const navigated = await client.navigate(url).catch(() => null)
+          if (navigated) return navigated.focus()
+        }
+        return self.clients.openWindow(url)
+      })
   )
 })
