@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
@@ -7,6 +7,7 @@ import { TRAIL_STATUSES, getTrailStatusLabel } from '@/config/trailStatus.js'
 import { REPORT_TYPE_OPTIONS, REPORT_SEVERITY_OPTIONS } from '@/config/reportOptions.js'
 import { REPORT_VALIDATION_STATUSES } from '@/config/reportValidationStatus.js'
 import api from '@/api/client.js'
+import { onRealtime, RECONNECTED } from '@/utils/realtime.js'
 
 const props = defineProps({
   trailId: {
@@ -99,6 +100,29 @@ async function changeStatus() {
     submitting.value = false
   }
 }
+
+async function refreshQuietly(loaders) {
+  try {
+    await Promise.all(loaders.map((load) => load()))
+  } catch (err) {
+    console.error('Failed to refresh trail details:', err)
+  }
+}
+
+const stopRealtime = [
+  onRealtime('trail:status-changed', (event) => {
+    if (event.trailId === props.trailId) refreshQuietly([loadTrail, loadHistory])
+  }),
+  onRealtime('report:created', (event) => {
+    if (event.trailId === props.trailId) refreshQuietly([loadReports])
+  }),
+  onRealtime('report:updated', (event) => {
+    if (event.trailId === props.trailId) refreshQuietly([loadReports])
+  }),
+  onRealtime(RECONNECTED, () => refreshQuietly([loadTrail, loadReports, loadHistory]))
+]
+
+onUnmounted(() => stopRealtime.forEach((stop) => stop()))
 
 watch(() => props.trailId, loadAll, { immediate: true })
 </script>

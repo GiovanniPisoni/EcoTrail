@@ -1,9 +1,10 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import { REPORT_TYPE_OPTIONS, REPORT_SEVERITY_OPTIONS } from '@/config/reportOptions.js'
 import api from '@/api/client.js'
+import { onRealtime, RECONNECTED } from '@/utils/realtime.js'
 
 const props = defineProps({
   selectedId: {
@@ -107,7 +108,26 @@ async function review(report, status) {
 
 watch([tab, severityFilter], loadReports)
 
-onMounted(loadReports)
+function onRemoteChange() {
+  emit('reviewed')
+  loadReports()
+}
+
+let stopRealtime = []
+
+onMounted(() => {
+  loadReports()
+  stopRealtime = [
+    onRealtime('report:created', onRemoteChange),
+    onRealtime('report:updated', onRemoteChange),
+    onRealtime(RECONNECTED, onRemoteChange)
+  ]
+})
+
+onUnmounted(() => {
+  stopRealtime.forEach((stop) => stop())
+  stopRealtime = []
+})
 </script>
 
 <template>
