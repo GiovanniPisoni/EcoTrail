@@ -75,15 +75,20 @@ beforeEach(async () => {
 async function createHiker(
   name,
   coordinates,
-  { subscribed = true, minutesAgo = 0, alertTypes } = {}
+  { subscribed = true, minutesAgo = 0, alertTypes, radiusMeters, mutedUntil } = {}
 ) {
+  const preferences = {
+    ...(alertTypes && { alertTypes }),
+    ...(radiusMeters && { radiusMeters }),
+    ...(mutedUntil && { mutedUntil })
+  }
   const user = await User.create({
     email: `${name}@ecotrail.test`,
     password: 'hashed',
     pushSubscriptions: subscribed
       ? [{ endpoint: `https://push.test/${name}`, keys: { p256dh: 'x', auth: 'y' } }]
       : [],
-    ...(alertTypes && { notificationPreferences: { alertTypes } })
+    notificationPreferences: preferences
   })
   await UserPresence.create({
     user: user._id,
@@ -184,6 +189,35 @@ describe('notifyTrailEmergency', () => {
     const stored = await Notification.find({})
     expect(stored).toHaveLength(1)
     expect(stored[0].user.equals(optedIn._id)).toBe(true)
+  })
+
+  it('alerts each user according to their own radius', async () => {
+    const wide = await createHiker('wide', FAR, { radiusMeters: 5000 })
+    await createHiker('narrow', [10.905, 46.1865], { radiusMeters: 500 })
+    const standard = await createHiker('standard', [10.905, 46.1865])
+
+    const { count } = await emergency('closed')
+
+    expect(count).toBe(2)
+    const alerted = (await Notification.find({})).map((notification) =>
+      notification.user.toString()
+    )
+    expect(alerted.sort()).toEqual([wide._id.toString(), standard._id.toString()].sort())
+  })
+
+  it('does not push to a muted user, keeps it in their history and does not count them', async () => {
+    const muted = await createHiker('muted', NEAR, {
+      mutedUntil: new Date(Date.now() + 60 * 60 * 1000)
+    })
+    await createHiker('listening', NEAR)
+
+    const { count, entry } = await emergency('closed')
+
+    expect(count).toBe(1)
+    expect(webpush.sendNotification).toHaveBeenCalledTimes(1)
+    expect(webpush.sendNotification.mock.calls[0][0].endpoint).toBe('https://push.test/listening')
+    expect(await Notification.countDocuments({ user: muted._id })).toBe(1)
+    expect((await TrailStatusHistory.findById(entry._id)).alertedCount).toBe(1)
   })
 
   it('records one emergency notification per alerted user for the notification center', async () => {

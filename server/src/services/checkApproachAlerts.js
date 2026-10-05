@@ -2,6 +2,7 @@ import Trail from '../models/Trail.js'
 import Report from '../models/Report.js'
 import SentAlert from '../models/SentAlert.js'
 import User from '../models/User.js'
+import { isMuted } from '../config/notificationPreferences.js'
 import { sendPush } from './sendPush.js'
 
 export const DANGEROUS_TRAIL_STATUSES = ['at_risk', 'closed']
@@ -38,7 +39,7 @@ async function sendAlert(user, { trailId, status, reportId, payload }) {
 
   try {
     await sendPush(user, payload, { type: 'approach', trail: trailId })
-    return true
+    return !isMuted(user.notificationPreferences)
   } catch (err) {
     console.error(`[approach] push to user ${user._id} failed:`, err.message)
     return false
