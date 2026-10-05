@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
@@ -16,6 +16,37 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['status-changed'])
+
+const ALERT_COUNT_REFRESH_DELAY_MS = 3000
+const ALERTS_IN_PROGRESS_WINDOW_MS = 30000
+let alertCountRefreshTimer = null
+
+function isEmergencyStatus(status) {
+  return status === 'at_risk' || status === 'closed'
+}
+
+function areAlertsInProgress(entry) {
+  return (
+    isEmergencyStatus(entry.newStatus) &&
+    !entry.alertedCount &&
+    Date.now() - new Date(entry.changedAt).getTime() < ALERTS_IN_PROGRESS_WINDOW_MS
+  )
+}
+
+function formatAlertedCount(entry) {
+  if (entry.alertedCount) {
+    return entry.alertedCount === 1 ? '1 hiker alerted' : `${entry.alertedCount} hikers alerted`
+  }
+  return areAlertsInProgress(entry) ? 'Sending alerts…' : 'No hikers alerted'
+}
+
+function refreshWhileAlertsInProgress() {
+  clearTimeout(alertCountRefreshTimer)
+  alertCountRefreshTimer = setTimeout(async () => {
+    await loadHistory()
+    if (history.value.some(areAlertsInProgress)) refreshWhileAlertsInProgress()
+  }, ALERT_COUNT_REFRESH_DELAY_MS)
+}
 
 const trail = ref(null)
 const reports = ref([])
@@ -83,15 +114,17 @@ async function changeStatus() {
     return
   }
 
+  const newStatus = statusDraft.value
   submitting.value = true
   try {
     await api.patch(`/trails/${props.trailId}/status`, {
-      status: statusDraft.value,
+      status: newStatus,
       reason: reasonDraft.value.trim()
     })
     statusDraft.value = ''
     reasonDraft.value = ''
     await Promise.all([loadTrail(), loadHistory()])
+    if (isEmergencyStatus(newStatus)) refreshWhileAlertsInProgress()
     emit('status-changed')
   } catch (err) {
     submitError.value = err.response?.data?.error ?? 'Failed to change trail status'
@@ -101,6 +134,8 @@ async function changeStatus() {
 }
 
 watch(() => props.trailId, loadAll, { immediate: true })
+
+onUnmounted(() => clearTimeout(alertCountRefreshTimer))
 </script>
 
 <template>
@@ -171,6 +206,9 @@ watch(() => props.trailId, loadAll, { immediate: true })
               {{ getTrailStatusLabel(entry.newStatus) }}
             </div>
             <p class="admin-trail-panel__timeline-reason">{{ entry.reason }}</p>
+            <p v-if="isEmergencyStatus(entry.newStatus)" class="admin-trail-panel__timeline-alerts">
+              {{ formatAlertedCount(entry) }}
+            </p>
             <p class="admin-trail-panel__timeline-meta">
               {{ entry.changedBy?.email ?? 'unknown' }} &middot; {{ formatDate(entry.changedAt) }}
             </p>
@@ -322,6 +360,13 @@ watch(() => props.trailId, loadAll, { immediate: true })
 .admin-trail-panel__timeline-reason {
   margin: 0.15rem 0 0;
   font-size: 0.85rem;
+}
+
+.admin-trail-panel__timeline-alerts {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-primary);
 }
 
 .admin-trail-panel__timeline-meta {
