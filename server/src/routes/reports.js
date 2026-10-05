@@ -11,6 +11,7 @@ import {
   processReportPhoto,
   storeReportPhoto
 } from '../services/reportPhoto.js'
+import { reportEvents, REPORT_CREATED, REPORT_UPDATED } from '../services/reportEvents.js'
 import { parseBbox } from '../utils/bbox.js'
 
 const router = Router()
@@ -223,6 +224,12 @@ router.patch('/:id/validate', requireAuth, requireRole('admin'), async (req, res
   report.validatedAt = new Date()
   await report.save()
 
+  reportEvents.emit(REPORT_UPDATED, {
+    reportId: report._id,
+    trailId: report.trail?._id,
+    validationStatus: report.validationStatus
+  })
+
   res.json(reportToAdminResponse(report))
 })
 
@@ -270,6 +277,13 @@ router.post('/', requireAuth, uploadReportPhoto, async (req, res) => {
     await deleteReportPhoto(photoUrl)
     throw err
   }
+
+  reportEvents.emit(REPORT_CREATED, {
+    reportId: report._id,
+    trailId: trail._id,
+    type: report.type,
+    severity: report.severity
+  })
 
   res.status(201).json(reportToResponse(report, trail))
 })

@@ -4,6 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import api from '@/api/client.js'
 import { TRAIL_STATUSES, getTrailStatusColor, getTrailStatusLabel } from '@/config/trailStatus.js'
+import { onRealtime, RECONNECTED } from '@/utils/realtime.js'
 
 const PILOT_AREA_CENTER = [46.1667, 10.9167]
 const PILOT_AREA_ZOOM = 13
@@ -26,6 +27,7 @@ let map = null
 let trailsLayer = null
 let lastTrailsData = null
 let resizeObserver = null
+let stopRealtime = []
 
 function buildPopupContent(feature) {
   const container = document.createElement('div')
@@ -192,6 +194,11 @@ onMounted(async () => {
 
   map.on('moveend zoomend', loadTrails)
 
+  stopRealtime = [
+    onRealtime('trail:status-changed', loadTrails),
+    onRealtime(RECONNECTED, loadTrails)
+  ]
+
   const focused = props.focusTrailId && (await focusOnTrail(props.focusTrailId))
   if (!focused) loadTrails()
 
@@ -199,6 +206,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  stopRealtime.forEach((stop) => stop())
+  stopRealtime = []
   resizeObserver?.disconnect()
   resizeObserver = null
   map?.remove()

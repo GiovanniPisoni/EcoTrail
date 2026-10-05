@@ -2,6 +2,7 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import mongoose from 'mongoose'
+import { createServer } from 'node:http'
 import { pathToFileURL } from 'node:url'
 import authRouter from './routes/auth.js'
 import pushRouter from './routes/push.js'
@@ -12,6 +13,7 @@ import reportsRouter from './routes/reports.js'
 import myReportsRouter from './routes/myReports.js'
 import presenceRouter from './routes/presence.js'
 import { serveUploads } from './middleware/serveUploads.js'
+import { attachRealtime } from './services/realtime.js'
 import { startCrowdSweep } from './services/overcrowding.js'
 import { registerEmergencyNotifications } from './services/notifyTrailEmergency.js'
 
@@ -42,7 +44,9 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   mongoose
     .connect(process.env.MONGODB_URI)
     .then(() => {
-      app.listen(PORT, () => {
+      const server = createServer(app)
+      attachRealtime(server, { corsOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' })
+      server.listen(PORT, () => {
         console.log(`Server listening on http://localhost:${PORT}`)
         startCrowdSweep()
       })
