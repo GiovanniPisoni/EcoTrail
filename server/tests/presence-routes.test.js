@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest'
 import mongoose from 'mongoose'
 import { MongoMemoryServer } from 'mongodb-memory-server'
 import request from 'supertest'
@@ -7,6 +7,12 @@ import app from '../src/index.js'
 import User from '../src/models/User.js'
 import UserPresence from '../src/models/UserPresence.js'
 import { ACTIVE_WINDOW_MS, isUserActive } from '../src/services/userPresence.js'
+import { checkOvercrowdingNear } from '../src/services/overcrowding.js'
+
+vi.mock('../src/services/overcrowding.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  checkOvercrowdingNear: vi.fn(async () => ({ changed: false }))
+}))
 
 const JWT_SECRET = 'test-secret'
 
@@ -37,10 +43,30 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
+  vi.clearAllMocks()
   await Promise.all([User.deleteMany({}), UserPresence.deleteMany({})])
 })
 
 describe('POST /api/presence', () => {
+  it('triggers the overcrowding check for the saved position', async () => {
+    const { token } = await createUser()
+
+    const res = await postPosition(token, { latitude: 46.18, longitude: 10.9 })
+
+    expect(res.status).toBe(200)
+    expect(checkOvercrowdingNear).toHaveBeenCalledWith(46.18, 10.9)
+  })
+
+  it('does not fail the request when the overcrowding check throws', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    checkOvercrowdingNear.mockRejectedValueOnce(new Error('boom'))
+    const { token } = await createUser()
+
+    const res = await postPosition(token, { latitude: 46.18, longitude: 10.9 })
+
+    expect(res.status).toBe(200)
+  })
+
   it('returns 401 without a token', async () => {
     const res = await postPosition(null, { latitude: 46.18, longitude: 10.9 })
 
