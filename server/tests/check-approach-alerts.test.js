@@ -283,6 +283,16 @@ describe('checkApproachAlerts guards', () => {
     expect(webpush.sendNotification).not.toHaveBeenCalled()
   })
 
+  it('does not push to a muted user, but keeps the alert in their history', async () => {
+    await User.findByIdAndUpdate(hiker._id, {
+      'notificationPreferences.mutedUntil': new Date(Date.now() + 60 * 60 * 1000)
+    })
+
+    expect(await checkApproachAlerts(hiker._id, NEAR)).toBe(0)
+    expect(webpush.sendNotification).not.toHaveBeenCalled()
+    expect(await Notification.countDocuments({ user: hiker._id, type: 'approach' })).toBe(1)
+  })
+
   it('does nothing for a user without a push subscription', async () => {
     await User.findByIdAndUpdate(hiker._id, { pushSubscriptions: [] })
 

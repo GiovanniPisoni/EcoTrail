@@ -21,7 +21,8 @@ const userSchema = new mongoose.Schema(
 
     notificationPreferences: {
       radiusMeters: { type: Number, default: 1000 },
-      alertTypes: { type: [String], default: ['emergency', 'approach', 'overcrowd'] }
+      alertTypes: { type: [String], default: ['emergency', 'approach', 'overcrowd'] },
+      mutedUntil: { type: Date, default: null }
     }
   },
   { timestamps: true }
