@@ -13,6 +13,7 @@ import myReportsRouter from './routes/myReports.js'
 import presenceRouter from './routes/presence.js'
 import { serveUploads } from './middleware/serveUploads.js'
 import { startCrowdSweep } from './services/overcrowding.js'
+import { registerEmergencyNotifications } from './services/notifyTrailEmergency.js'
 
 const app = express()
 
@@ -35,6 +36,8 @@ app.use('/api/uploads', serveUploads)
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const PORT = process.env.PORT || 3000
+
+  registerEmergencyNotifications()
 
   mongoose
     .connect(process.env.MONGODB_URI)
