@@ -308,6 +308,13 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
               >
                 {{ severityOption(report.severity)?.label }}
               </span>
+              <span
+                v-if="report.trustScore !== undefined"
+                class="admin-trail-panel__report-trust"
+                title="Trust score: confirmations from other nearby users and the author's reputation"
+              >
+                Trust {{ report.trustScore }}
+              </span>
             </span>
             <StatusBadge :status="report.validationStatus" :statuses="REPORT_VALIDATION_STATUSES" />
           </li>
@@ -458,6 +465,16 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
   display: flex;
   align-items: center;
   gap: 0.4rem;
+}
+
+.admin-trail-panel__report-trust {
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background-color: color-mix(in srgb, var(--color-primary) 10%, white);
 }
 
 .admin-trail-panel__report-severity {
