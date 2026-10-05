@@ -14,6 +14,7 @@ vi.mock('web-push', () => ({
 let mongod
 let app
 let User
+let Trail
 
 const JWT_SECRET = 'test-secret'
 
@@ -28,6 +29,7 @@ beforeAll(async () => {
 
   app = (await import('../src/index.js')).default
   User = (await import('../src/models/User.js')).default
+  Trail = (await import('../src/models/Trail.js')).default
 })
 
 afterAll(async () => {
@@ -36,8 +38,18 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
-  await User.deleteMany({})
+  await Promise.all([User.deleteMany({}), Trail.deleteMany({})])
 })
+
+function samplePath() {
+  return {
+    type: 'LineString',
+    coordinates: [
+      [10.9, 46.18],
+      [10.91, 46.18]
+    ]
+  }
+}
 
 async function createUserAndToken() {
   const user = await User.create({
@@ -107,6 +119,53 @@ describe('POST /api/push/subscribe', () => {
   })
 })
 
+describe('DELETE /api/push/subscribe', () => {
+  it('returns 401 without a token', async () => {
+    const res = await request(app).delete('/api/push/subscribe').send({})
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 400 when the endpoint is missing', async () => {
+    const { token } = await createUserAndToken()
+    const res = await request(app)
+      .delete('/api/push/subscribe')
+      .set('Authorization', `Bearer ${token}`)
+      .send({})
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 404 when the user has no such subscription', async () => {
+    const { token } = await createUserAndToken()
+    const res = await request(app)
+      .delete('/api/push/subscribe')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ endpoint: 'https://push.test/unknown' })
+    expect(res.status).toBe(404)
+  })
+
+  it('removes only the matching subscription, leaving the others', async () => {
+    const { user, token } = await createUserAndToken()
+    await request(app)
+      .post('/api/push/subscribe')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ endpoint: 'https://push.test/a', keys: { p256dh: 'x', auth: 'y' } })
+    await request(app)
+      .post('/api/push/subscribe')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ endpoint: 'https://push.test/b', keys: { p256dh: 'x', auth: 'y' } })
+
+    const res = await request(app)
+      .delete('/api/push/subscribe')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ endpoint: 'https://push.test/a' })
+
+    expect(res.status).toBe(200)
+    const updated = await User.findById(user._id)
+    expect(updated.pushSubscriptions).toHaveLength(1)
+    expect(updated.pushSubscriptions[0].endpoint).toBe('https://push.test/b')
+  })
+})
+
 describe('POST /api/push/test', () => {
   it('returns 401 without a token', async () => {
     const res = await request(app).post('/api/push/test')
@@ -131,5 +190,41 @@ describe('POST /api/push/test', () => {
     expect(res.status).toBe(200)
     const webpush = (await import('web-push')).default
     expect(webpush.sendNotification).toHaveBeenCalled()
+  })
+
+  it('returns 404 when the given trailId does not exist', async () => {
+    const { token } = await createUserAndToken()
+    await request(app)
+      .post('/api/push/subscribe')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ endpoint: 'https://push.test/a', keys: { p256dh: 'x', auth: 'y' } })
+
+    const res = await request(app)
+      .post('/api/push/test')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ trailId: new mongoose.Types.ObjectId().toString() })
+
+    expect(res.status).toBe(404)
+  })
+
+  it('includes a deep link to the trail when trailId is given', async () => {
+    const { token } = await createUserAndToken()
+    await request(app)
+      .post('/api/push/subscribe')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ endpoint: 'https://push.test/a', keys: { p256dh: 'x', auth: 'y' } })
+    const trail = await Trail.create({ name: 'Test trail', path: samplePath() })
+
+    const res = await request(app)
+      .post('/api/push/test')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ trailId: trail._id.toString() })
+
+    expect(res.status).toBe(200)
+    const webpush = (await import('web-push')).default
+    const [, sentPayload] = webpush.sendNotification.mock.calls.at(-1)
+    const payload = JSON.parse(sentPayload)
+    expect(payload.url).toBe(`/?trail=${trail._id}`)
+    expect(payload.body).toContain('Test trail')
   })
 })

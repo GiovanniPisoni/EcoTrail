@@ -1,11 +1,38 @@
 <script setup>
-import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { onBeforeUnmount, onMounted } from 'vue'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import NotificationToggle from '@/components/NotificationToggle.vue'
+import { hikeModeActive, resumeHikeModeIfEnabled, stopHikeMode } from '@/utils/hikeMode.js'
+import { refreshUnreadNotificationCount, unreadNotificationCount } from '@/utils/notifications.js'
+
+const UNREAD_REFRESH_INTERVAL_MS = 60 * 1000
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+
+let unreadTimer = null
+
+function refreshWhenVisible() {
+  if (document.visibilityState === 'visible') refreshUnreadNotificationCount()
+}
+
+onMounted(() => {
+  resumeHikeModeIfEnabled()
+  refreshUnreadNotificationCount()
+  unreadTimer = setInterval(refreshWhenVisible, UNREAD_REFRESH_INTERVAL_MS)
+  document.addEventListener('visibilitychange', refreshWhenVisible)
+})
+
+onBeforeUnmount(() => {
+  stopHikeMode()
+  clearInterval(unreadTimer)
+  document.removeEventListener('visibilitychange', refreshWhenVisible)
+})
 
 function handleLogout() {
+  stopHikeMode()
   auth.logout()
   router.push('/login')
 }
@@ -16,6 +43,25 @@ function handleLogout() {
     <header class="layout-header">
       <span class="brand">EcoTrail</span>
       <nav>
+        <button
+          v-if="hikeModeActive && route.name !== 'hiker-home'"
+          type="button"
+          class="hike-pill"
+          title="Tap to stop sharing your position"
+          @click="stopHikeMode()"
+        >
+          Hike mode on
+        </button>
+        <NotificationToggle />
+        <RouterLink to="/notifications" class="profile-link">
+          Notifications
+          <span
+            v-if="unreadNotificationCount > 0"
+            class="unread-badge"
+            :title="`${unreadNotificationCount} unread`"
+            >{{ unreadNotificationCount }}</span
+          >
+        </RouterLink>
         <RouterLink to="/profile" class="profile-link">My profile</RouterLink>
         <span class="user-email">{{ auth.user?.email }}</span>
         <button type="button" @click="handleLogout">Log out</button>
@@ -28,8 +74,10 @@ function handleLogout() {
 <style scoped>
 .layout-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem 1rem;
   padding: 1rem 1.5rem;
   background-color: var(--color-surface);
   color: var(--color-text);
@@ -42,8 +90,9 @@ function handleLogout() {
 
 nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem 1rem;
 }
 
 .user-email {
@@ -61,6 +110,19 @@ nav {
   text-decoration: underline;
 }
 
+.unread-badge {
+  display: inline-block;
+  min-width: 1.25rem;
+  margin-left: 0.25rem;
+  padding: 0 0.35rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-primary);
+  color: var(--color-surface);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  text-align: center;
+}
+
 button {
   padding: 0.4rem 0.8rem;
   cursor: pointer;
@@ -73,5 +135,16 @@ button {
 
 button:hover {
   background-color: var(--color-background);
+}
+
+.hike-pill {
+  border-color: var(--color-status-open);
+  background-color: var(--color-status-open);
+  color: var(--color-surface);
+}
+
+.hike-pill:hover {
+  background-color: var(--color-status-open);
+  filter: brightness(0.95);
 }
 </style>

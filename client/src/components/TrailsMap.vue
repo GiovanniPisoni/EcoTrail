@@ -4,12 +4,17 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import api from '@/api/client.js'
 import { TRAIL_STATUSES, getTrailStatusColor, getTrailStatusLabel } from '@/config/trailStatus.js'
+import { onRealtime, RECONNECTED } from '@/utils/realtime.js'
 
 const PILOT_AREA_CENTER = [46.1667, 10.9167]
 const PILOT_AREA_ZOOM = 13
 
 const props = defineProps({
   selectedTrailId: {
+    type: String,
+    default: null
+  },
+  focusTrailId: {
     type: String,
     default: null
   }
@@ -22,6 +27,7 @@ let map = null
 let trailsLayer = null
 let lastTrailsData = null
 let resizeObserver = null
+let stopRealtime = []
 
 function buildPopupContent(feature) {
   const container = document.createElement('div')
@@ -152,7 +158,24 @@ function addLegend() {
   legend.addTo(map)
 }
 
-onMounted(() => {
+async function focusOnTrail(trailId) {
+  let feature
+  try {
+    ;({ data: feature } = await api.get(`/trails/${trailId}`))
+  } catch (err) {
+    console.error('Failed to load the trail to focus on:', err)
+    return false
+  }
+
+  const bounds = L.geoJSON(feature).getBounds()
+  if (!bounds.isValid()) return false
+
+  map.fitBounds(bounds, { maxZoom: 16 })
+  emit('trail-selected', String(feature.properties.id))
+  return true
+}
+
+onMounted(async () => {
   map = L.map(mapContainer.value).setView(PILOT_AREA_CENTER, PILOT_AREA_ZOOM)
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -170,12 +193,21 @@ onMounted(() => {
   resizeObserver.observe(mapContainer.value)
 
   map.on('moveend zoomend', loadTrails)
-  loadTrails()
+
+  stopRealtime = [
+    onRealtime('trail:status-changed', loadTrails),
+    onRealtime(RECONNECTED, loadTrails)
+  ]
+
+  const focused = props.focusTrailId && (await focusOnTrail(props.focusTrailId))
+  if (!focused) loadTrails()
 
   emit('map-ready', map)
 })
 
 onUnmounted(() => {
+  stopRealtime.forEach((stop) => stop())
+  stopRealtime = []
   resizeObserver?.disconnect()
   resizeObserver = null
   map?.remove()

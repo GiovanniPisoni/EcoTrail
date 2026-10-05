@@ -1,4 +1,6 @@
 import webpush from 'web-push'
+import Notification from '../models/Notification.js'
+import { isMuted } from '../config/notificationPreferences.js'
 
 let configured = false
 
@@ -13,7 +15,21 @@ function ensureConfigured() {
   }
 }
 
-export async function sendPush(user, payload) {
+export async function sendPush(user, payload, { type, trail } = {}) {
+  if (type) {
+    await Notification.create({
+      user: user._id,
+      type,
+      trail,
+      title: payload.title,
+      body: payload.body,
+      url: payload.url
+    })
+  }
+
+  if (type && isMuted(user.notificationPreferences)) return
+  if (user.pushSubscriptions.length === 0) return
+
   ensureConfigured()
 
   const message = JSON.stringify(payload)

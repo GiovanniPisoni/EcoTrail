@@ -26,6 +26,11 @@ const router = createRouter({
           path: 'profile',
           name: 'hiker-profile',
           component: () => import('@/views/ProfileView.vue')
+        },
+        {
+          path: 'notifications',
+          name: 'hiker-notifications',
+          component: () => import('@/views/NotificationsView.vue')
         }
       ]
     },

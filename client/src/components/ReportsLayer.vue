@@ -5,6 +5,7 @@ import 'leaflet.markercluster'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import api from '@/api/client.js'
+import { onRealtime, RECONNECTED } from '@/utils/realtime.js'
 import { REPORT_TYPE_OPTIONS, REPORT_SEVERITY_OPTIONS } from '@/config/reportOptions.js'
 
 const props = defineProps({
@@ -106,9 +107,6 @@ function renderReportsLayer() {
     return marker
   })
 
-  // Reuse the same cluster group and just swap its markers, instead of removing it from the
-  // map and adding a brand new one on every reload: that churn is what made the previous
-  // dots look "stuck" mid-zoom when a reload landed while the zoom gesture was still going.
   clusterGroup.clearLayers()
   clusterGroup.addLayers(markers)
 }
@@ -134,9 +132,6 @@ async function loadReports() {
     return
   }
 
-  // Zooming/panning fires several moveend events in a row, each starting its own request;
-  // ignore this response if a newer request has since been started, so a slow, stale reply
-  // can't overwrite what the current viewport should show.
   if (seq !== requestSeq) return
 
   lastReportsData = data
@@ -150,21 +145,22 @@ function scheduleLoadReports() {
 
 watch([typeFilter, periodFilter], loadReports)
 
+let stopRealtime = []
+
 onMounted(() => {
   clusterGroup = L.markerClusterGroup({
-    // Leaflet.markercluster only recomputes cluster grouping at zoomend, never mid-gesture,
-    // so at a close zoom (where dots are far enough apart to matter individually) the old
-    // grouping visibly lagging behind the map was the "stuck" look reported while zooming.
-    // Past this zoom, show every report as its own marker instead of clustering at all.
     disableClusteringAtZoom: 16
   })
   clusterGroup.addTo(props.map)
 
   props.map.on('moveend zoomend', scheduleLoadReports)
+  stopRealtime = [onRealtime('report:updated', loadReports), onRealtime(RECONNECTED, loadReports)]
   loadReports()
 })
 
 onUnmounted(() => {
+  stopRealtime.forEach((stop) => stop())
+  stopRealtime = []
   clearTimeout(moveTimer)
   props.map.off('moveend zoomend', scheduleLoadReports)
   clusterGroup?.remove()
@@ -222,9 +218,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Positioned relative to the map container (like Leaflet's own zoom control), not the
-   page: it then follows the map for free whenever it resizes, e.g. when the sidebar
-   toggles, instead of jumping between hand-picked page-relative offsets. */
 .reports-filters {
   position: absolute;
   left: 10px;
@@ -232,7 +225,6 @@ onUnmounted(() => {
   z-index: 1000;
 }
 
-/* With the sidebar open there is no "reopen" icon to stack above. */
 .reports-filters--sidebar-open {
   bottom: 10px;
 }
