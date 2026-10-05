@@ -14,7 +14,7 @@ import webpush from 'web-push'
 import Trail from '../src/models/Trail.js'
 import User from '../src/models/User.js'
 import UserPresence from '../src/models/UserPresence.js'
-import NotificationLog from '../src/models/NotificationLog.js'
+import Notification from '../src/models/Notification.js'
 import SentAlert from '../src/models/SentAlert.js'
 import TrailStatusHistory from '../src/models/TrailStatusHistory.js'
 import { TRAIL_STATUS_CHANGED } from '../src/services/trailEvents.js'
@@ -50,7 +50,7 @@ beforeEach(async () => {
     Trail.deleteMany({}),
     User.deleteMany({}),
     UserPresence.deleteMany({}),
-    NotificationLog.deleteMany({}),
+    Notification.deleteMany({}),
     SentAlert.deleteMany({}),
     TrailStatusHistory.deleteMany({})
   ])
@@ -72,13 +72,18 @@ beforeEach(async () => {
   admin = await User.create({ email: 'admin@ecotrail.test', password: 'hashed', role: 'admin' })
 })
 
-async function createHiker(name, coordinates, { subscribed = true, minutesAgo = 0 } = {}) {
+async function createHiker(
+  name,
+  coordinates,
+  { subscribed = true, minutesAgo = 0, alertTypes } = {}
+) {
   const user = await User.create({
     email: `${name}@ecotrail.test`,
     password: 'hashed',
     pushSubscriptions: subscribed
       ? [{ endpoint: `https://push.test/${name}`, keys: { p256dh: 'x', auth: 'y' } }]
-      : []
+      : [],
+    ...(alertTypes && { notificationPreferences: { alertTypes } })
   })
   await UserPresence.create({
     user: user._id,
@@ -156,7 +161,7 @@ describe('notifyTrailEmergency', () => {
 
     expect(count).toBe(0)
     expect(webpush.sendNotification).not.toHaveBeenCalled()
-    expect(await NotificationLog.countDocuments()).toBe(0)
+    expect(await Notification.countDocuments()).toBe(0)
   })
 
   it('skips nearby users who have no push subscription', async () => {
@@ -166,22 +171,35 @@ describe('notifyTrailEmergency', () => {
     const { count } = await emergency('closed')
 
     expect(count).toBe(1)
-    expect(await NotificationLog.countDocuments()).toBe(1)
+    expect(await Notification.countDocuments()).toBe(1)
   })
 
-  it('writes one log row per alerted user', async () => {
+  it('skips users who turned emergency alerts off in their preferences', async () => {
+    await createHiker('opted-out', NEAR, { alertTypes: ['approach', 'overcrowd'] })
+    const optedIn = await createHiker('opted-in', NEAR)
+
+    const { count } = await emergency('closed')
+
+    expect(count).toBe(1)
+    const stored = await Notification.find({})
+    expect(stored).toHaveLength(1)
+    expect(stored[0].user.equals(optedIn._id)).toBe(true)
+  })
+
+  it('records one emergency notification per alerted user for the notification center', async () => {
     const first = await createHiker('first', NEAR)
     const second = await createHiker('second', NEAR)
 
     await emergency('closed')
 
-    const logs = await NotificationLog.find({})
-    expect(logs.map((log) => log.recipient.toString()).sort()).toEqual(
+    const stored = await Notification.find({})
+    expect(stored.map((notification) => notification.user.toString()).sort()).toEqual(
       [first._id.toString(), second._id.toString()].sort()
     )
-    expect(logs.every((log) => log.type === 'emergency')).toBe(true)
-    expect(logs.every((log) => log.relatedTrail.equals(trail._id))).toBe(true)
-    expect(logs[0].message).toContain('Sentiero delle Grotte')
+    expect(stored.every((notification) => notification.type === 'emergency')).toBe(true)
+    expect(stored.every((notification) => notification.trail.equals(trail._id))).toBe(true)
+    expect(stored[0].body).toContain('Sentiero delle Grotte')
+    expect(stored[0].url).toBe(`/?trail=${trail._id}`)
   })
 
   it('stores how many users were alerted on the history entry', async () => {
@@ -208,7 +226,6 @@ describe('notifyTrailEmergency', () => {
 
     expect(count).toBe(1)
     expect((await TrailStatusHistory.findById(entry._id)).alertedCount).toBe(1)
-    expect(await NotificationLog.countDocuments()).toBe(1)
   })
 
   it('records a SentAlert for each alerted user, so 3.7 does not repeat the alert', async () => {

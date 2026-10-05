@@ -1,6 +1,5 @@
 import Trail from '../models/Trail.js'
 import User from '../models/User.js'
-import NotificationLog from '../models/NotificationLog.js'
 import SentAlert from '../models/SentAlert.js'
 import TrailStatusHistory from '../models/TrailStatusHistory.js'
 import { findNearbyUsers } from './findNearbyUsers.js'
@@ -12,14 +11,12 @@ export const EMERGENCY_STATUSES = ['at_risk', 'closed']
 const STATUS_LABELS = { at_risk: 'at risk', closed: 'closed' }
 
 async function alertUser(user, trailId, newStatus, message, historyEntryId) {
-  await sendPush(user, { title: 'EcoTrail alert', body: message, url: `/?trail=${trailId}` })
+  await sendPush(
+    user,
+    { title: 'EcoTrail alert', body: message, url: `/?trail=${trailId}` },
+    { type: 'emergency', trail: trailId }
+  )
 
-  await NotificationLog.create({
-    recipient: user._id,
-    type: 'emergency',
-    relatedTrail: trailId,
-    message
-  })
   await SentAlert.updateOne(
     { user: user._id, trail: trailId, status: newStatus },
     {},
@@ -38,7 +35,7 @@ export async function notifyTrailEmergency({
   reason,
   historyEntryId
 }) {
-  await SentAlert.deleteMany({ trail: trailId })
+  await SentAlert.deleteMany({ trail: trailId, report: { $exists: false } })
 
   if (!EMERGENCY_STATUSES.includes(newStatus)) return 0
 
@@ -48,7 +45,8 @@ export async function notifyTrailEmergency({
   const nearby = await findNearbyUsers(trail.path)
   const users = await User.find({
     _id: { $in: nearby.map((match) => match.userId) },
-    'pushSubscriptions.0': { $exists: true }
+    'pushSubscriptions.0': { $exists: true },
+    'notificationPreferences.alertTypes': 'emergency'
   })
 
   const message = `${trailName} is now ${STATUS_LABELS[newStatus]}: ${reason}`

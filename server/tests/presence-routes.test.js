@@ -8,10 +8,16 @@ import User from '../src/models/User.js'
 import UserPresence from '../src/models/UserPresence.js'
 import { ACTIVE_WINDOW_MS, isUserActive } from '../src/services/userPresence.js'
 import { checkOvercrowdingNear } from '../src/services/overcrowding.js'
+import { checkApproachAlerts } from '../src/services/checkApproachAlerts.js'
 
 vi.mock('../src/services/overcrowding.js', async (importOriginal) => ({
   ...(await importOriginal()),
   checkOvercrowdingNear: vi.fn(async () => ({ changed: false }))
+}))
+
+vi.mock('../src/services/checkApproachAlerts.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  checkApproachAlerts: vi.fn(async () => 0)
 }))
 
 const JWT_SECRET = 'test-secret'
@@ -65,6 +71,37 @@ describe('POST /api/presence', () => {
     const res = await postPosition(token, { latitude: 46.18, longitude: 10.9 })
 
     expect(res.status).toBe(200)
+  })
+
+  it('checks for nearby dangers using the logged-in user and the saved position', async () => {
+    const { user, token } = await createUser()
+
+    const res = await postPosition(token, { latitude: 46.18, longitude: 10.9 })
+
+    expect(res.status).toBe(200)
+    expect(checkApproachAlerts).toHaveBeenCalledWith(user._id.toString(), {
+      latitude: 46.18,
+      longitude: 10.9
+    })
+  })
+
+  it('does not fail the request when the approach check throws', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    checkApproachAlerts.mockRejectedValueOnce(new Error('boom'))
+    const { token } = await createUser()
+
+    const res = await postPosition(token, { latitude: 46.18, longitude: 10.9 })
+
+    expect(res.status).toBe(200)
+  })
+
+  it('does not check anything for an invalid position', async () => {
+    const { token } = await createUser()
+
+    const res = await postPosition(token, { latitude: 'north', longitude: 10.9 })
+
+    expect(res.status).toBe(400)
+    expect(checkApproachAlerts).not.toHaveBeenCalled()
   })
 
   it('returns 401 without a token', async () => {
