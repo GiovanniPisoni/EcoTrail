@@ -12,6 +12,7 @@ import crowdThresholdsRouter from './routes/crowdThresholds.js'
 import reportsRouter from './routes/reports.js'
 import myReportsRouter from './routes/myReports.js'
 import presenceRouter from './routes/presence.js'
+import notificationsRouter from './routes/notifications.js'
 import { serveUploads } from './middleware/serveUploads.js'
 import { attachRealtime } from './services/realtime.js'
 import { startCrowdSweep } from './services/overcrowding.js'
@@ -34,6 +35,7 @@ app.use('/api/trails', crowdThresholdsRouter)
 app.use('/api/reports', reportsRouter)
 app.use('/api/reports', myReportsRouter)
 app.use('/api/presence', presenceRouter)
+app.use('/api/notifications', notificationsRouter)
 app.use('/api/uploads', serveUploads)
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
