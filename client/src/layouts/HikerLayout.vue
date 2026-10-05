@@ -4,13 +4,32 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import NotificationToggle from '@/components/NotificationToggle.vue'
 import { hikeModeActive, resumeHikeModeIfEnabled, stopHikeMode } from '@/utils/hikeMode.js'
+import { refreshUnreadNotificationCount, unreadNotificationCount } from '@/utils/notifications.js'
+
+const UNREAD_REFRESH_INTERVAL_MS = 60 * 1000
 
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
-onMounted(resumeHikeModeIfEnabled)
-onBeforeUnmount(() => stopHikeMode())
+let unreadTimer = null
+
+function refreshWhenVisible() {
+  if (document.visibilityState === 'visible') refreshUnreadNotificationCount()
+}
+
+onMounted(() => {
+  resumeHikeModeIfEnabled()
+  refreshUnreadNotificationCount()
+  unreadTimer = setInterval(refreshWhenVisible, UNREAD_REFRESH_INTERVAL_MS)
+  document.addEventListener('visibilitychange', refreshWhenVisible)
+})
+
+onBeforeUnmount(() => {
+  stopHikeMode()
+  clearInterval(unreadTimer)
+  document.removeEventListener('visibilitychange', refreshWhenVisible)
+})
 
 function handleLogout() {
   stopHikeMode()
@@ -34,6 +53,15 @@ function handleLogout() {
           Hike mode on
         </button>
         <NotificationToggle />
+        <RouterLink to="/notifications" class="profile-link">
+          Notifications
+          <span
+            v-if="unreadNotificationCount > 0"
+            class="unread-badge"
+            :title="`${unreadNotificationCount} unread`"
+            >{{ unreadNotificationCount }}</span
+          >
+        </RouterLink>
         <RouterLink to="/profile" class="profile-link">My profile</RouterLink>
         <span class="user-email">{{ auth.user?.email }}</span>
         <button type="button" @click="handleLogout">Log out</button>
@@ -80,6 +108,19 @@ nav {
 
 .profile-link:hover {
   text-decoration: underline;
+}
+
+.unread-badge {
+  display: inline-block;
+  min-width: 1.25rem;
+  margin-left: 0.25rem;
+  padding: 0 0.35rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-primary);
+  color: var(--color-surface);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  text-align: center;
 }
 
 button {
