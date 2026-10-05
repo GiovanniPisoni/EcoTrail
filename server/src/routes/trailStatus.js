@@ -16,6 +16,7 @@ function historyEntryToResponse(entry) {
     previousStatus: entry.previousStatus,
     newStatus: entry.newStatus,
     reason: entry.reason,
+    alertedCount: entry.alertedCount,
     changedBy: entry.changedBy ? { id: entry.changedBy._id, email: entry.changedBy.email } : null,
     changedAt: entry.changedAt
   }
@@ -66,7 +67,8 @@ router.patch('/:id/status', requireAuth, requireRole('admin'), async (req, res) 
     previousStatus,
     newStatus: status,
     reason,
-    changedBy: req.user.id
+    changedBy: req.user.id,
+    historyEntryId: historyEntry._id
   })
 
   res.json({

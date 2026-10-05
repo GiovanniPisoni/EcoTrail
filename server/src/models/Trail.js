@@ -31,6 +31,8 @@ const trailSchema = new mongoose.Schema(
     durationMinutes: { type: Number, min: 0 },
     difficulty: { type: String, enum: ['easy', 'medium', 'hard'] },
     photoUrl: { type: String },
+    crowdThreshold: { type: Number, min: 1, validate: Number.isInteger },
+    crowdReleaseThreshold: { type: Number, min: 1, validate: Number.isInteger },
     fragileSegments: { type: [fragileSegmentSchema], default: [] }
   },
   { timestamps: true }

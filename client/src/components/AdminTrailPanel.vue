@@ -18,6 +18,37 @@ const props = defineProps({
 
 const emit = defineEmits(['status-changed'])
 
+const ALERT_COUNT_REFRESH_DELAY_MS = 3000
+const ALERTS_IN_PROGRESS_WINDOW_MS = 30000
+let alertCountRefreshTimer = null
+
+function isEmergencyStatus(status) {
+  return status === 'at_risk' || status === 'closed'
+}
+
+function areAlertsInProgress(entry) {
+  return (
+    isEmergencyStatus(entry.newStatus) &&
+    !entry.alertedCount &&
+    Date.now() - new Date(entry.changedAt).getTime() < ALERTS_IN_PROGRESS_WINDOW_MS
+  )
+}
+
+function formatAlertedCount(entry) {
+  if (entry.alertedCount) {
+    return entry.alertedCount === 1 ? '1 hiker alerted' : `${entry.alertedCount} hikers alerted`
+  }
+  return areAlertsInProgress(entry) ? 'Sending alerts…' : 'No hikers alerted'
+}
+
+function refreshWhileAlertsInProgress() {
+  clearTimeout(alertCountRefreshTimer)
+  alertCountRefreshTimer = setTimeout(async () => {
+    await loadHistory()
+    if (history.value.some(areAlertsInProgress)) refreshWhileAlertsInProgress()
+  }, ALERT_COUNT_REFRESH_DELAY_MS)
+}
+
 const trail = ref(null)
 const reports = ref([])
 const history = ref([])
@@ -27,6 +58,13 @@ const statusDraft = ref('')
 const reasonDraft = ref('')
 const submitting = ref(false)
 const submitError = ref('')
+
+const crowdThresholds = ref(null)
+const enterDraft = ref('')
+const releaseDraft = ref('')
+const crowdSaving = ref(false)
+const crowdError = ref('')
+const crowdSaved = ref(false)
 
 const statusOptions = computed(() =>
   Object.keys(TRAIL_STATUSES).filter((status) => status !== trail.value?.properties.status)
@@ -61,10 +99,21 @@ async function loadHistory() {
   history.value = data.history
 }
 
+function applyCrowdThresholds(data) {
+  crowdThresholds.value = data
+  enterDraft.value = data.crowdThreshold ?? ''
+  releaseDraft.value = data.crowdReleaseThreshold ?? ''
+}
+
+async function loadCrowdThresholds() {
+  const { data } = await api.get(`/trails/${props.trailId}/crowd-thresholds`)
+  applyCrowdThresholds(data)
+}
+
 async function loadAll() {
   loading.value = true
   try {
-    await Promise.all([loadTrail(), loadReports(), loadHistory()])
+    await Promise.all([loadTrail(), loadReports(), loadHistory(), loadCrowdThresholds()])
   } catch (err) {
     console.error('Failed to load trail details:', err)
   } finally {
@@ -84,15 +133,17 @@ async function changeStatus() {
     return
   }
 
+  const newStatus = statusDraft.value
   submitting.value = true
   try {
     await api.patch(`/trails/${props.trailId}/status`, {
-      status: statusDraft.value,
+      status: newStatus,
       reason: reasonDraft.value.trim()
     })
     statusDraft.value = ''
     reasonDraft.value = ''
     await Promise.all([loadTrail(), loadHistory()])
+    if (isEmergencyStatus(newStatus)) refreshWhileAlertsInProgress()
     emit('status-changed')
   } catch (err) {
     submitError.value = err.response?.data?.error ?? 'Failed to change trail status'
@@ -124,7 +175,40 @@ const stopRealtime = [
 
 onUnmounted(() => stopRealtime.forEach((stop) => stop()))
 
+function draftToValue(draft) {
+  if (draft === '' || draft === null) return null
+  return Number(draft)
+}
+
+async function saveCrowdThresholds() {
+  crowdError.value = ''
+  crowdSaved.value = false
+
+  const body = {
+    crowdThreshold: draftToValue(enterDraft.value),
+    crowdReleaseThreshold: draftToValue(releaseDraft.value)
+  }
+  const invalid = Object.values(body).some((value) => value !== null && !Number.isInteger(value))
+  if (invalid) {
+    crowdError.value = 'Use whole numbers, or leave a field empty to use the default'
+    return
+  }
+
+  crowdSaving.value = true
+  try {
+    const { data } = await api.patch(`/trails/${props.trailId}/crowd-thresholds`, body)
+    applyCrowdThresholds(data)
+    crowdSaved.value = true
+  } catch (err) {
+    crowdError.value = err.response?.data?.error ?? 'Failed to save the thresholds'
+  } finally {
+    crowdSaving.value = false
+  }
+}
+
 watch(() => props.trailId, loadAll, { immediate: true })
+
+onUnmounted(() => clearTimeout(alertCountRefreshTimer))
 </script>
 
 <template>
@@ -157,6 +241,51 @@ watch(() => props.trailId, loadAll, { immediate: true })
           <p v-if="submitError" class="admin-trail-panel__error">{{ submitError }}</p>
 
           <BaseButton type="submit" :disabled="submitting">Change status</BaseButton>
+        </form>
+      </BaseCard>
+
+      <BaseCard v-if="crowdThresholds" class="admin-trail-panel__section">
+        <h4 class="admin-trail-panel__section-title">Crowding alert</h4>
+        <p class="admin-trail-panel__hint">
+          The trail is marked as crowded when this many hikers with hike mode on are on it, and goes
+          back to free when they drop to the lower number. Only app users are counted, so the real
+          crowd is usually larger.
+        </p>
+
+        <form class="admin-trail-panel__status-form" @submit.prevent="saveCrowdThresholds">
+          <label class="admin-trail-panel__field">
+            <span>Crowded at (hikers)</span>
+            <input
+              v-model="enterDraft"
+              type="number"
+              min="2"
+              step="1"
+              :placeholder="`Default: ${crowdThresholds.defaults.enter}`"
+              @input="crowdSaved = false"
+            />
+          </label>
+
+          <label class="admin-trail-panel__field">
+            <span>Back to free at (hikers)</span>
+            <input
+              v-model="releaseDraft"
+              type="number"
+              min="1"
+              step="1"
+              :placeholder="`Default: ${crowdThresholds.defaults.release}`"
+              @input="crowdSaved = false"
+            />
+          </label>
+
+          <p class="admin-trail-panel__hint">
+            Currently in use: {{ crowdThresholds.effective.enter }} /
+            {{ crowdThresholds.effective.release }}
+          </p>
+
+          <p v-if="crowdError" class="admin-trail-panel__error">{{ crowdError }}</p>
+          <p v-else-if="crowdSaved" class="admin-trail-panel__success">Thresholds saved</p>
+
+          <BaseButton type="submit" :disabled="crowdSaving">Save thresholds</BaseButton>
         </form>
       </BaseCard>
 
@@ -195,8 +324,11 @@ watch(() => props.trailId, loadAll, { immediate: true })
               {{ getTrailStatusLabel(entry.newStatus) }}
             </div>
             <p class="admin-trail-panel__timeline-reason">{{ entry.reason }}</p>
+            <p v-if="isEmergencyStatus(entry.newStatus)" class="admin-trail-panel__timeline-alerts">
+              {{ formatAlertedCount(entry) }}
+            </p>
             <p class="admin-trail-panel__timeline-meta">
-              {{ entry.changedBy?.email ?? 'unknown' }} &middot; {{ formatDate(entry.changedAt) }}
+              {{ entry.changedBy?.email ?? 'Automatic' }} &middot; {{ formatDate(entry.changedAt) }}
             </p>
           </li>
         </ol>
@@ -259,6 +391,7 @@ watch(() => props.trailId, loadAll, { immediate: true })
 }
 
 .admin-trail-panel__field select,
+.admin-trail-panel__field input,
 .admin-trail-panel__field textarea {
   font-family: var(--font-body);
   font-size: 0.9rem;
@@ -272,6 +405,18 @@ watch(() => props.trailId, loadAll, { immediate: true })
   margin: 0;
   font-size: 0.8rem;
   color: var(--color-status-closed, #ef4444);
+}
+
+.admin-trail-panel__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.admin-trail-panel__success {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-primary);
 }
 
 .admin-trail-panel__empty {
@@ -346,6 +491,13 @@ watch(() => props.trailId, loadAll, { immediate: true })
 .admin-trail-panel__timeline-reason {
   margin: 0.15rem 0 0;
   font-size: 0.85rem;
+}
+
+.admin-trail-panel__timeline-alerts {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-primary);
 }
 
 .admin-trail-panel__timeline-meta {

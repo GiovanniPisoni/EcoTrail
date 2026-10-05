@@ -208,5 +208,6 @@ describe('GET /api/trails/:id/history', () => {
     expect(res.body.history[0].reason).toBe('Second change')
     expect(res.body.history[1].reason).toBe('First change')
     expect(res.body.history[0].changedBy.email).toBe('admin@ecotrail.test')
+    expect(res.body.history[0].alertedCount).toBe(0)
   })
 })

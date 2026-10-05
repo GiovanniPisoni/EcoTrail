@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.js'
 import { saveUserPosition, validatePosition } from '../services/userPresence.js'
+import { checkOvercrowdingNear } from '../services/overcrowding.js'
 
 const router = Router()
 
@@ -11,6 +12,10 @@ router.post('/', requireAuth, async (req, res) => {
   }
 
   const presence = await saveUserPosition(req.user.id, validation.value)
+
+  checkOvercrowdingNear(validation.value.latitude, validation.value.longitude).catch((err) => {
+    console.error('[overcrowding] check failed:', err.message)
+  })
 
   res.json({ updatedAt: presence.updatedAt })
 })
