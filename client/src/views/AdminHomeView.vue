@@ -39,7 +39,7 @@ function timeAgo(isoDate) {
 async function loadPendingCount() {
   try {
     const { data } = await api.get('/reports/admin', {
-      params: { validationStatus: 'pending', limit: 1 }
+      params: { validationStatus: 'pending', suspicious: false, limit: 1 }
     })
     pendingCount.value = data.pagination.total
   } catch (err) {
@@ -50,7 +50,7 @@ async function loadPendingCount() {
 async function loadCriticalCount() {
   try {
     const { data } = await api.get('/reports/admin', {
-      params: { validationStatus: 'pending', severity: 'high', limit: 1 }
+      params: { validationStatus: 'pending', suspicious: false, severity: 'high', limit: 1 }
     })
     criticalCount.value = data.pagination.total
   } catch (err) {
