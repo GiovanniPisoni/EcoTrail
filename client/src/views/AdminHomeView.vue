@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, shallowRef } from 'vue'
 import TrailsMap from '@/components/TrailsMap.vue'
 import AdminReportsLayer from '@/components/AdminReportsLayer.vue'
 import AdminReportsSidebar from '@/components/AdminReportsSidebar.vue'
@@ -9,7 +9,7 @@ import { REPORT_TYPE_OPTIONS } from '@/config/reportOptions.js'
 import { REPORT_VALIDATION_STATUSES } from '@/config/reportValidationStatus.js'
 import api from '@/api/client.js'
 
-const mapInstance = ref(null)
+const mapInstance = shallowRef(null)
 const mobileMapVisible = ref(false)
 const visibleReports = ref([])
 const visibleTrails = ref([])
