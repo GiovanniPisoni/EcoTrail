@@ -1,7 +1,7 @@
 import Report from '../models/Report.js'
 import User from '../models/User.js'
+import ReputationChange from '../models/ReputationChange.js'
 
-// Una conferma è un report dello stesso tipo, di un altro autore, entro raggio e finestra di tempo
 export const BASE_TRUST_SCORE = 1
 export const CONFIRMATION_RADIUS_METERS = 300
 export const CONFIRMATION_WINDOW_MS = 2 * 60 * 60 * 1000
@@ -87,13 +87,26 @@ export async function refreshTrustSafely(report) {
   }
 }
 
-export async function adjustReputation(userId, delta) {
+export async function adjustReputation(userId, delta, { reason, report } = {}) {
+  let applied = 0
+
   if (delta > 0) {
     await User.updateOne({ _id: userId }, { $inc: { reputation: delta } })
+    applied = delta
   } else if (delta < 0) {
-    await User.updateOne(
-      { _id: userId, reputation: { $gte: -delta } },
-      { $inc: { reputation: delta } }
-    )
+    const user = await User.findById(userId).select('reputation').lean()
+    const decrease = Math.min(Math.max(user?.reputation ?? 0, 0), -delta)
+    if (decrease > 0) {
+      const result = await User.updateOne(
+        { _id: userId, reputation: { $gte: decrease } },
+        { $inc: { reputation: -decrease } }
+      )
+      if (result.modifiedCount === 1) applied = -decrease
+    }
   }
+
+  if (reason && applied !== 0) {
+    await ReputationChange.create({ user: userId, delta: applied, reason, report })
+  }
+  return applied
 }

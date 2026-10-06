@@ -37,7 +37,9 @@ const reportSchema = new mongoose.Schema(
     validatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     validatedAt: { type: Date },
     trustScore: { type: Number, default: 0 },
-    isSuspicious: { type: Boolean, default: false }
+    isSuspicious: { type: Boolean, default: false },
+    markedAsSpam: { type: Boolean, default: false },
+    spamPenalty: { type: Number, default: 0 }
   },
   { timestamps: true }
 )

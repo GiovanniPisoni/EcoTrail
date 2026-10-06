@@ -21,6 +21,7 @@ const emit = defineEmits(['select', 'reports-loaded', 'reviewed'])
 
 const TAB_OPTIONS = [
   { value: 'pending', label: 'Review queue' },
+  { value: 'suspicious', label: 'Suspicious' },
   { value: 'validated', label: 'Verified logs' },
   { value: 'rejected', label: 'Flagged/Archived' }
 ]
@@ -31,10 +32,21 @@ const reports = ref([])
 const loading = ref(false)
 const noteDraft = ref('')
 const reviewing = ref(false)
+const suspiciousCount = ref(null)
+const spamConfirmId = ref(null)
+
+const REVIEWABLE_TABS = ['pending', 'suspicious']
+
+function isReviewable() {
+  return REVIEWABLE_TABS.includes(tab.value)
+}
 
 function tabLabel(option) {
   if (option.value === 'pending' && props.pendingCount !== null) {
     return `${option.label} (${props.pendingCount})`
+  }
+  if (option.value === 'suspicious' && suspiciousCount.value) {
+    return `${option.label} (${suspiciousCount.value})`
   }
   return option.label
 }
@@ -64,12 +76,30 @@ function timeAgo(isoDate) {
   return `${Math.round(hours / 24)}d ago`
 }
 
+function tabParams() {
+  if (tab.value === 'pending') return { validationStatus: 'pending', suspicious: false }
+  if (tab.value === 'suspicious') return { validationStatus: 'pending', suspicious: true }
+  return { validationStatus: tab.value }
+}
+
+async function loadSuspiciousCount() {
+  try {
+    const { data } = await api.get('/reports/admin', {
+      params: { validationStatus: 'pending', suspicious: true, limit: 1 }
+    })
+    suspiciousCount.value = data.pagination.total
+  } catch (err) {
+    console.error('Failed to load the suspicious reports count:', err)
+  }
+}
+
 async function loadReports() {
   loading.value = true
+  loadSuspiciousCount()
   try {
     const { data } = await api.get('/reports/admin', {
       params: {
-        validationStatus: tab.value,
+        ...tabParams(),
         severity: severityFilter.value || undefined,
         limit: 100
       }
@@ -86,16 +116,27 @@ async function loadReports() {
 function onSelect(report) {
   const id = isSelected(report) ? null : reportId(report)
   noteDraft.value = ''
+  spamConfirmId.value = null
   emit('select', id)
 }
 
-async function review(report, status) {
+async function rejectAsSpam(report) {
+  if (spamConfirmId.value !== reportId(report)) {
+    spamConfirmId.value = reportId(report)
+    return
+  }
+  await review(report, 'rejected', { spam: true })
+}
+
+async function review(report, status, { spam } = {}) {
   reviewing.value = true
   try {
     await api.patch(`/reports/${reportId(report)}/validate`, {
       status,
-      note: noteDraft.value.trim() || undefined
+      note: noteDraft.value.trim() || undefined,
+      spam
     })
+    spamConfirmId.value = null
     emit('select', null)
     emit('reviewed')
     await loadReports()
@@ -210,6 +251,8 @@ onUnmounted(() => {
           </div>
           <div class="admin-reports-sidebar__meta">
             <span class="admin-reports-sidebar__time">{{ timeAgo(report.createdAt) }}</span>
+            <span v-if="report.isSuspicious" class="admin-reports-sidebar__flag">Suspicious</span>
+            <span v-else-if="report.markedAsSpam" class="admin-reports-sidebar__flag">Spam</span>
             <span
               v-if="report.trustScore !== undefined"
               class="admin-reports-sidebar__trust"
@@ -235,12 +278,17 @@ onUnmounted(() => {
               Reported by {{ report.author?.email ?? 'unknown' }}
             </p>
 
-            <label v-if="tab === 'pending'" class="admin-reports-sidebar__note-field">
+            <p v-if="report.isSuspicious" class="admin-reports-sidebar__suspicious-hint">
+              Sent right after another identical report by the same user at the same spot. It stays
+              hidden from the public until you review it.
+            </p>
+
+            <label v-if="isReviewable()" class="admin-reports-sidebar__note-field">
               <span>Note (optional)</span>
               <textarea v-model="noteDraft" rows="2" @click.stop />
             </label>
 
-            <div v-if="tab === 'pending'" class="admin-reports-sidebar__actions" @click.stop>
+            <div v-if="isReviewable()" class="admin-reports-sidebar__actions" @click.stop>
               <BaseButton
                 variant="secondary"
                 :disabled="reviewing"
@@ -248,12 +296,30 @@ onUnmounted(() => {
               >
                 Reject
               </BaseButton>
+              <BaseButton
+                v-if="tab === 'suspicious'"
+                variant="secondary"
+                :disabled="reviewing"
+                @click="rejectAsSpam(report)"
+              >
+                {{ spamConfirmId === reportId(report) ? 'Confirm spam' : 'Reject as spam' }}
+              </BaseButton>
               <BaseButton :disabled="reviewing" @click="review(report, 'validated')"
                 >Validate</BaseButton
               >
             </div>
 
-            <p v-else-if="report.validationNote" class="admin-reports-sidebar__note-readonly">
+            <p
+              v-if="spamConfirmId === reportId(report)"
+              class="admin-reports-sidebar__suspicious-hint"
+            >
+              This lowers the author's reputation. Click "Confirm spam" only if you are sure.
+            </p>
+
+            <p
+              v-else-if="!isReviewable() && report.validationNote"
+              class="admin-reports-sidebar__note-readonly"
+            >
               Note: {{ report.validationNote }}
             </p>
           </div>
@@ -495,7 +561,23 @@ onUnmounted(() => {
 
 .admin-reports-sidebar__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
+}
+
+.admin-reports-sidebar__flag {
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-status-closed);
+  background-color: color-mix(in srgb, var(--color-status-closed) 10%, white);
+}
+
+.admin-reports-sidebar__suspicious-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
 }
 
 .admin-reports-sidebar__actions > * {
