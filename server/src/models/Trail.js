@@ -18,6 +18,15 @@ const fragileSegmentSchema = new mongoose.Schema(
   { _id: false }
 )
 
+const closureProposalSchema = new mongoose.Schema(
+  {
+    reason: { type: String, required: true },
+    reportCount: { type: Number, required: true },
+    proposedAt: { type: Date, required: true }
+  },
+  { _id: false }
+)
+
 const trailSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
@@ -33,6 +42,14 @@ const trailSchema = new mongoose.Schema(
     photoUrl: { type: String },
     crowdThreshold: { type: Number, min: 1, validate: Number.isInteger },
     crowdReleaseThreshold: { type: Number, min: 1, validate: Number.isInteger },
+    alertRules: {
+      riskCount: { type: Number, min: 1, validate: Number.isInteger },
+      closeCount: { type: Number, min: 1, validate: Number.isInteger },
+      windowHours: { type: Number, min: 1, validate: Number.isInteger },
+      radiusMeters: { type: Number, min: 1, validate: Number.isInteger }
+    },
+    closureProposal: { type: closureProposalSchema, default: undefined },
+    closureDismissedAt: { type: Date },
     fragileSegments: { type: [fragileSegmentSchema], default: [] }
   },
   { timestamps: true }

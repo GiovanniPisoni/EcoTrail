@@ -10,6 +10,7 @@ import Report from './models/Report.js'
 import TrailStatusHistory from './models/TrailStatusHistory.js'
 import { enrichTrail } from './data/enrich-trails.js'
 import { deleteAllReportPhotos } from './services/reportPhoto.js'
+import { refreshTrustAround } from './services/reportTrust.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rawTrails = JSON.parse(
@@ -83,7 +84,10 @@ async function seed() {
       ...report
     }
   })
-  await Report.create(fakeReports)
+  const createdReports = await Report.create(fakeReports)
+  for (const report of createdReports) {
+    await refreshTrustAround(report)
+  }
 
   console.log(
     `Seed completed: 2 users, ${trails.length} trails and ${fakeReports.length} reports created.`

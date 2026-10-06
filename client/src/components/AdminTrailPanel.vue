@@ -66,6 +66,21 @@ const crowdSaving = ref(false)
 const crowdError = ref('')
 const crowdSaved = ref(false)
 
+const ALERT_FIELDS = [
+  { key: 'riskCount', label: 'At risk after (reliable reports)', min: 1 },
+  { key: 'closeCount', label: 'Propose closure after (high-severity reports)', min: 1 },
+  { key: 'windowHours', label: 'Reports from the last (hours)', min: 1 },
+  { key: 'radiusMeters', label: 'Reports within (metres)', min: 50 }
+]
+
+const alertRules = ref(null)
+const alertDrafts = ref({ riskCount: '', closeCount: '', windowHours: '', radiusMeters: '' })
+const alertSaving = ref(false)
+const alertError = ref('')
+const alertSaved = ref(false)
+const proposalBusy = ref(false)
+const proposalError = ref('')
+
 const statusOptions = computed(() =>
   Object.keys(TRAIL_STATUSES).filter((status) => status !== trail.value?.properties.status)
 )
@@ -110,10 +125,28 @@ async function loadCrowdThresholds() {
   applyCrowdThresholds(data)
 }
 
+function applyAlertRules(data) {
+  alertRules.value = data
+  for (const { key } of ALERT_FIELDS) {
+    alertDrafts.value[key] = data[key] ?? ''
+  }
+}
+
+async function loadAlertRules() {
+  const { data } = await api.get(`/trails/${props.trailId}/alert-rules`)
+  applyAlertRules(data)
+}
+
 async function loadAll() {
   loading.value = true
   try {
-    await Promise.all([loadTrail(), loadReports(), loadHistory(), loadCrowdThresholds()])
+    await Promise.all([
+      loadTrail(),
+      loadReports(),
+      loadHistory(),
+      loadCrowdThresholds(),
+      loadAlertRules()
+    ])
   } catch (err) {
     console.error('Failed to load trail details:', err)
   } finally {
@@ -142,7 +175,7 @@ async function changeStatus() {
     })
     statusDraft.value = ''
     reasonDraft.value = ''
-    await Promise.all([loadTrail(), loadHistory()])
+    await Promise.all([loadTrail(), loadHistory(), loadAlertRules()])
     if (isEmergencyStatus(newStatus)) refreshWhileAlertsInProgress()
     emit('status-changed')
   } catch (err) {
@@ -162,15 +195,17 @@ async function refreshQuietly(loaders) {
 
 const stopRealtime = [
   onRealtime('trail:status-changed', (event) => {
-    if (event.trailId === props.trailId) refreshQuietly([loadTrail, loadHistory])
+    if (event.trailId === props.trailId) refreshQuietly([loadTrail, loadHistory, loadAlertRules])
   }),
   onRealtime('report:created', (event) => {
-    if (event.trailId === props.trailId) refreshQuietly([loadReports])
+    if (event.trailId === props.trailId) refreshQuietly([loadReports, loadAlertRules])
   }),
   onRealtime('report:updated', (event) => {
-    if (event.trailId === props.trailId) refreshQuietly([loadReports])
+    if (event.trailId === props.trailId) refreshQuietly([loadReports, loadAlertRules])
   }),
-  onRealtime(RECONNECTED, () => refreshQuietly([loadTrail, loadReports, loadHistory]))
+  onRealtime(RECONNECTED, () =>
+    refreshQuietly([loadTrail, loadReports, loadHistory, loadAlertRules])
+  )
 ]
 
 onUnmounted(() => stopRealtime.forEach((stop) => stop()))
@@ -204,6 +239,50 @@ async function saveCrowdThresholds() {
   } finally {
     crowdSaving.value = false
   }
+}
+
+async function saveAlertRules() {
+  alertError.value = ''
+  alertSaved.value = false
+
+  const body = Object.fromEntries(
+    ALERT_FIELDS.map(({ key }) => [key, draftToValue(alertDrafts.value[key])])
+  )
+  const invalid = Object.values(body).some((value) => value !== null && !Number.isInteger(value))
+  if (invalid) {
+    alertError.value = 'Use whole numbers, or leave a field empty to use the default'
+    return
+  }
+
+  alertSaving.value = true
+  try {
+    const { data } = await api.patch(`/trails/${props.trailId}/alert-rules`, body)
+    applyAlertRules(data)
+    alertSaved.value = true
+  } catch (err) {
+    alertError.value = err.response?.data?.error ?? 'Failed to save the rules'
+  } finally {
+    alertSaving.value = false
+  }
+}
+
+async function dismissProposal() {
+  proposalError.value = ''
+  proposalBusy.value = true
+  try {
+    const { data } = await api.delete(`/trails/${props.trailId}/closure-proposal`)
+    applyAlertRules(data)
+  } catch (err) {
+    proposalError.value = err.response?.data?.error ?? 'Failed to dismiss the proposal'
+  } finally {
+    proposalBusy.value = false
+  }
+}
+
+async function confirmClosure() {
+  statusDraft.value = 'closed'
+  reasonDraft.value = `Closed after admin review. ${alertRules.value.closureProposal.reason}`
+  await changeStatus()
 }
 
 watch(() => props.trailId, loadAll, { immediate: true })
@@ -242,6 +321,35 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
 
           <BaseButton type="submit" :disabled="submitting">Change status</BaseButton>
         </form>
+      </BaseCard>
+
+      <BaseCard
+        v-if="alertRules?.closureProposal"
+        class="admin-trail-panel__section admin-trail-panel__proposal"
+      >
+        <h4 class="admin-trail-panel__section-title">Closure proposed</h4>
+        <p class="admin-trail-panel__hint">
+          {{ alertRules.closureProposal.reportCount }} reliable high-severity reports. Closing the
+          trail needs your confirmation.
+        </p>
+        <p class="admin-trail-panel__hint">
+          {{ alertRules.closureProposal.reason }} ({{
+            formatDate(alertRules.closureProposal.proposedAt)
+          }})
+        </p>
+        <p v-if="proposalError" class="admin-trail-panel__error">{{ proposalError }}</p>
+        <div class="admin-trail-panel__proposal-actions">
+          <BaseButton :disabled="submitting || proposalBusy" @click="confirmClosure">
+            Close trail
+          </BaseButton>
+          <BaseButton
+            variant="secondary"
+            :disabled="submitting || proposalBusy"
+            @click="dismissProposal"
+          >
+            Dismiss
+          </BaseButton>
+        </div>
       </BaseCard>
 
       <BaseCard v-if="crowdThresholds" class="admin-trail-panel__section">
@@ -289,6 +397,34 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
         </form>
       </BaseCard>
 
+      <BaseCard v-if="alertRules" class="admin-trail-panel__section">
+        <h4 class="admin-trail-panel__section-title">Automatic alerts</h4>
+        <p class="admin-trail-panel__hint">
+          A report counts when another user has confirmed it nearby, or its author has a good track
+          record. Enough of them on this trail mark it at risk by themselves; for a closure the
+          system only proposes and you decide.
+        </p>
+
+        <form class="admin-trail-panel__status-form" @submit.prevent="saveAlertRules">
+          <label v-for="field in ALERT_FIELDS" :key="field.key" class="admin-trail-panel__field">
+            <span>{{ field.label }}</span>
+            <input
+              v-model="alertDrafts[field.key]"
+              type="number"
+              :min="field.min"
+              step="1"
+              :placeholder="`Default: ${alertRules.defaults[field.key]}`"
+              @input="alertSaved = false"
+            />
+          </label>
+
+          <p v-if="alertError" class="admin-trail-panel__error">{{ alertError }}</p>
+          <p v-else-if="alertSaved" class="admin-trail-panel__success">Rules saved</p>
+
+          <BaseButton type="submit" :disabled="alertSaving">Save rules</BaseButton>
+        </form>
+      </BaseCard>
+
       <BaseCard class="admin-trail-panel__section">
         <h4 class="admin-trail-panel__section-title">Connected reports ({{ reports.length }})</h4>
         <p v-if="reports.length === 0" class="admin-trail-panel__empty">
@@ -307,6 +443,13 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
                 :style="{ '--severity-color': severityOption(report.severity)?.color }"
               >
                 {{ severityOption(report.severity)?.label }}
+              </span>
+              <span
+                v-if="report.trustScore !== undefined"
+                class="admin-trail-panel__report-trust"
+                title="Trust score: confirmations from other nearby users and the author's reputation"
+              >
+                Trust {{ report.trustScore }}
               </span>
             </span>
             <StatusBadge :status="report.validationStatus" :statuses="REPORT_VALIDATION_STATUSES" />
@@ -413,6 +556,16 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
   color: var(--color-text-muted);
 }
 
+.admin-trail-panel__proposal {
+  border-left: 4px solid var(--color-status-closed);
+}
+
+.admin-trail-panel__proposal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .admin-trail-panel__success {
   margin: 0;
   font-size: 0.8rem;
@@ -458,6 +611,16 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
   display: flex;
   align-items: center;
   gap: 0.4rem;
+}
+
+.admin-trail-panel__report-trust {
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background-color: color-mix(in srgb, var(--color-primary) 10%, white);
 }
 
 .admin-trail-panel__report-severity {
