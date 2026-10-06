@@ -51,7 +51,6 @@ router.patch('/:id/status', requireAuth, requireRole('admin'), async (req, res) 
 
   const previousStatus = trail.status
   trail.status = status
-  trail.closureProposal = undefined
   await trail.save()
 
   const historyEntry = await TrailStatusHistory.create({

@@ -1,7 +1,6 @@
 <script setup>
 import BaseCard from '@/components/base/BaseCard.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
-import TrailAlternative from '@/components/TrailAlternative.vue'
 import { getTrailDifficultyColor, getTrailDifficultyLabel } from '@/config/trailDifficulty.js'
 
 const props = defineProps({
@@ -15,7 +14,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'select', 'focus-trail'])
+const emit = defineEmits(['close', 'select'])
 
 function trailId(trail) {
   return String(trail.properties.id)
@@ -111,13 +110,6 @@ function formatDuration(durationMinutes) {
                 <dd>{{ getTrailDifficultyLabel(trail.properties.difficulty) }}</dd>
               </div>
             </dl>
-
-            <TrailAlternative
-              v-if="trail.properties.status !== 'free'"
-              :trail-id="trailId(trail)"
-              :status="trail.properties.status"
-              @show="emit('focus-trail', $event)"
-            />
           </div>
         </BaseCard>
       </li>

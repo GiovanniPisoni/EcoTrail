@@ -12,7 +12,6 @@ const route = useRoute()
 const visibleTrails = ref([])
 const reportDialogOpen = ref(false)
 const mapInstance = ref(null)
-const trailsMap = ref(null)
 
 const selectedTrailId = ref(null)
 const focusTrailId = typeof route.query.trail === 'string' ? route.query.trail : null
@@ -22,10 +21,6 @@ function toggleSelection(trailId) {
 }
 
 const sidebarOpen = ref(true)
-
-function showTrailOnMap(trailId) {
-  trailsMap.value?.focusOnTrail(trailId)
-}
 </script>
 
 <template>
@@ -37,7 +32,6 @@ function showTrailOnMap(trailId) {
       class="map-page__sidebar"
       @close="sidebarOpen = false"
       @select="toggleSelection"
-      @focus-trail="showTrailOnMap"
     />
     <button
       v-else
@@ -61,7 +55,6 @@ function showTrailOnMap(trailId) {
 
     <div class="map-page__map-wrap">
       <TrailsMap
-        ref="trailsMap"
         :selected-trail-id="selectedTrailId"
         :focus-trail-id="focusTrailId"
         class="map-page__map"

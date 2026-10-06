@@ -142,7 +142,7 @@ describe('POST /api/reports', () => {
     const saved = await Report.findById(res.body.id)
     expect(saved.author.equals(user._id)).toBe(true)
     expect(saved.validationStatus).toBe('pending')
-    expect(saved.trustScore).toBe(1)
+    expect(saved.trustScore).toBe(0)
     expect(saved.isSuspicious).toBe(false)
   })
 

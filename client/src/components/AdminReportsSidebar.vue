@@ -208,16 +208,7 @@ onUnmounted(() => {
               {{ severityOption(report.severity)?.label }}
             </span>
           </div>
-          <div class="admin-reports-sidebar__meta">
-            <span class="admin-reports-sidebar__time">{{ timeAgo(report.createdAt) }}</span>
-            <span
-              v-if="report.trustScore !== undefined"
-              class="admin-reports-sidebar__trust"
-              title="Trust score: confirmations from other nearby users and the author's reputation"
-            >
-              Trust {{ report.trustScore }}
-            </span>
-          </div>
+          <span class="admin-reports-sidebar__time">{{ timeAgo(report.createdAt) }}</span>
 
           <div v-if="isSelected(report)" class="admin-reports-sidebar__details">
             <img
@@ -421,25 +412,10 @@ onUnmounted(() => {
   background-color: color-mix(in srgb, var(--severity-color) 15%, white);
 }
 
-.admin-reports-sidebar__meta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding-left: 2.1rem;
-}
-
 .admin-reports-sidebar__time {
+  padding-left: 2.1rem;
   font-size: 0.75rem;
   color: var(--color-text-muted);
-}
-
-.admin-reports-sidebar__trust {
-  padding: 0.1rem 0.5rem;
-  border-radius: var(--radius-pill);
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--color-primary);
-  background-color: color-mix(in srgb, var(--color-primary) 10%, white);
 }
 
 .admin-reports-sidebar__details {
