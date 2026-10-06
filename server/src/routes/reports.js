@@ -14,6 +14,8 @@ import {
 import { reportEvents, REPORT_CREATED, REPORT_UPDATED } from '../services/reportEvents.js'
 import { parseBbox } from '../utils/bbox.js'
 import { adjustReputation, refreshTrustSafely } from '../services/reportTrust.js'
+import { isSuspiciousReport, SPAM_REPUTATION_PENALTY } from '../services/reportSpam.js'
+import { reportRateLimit } from '../middleware/reportRateLimit.js'
 import { evaluateTrailAlertSafely } from '../services/autoTrailAlert.js'
 
 const router = Router()
@@ -111,6 +113,8 @@ function reportToAdminResponse(report) {
     validatedBy: report.validatedBy,
     validatedAt: report.validatedAt,
     trustScore: report.trustScore,
+    isSuspicious: report.isSuspicious,
+    markedAsSpam: report.markedAsSpam,
     createdAt: report.createdAt
   }
 }
@@ -120,6 +124,7 @@ router.get('/admin', requireAuth, requireRole('admin'), async (req, res) => {
     trail,
     severity,
     validationStatus,
+    suspicious,
     since,
     until,
     page = '1',
@@ -151,6 +156,13 @@ router.get('/admin', requireAuth, requireRole('admin'), async (req, res) => {
         .json({ error: `validationStatus must be one of: ${VALIDATION_STATUSES.join(', ')}` })
     }
     query.validationStatus = validationStatus
+  }
+
+  if (suspicious !== undefined) {
+    if (suspicious !== 'true' && suspicious !== 'false') {
+      return res.status(400).json({ error: 'suspicious must be true or false' })
+    }
+    query.isSuspicious = suspicious === 'true' ? true : { $ne: true }
   }
 
   if (since || until) {
@@ -208,10 +220,16 @@ router.patch('/:id/validate', requireAuth, requireRole('admin'), async (req, res
     return res.status(400).json({ error: 'Invalid report id' })
   }
 
-  const { status, note } = req.body
+  const { status, note, spam } = req.body
 
   if (!REVIEW_STATUSES.includes(status)) {
     return res.status(400).json({ error: `status must be one of: ${REVIEW_STATUSES.join(', ')}` })
+  }
+  if (spam !== undefined && typeof spam !== 'boolean') {
+    return res.status(400).json({ error: 'spam must be a boolean' })
+  }
+  if (spam === true && status !== 'rejected') {
+    return res.status(400).json({ error: 'A report can only be marked as spam when rejecting it' })
   }
 
   const report = await Report.findById(req.params.id)
@@ -227,11 +245,37 @@ router.patch('/:id/validate', requireAuth, requireRole('admin'), async (req, res
   report.validationNote = note || undefined
   report.validatedBy = req.user.id
   report.validatedAt = new Date()
+  report.isSuspicious = false
+
+  const authorId = report.author?._id
+  if (spam === true && !report.markedAsSpam) {
+    const applied = authorId
+      ? await adjustReputation(authorId, -SPAM_REPUTATION_PENALTY, {
+          reason: 'spam',
+          report: report._id
+        })
+      : 0
+    report.markedAsSpam = true
+    report.spamPenalty = -applied
+  } else if (spam !== true && report.markedAsSpam) {
+    if (authorId && report.spamPenalty > 0) {
+      await adjustReputation(authorId, report.spamPenalty, {
+        reason: 'spam_reverted',
+        report: report._id
+      })
+    }
+    report.markedAsSpam = false
+    report.spamPenalty = 0
+  }
+
   await report.save()
 
   const reputationChange = Number(status === 'validated') - Number(wasValidated)
-  if (reputationChange !== 0 && report.author) {
-    await adjustReputation(report.author._id, reputationChange)
+  if (reputationChange !== 0 && authorId) {
+    await adjustReputation(authorId, reputationChange, {
+      reason: reputationChange > 0 ? 'report_validated' : 'validation_revoked',
+      report: report._id
+    })
   }
   const trustScore = await refreshTrustSafely(report)
   if (trustScore !== null) report.trustScore = trustScore
@@ -246,7 +290,7 @@ router.patch('/:id/validate', requireAuth, requireRole('admin'), async (req, res
   res.json(reportToAdminResponse(report))
 })
 
-router.post('/', requireAuth, uploadReportPhoto, async (req, res) => {
+router.post('/', requireAuth, reportRateLimit, uploadReportPhoto, async (req, res) => {
   const validation = validateReportInput(req.body)
   const errors = { ...validation.errors }
 
@@ -273,6 +317,13 @@ router.post('/', requireAuth, uploadReportPhoto, async (req, res) => {
       .json({ error: `No trail within ${MAX_TRAIL_DISTANCE_METERS} m of the given position` })
   }
 
+  const isSuspicious = await isSuspiciousReport({
+    author: req.user.id,
+    type: value.type,
+    longitude: value.longitude,
+    latitude: value.latitude
+  })
+
   const photoUrl = jpeg ? await storeReportPhoto(jpeg) : undefined
 
   let report
@@ -284,7 +335,8 @@ router.post('/', requireAuth, uploadReportPhoto, async (req, res) => {
       description: value.description,
       photoUrl,
       location: { type: 'Point', coordinates: [value.longitude, value.latitude] },
-      trail: trail._id
+      trail: trail._id,
+      isSuspicious
     })
   } catch (err) {
     await deleteReportPhoto(photoUrl)
@@ -292,7 +344,7 @@ router.post('/', requireAuth, uploadReportPhoto, async (req, res) => {
   }
 
   await refreshTrustSafely(report)
-  await evaluateTrailAlertSafely(report)
+  if (!isSuspicious) await evaluateTrailAlertSafely(report)
 
   reportEvents.emit(REPORT_CREATED, {
     reportId: report._id,
