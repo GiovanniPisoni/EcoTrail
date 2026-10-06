@@ -14,6 +14,7 @@ import {
 import { reportEvents, REPORT_CREATED, REPORT_UPDATED } from '../services/reportEvents.js'
 import { parseBbox } from '../utils/bbox.js'
 import { adjustReputation, refreshTrustSafely } from '../services/reportTrust.js'
+import { evaluateTrailAlertSafely } from '../services/autoTrailAlert.js'
 
 const router = Router()
 
@@ -234,6 +235,7 @@ router.patch('/:id/validate', requireAuth, requireRole('admin'), async (req, res
   }
   const trustScore = await refreshTrustSafely(report)
   if (trustScore !== null) report.trustScore = trustScore
+  if (status === 'validated') await evaluateTrailAlertSafely(report)
 
   reportEvents.emit(REPORT_UPDATED, {
     reportId: report._id,
@@ -290,6 +292,7 @@ router.post('/', requireAuth, uploadReportPhoto, async (req, res) => {
   }
 
   await refreshTrustSafely(report)
+  await evaluateTrailAlertSafely(report)
 
   reportEvents.emit(REPORT_CREATED, {
     reportId: report._id,
