@@ -271,7 +271,7 @@ onUnmounted(() => {
   map = null
 })
 
-defineExpose({ refresh: loadTrails })
+defineExpose({ refresh: loadTrails, focusOnTrail })
 </script>
 
 <template>
