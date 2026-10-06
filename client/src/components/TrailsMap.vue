@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import api from '@/api/client.js'
 import { TRAIL_STATUSES, getTrailStatusColor, getTrailStatusLabel } from '@/config/trailStatus.js'
 import { onRealtime, RECONNECTED } from '@/utils/realtime.js'
+import { downloadArea } from '@/utils/offlineArea.js'
 
 const PILOT_AREA_CENTER = [46.1667, 10.9167]
 const PILOT_AREA_ZOOM = 13
@@ -130,6 +131,61 @@ function addLocateControl() {
   control.addTo(map)
 }
 
+let downloading = false
+
+function addDownloadControl() {
+  const control = L.control({ position: 'topleft' })
+
+  control.onAdd = () => {
+    const wrapper = L.DomUtil.create('div', 'download-area')
+    const button = L.DomUtil.create('button', 'locate-button', wrapper)
+    button.type = 'button'
+    button.title = 'Download this area for offline use'
+    button.setAttribute('aria-label', button.title)
+    const icon =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>'
+    button.innerHTML = icon
+
+    const message = L.DomUtil.create('div', 'download-area-message', wrapper)
+    message.hidden = true
+    let hideTimer = null
+
+    const show = (text, keep = false) => {
+      clearTimeout(hideTimer)
+      message.textContent = text
+      message.hidden = false
+      if (!keep) hideTimer = setTimeout(() => (message.hidden = true), 4000)
+    }
+
+    L.DomEvent.disableClickPropagation(wrapper)
+    button.addEventListener('click', async () => {
+      if (downloading) return
+      downloading = true
+      button.disabled = true
+      show('Downloading…', true)
+      try {
+        const result = await downloadArea(map, (progress) => {
+          show(`Downloading… ${Math.round(progress * 100)}%`, true)
+        })
+        show(
+          result.failed
+            ? `Area saved, ${result.failed} map tiles could not be downloaded.`
+            : 'Area saved for offline use.'
+        )
+      } catch (err) {
+        show(err.message || 'Download failed.')
+      } finally {
+        downloading = false
+        button.disabled = false
+      }
+    })
+
+    return wrapper
+  }
+
+  control.addTo(map)
+}
+
 function addLegend() {
   const legend = L.control({ position: 'topright' })
 
@@ -185,6 +241,7 @@ onMounted(async () => {
   }).addTo(map)
 
   addLocateControl()
+  addDownloadControl()
   addLegend()
 
   resizeObserver = new ResizeObserver(() => {
@@ -251,6 +308,29 @@ defineExpose({ refresh: loadTrails })
 
 .locate-button:hover {
   background: var(--color-background);
+}
+
+.download-area {
+  position: relative;
+}
+
+.download-area-message {
+  position: absolute;
+  top: 0;
+  left: 52px;
+  width: max-content;
+  max-width: 220px;
+  padding: 8px 12px;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  box-shadow: 0 1px 4px rgba(26, 62, 47, 0.12);
+}
+
+.download-area .locate-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
 }
 
 .leaflet-control-zoom {
