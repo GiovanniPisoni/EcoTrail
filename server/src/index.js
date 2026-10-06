@@ -10,6 +10,7 @@ import trailsRouter from './routes/trails.js'
 import trailStatusRouter from './routes/trailStatus.js'
 import crowdThresholdsRouter from './routes/crowdThresholds.js'
 import alertRulesRouter from './routes/alertRules.js'
+import trailAlternativeRouter from './routes/trailAlternative.js'
 import reportsRouter from './routes/reports.js'
 import myReportsRouter from './routes/myReports.js'
 import presenceRouter from './routes/presence.js'
@@ -34,6 +35,7 @@ app.use('/api/trails', trailsRouter)
 app.use('/api/trails', trailStatusRouter)
 app.use('/api/trails', crowdThresholdsRouter)
 app.use('/api/trails', alertRulesRouter)
+app.use('/api/trails', trailAlternativeRouter)
 app.use('/api/reports', reportsRouter)
 app.use('/api/reports', myReportsRouter)
 app.use('/api/presence', presenceRouter)
