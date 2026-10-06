@@ -13,6 +13,7 @@ import {
 } from '../services/reportPhoto.js'
 import { reportEvents, REPORT_CREATED, REPORT_UPDATED } from '../services/reportEvents.js'
 import { parseBbox } from '../utils/bbox.js'
+import { adjustReputation, refreshTrustSafely } from '../services/reportTrust.js'
 
 const router = Router()
 
@@ -108,6 +109,7 @@ function reportToAdminResponse(report) {
     validationNote: report.validationNote,
     validatedBy: report.validatedBy,
     validatedAt: report.validatedAt,
+    trustScore: report.trustScore,
     createdAt: report.createdAt
   }
 }
@@ -218,11 +220,20 @@ router.patch('/:id/validate', requireAuth, requireRole('admin'), async (req, res
     return res.status(404).json({ error: 'Report not found' })
   }
 
+  const wasValidated = report.validationStatus === 'validated'
+
   report.validationStatus = status
   report.validationNote = note || undefined
   report.validatedBy = req.user.id
   report.validatedAt = new Date()
   await report.save()
+
+  const reputationChange = Number(status === 'validated') - Number(wasValidated)
+  if (reputationChange !== 0 && report.author) {
+    await adjustReputation(report.author._id, reputationChange)
+  }
+  const trustScore = await refreshTrustSafely(report)
+  if (trustScore !== null) report.trustScore = trustScore
 
   reportEvents.emit(REPORT_UPDATED, {
     reportId: report._id,
@@ -277,6 +288,8 @@ router.post('/', requireAuth, uploadReportPhoto, async (req, res) => {
     await deleteReportPhoto(photoUrl)
     throw err
   }
+
+  await refreshTrustSafely(report)
 
   reportEvents.emit(REPORT_CREATED, {
     reportId: report._id,
