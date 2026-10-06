@@ -11,19 +11,29 @@ export default defineConfig({
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',
-      filename: 'sw.js',
+      filename: 'service-worker.js',
       injectRegister: false,
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,webmanifest}']
+      },
       manifest: {
         name: 'EcoTrail',
         short_name: 'EcoTrail',
         description: 'Crowdsensing platform for hiking trails',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        lang: 'en',
         theme_color: '#1a3e2f',
         background_color: '#fcfbf7',
         icons: [
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           {
-            src: '/favicon.ico',
-            sizes: '48x48',
-            type: 'image/x-icon'
+            src: '/icons/icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       },

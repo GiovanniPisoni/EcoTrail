@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import { useRoute } from 'vue-router'
 import SendReportView from '@/views/SendReportView.vue'
 import TrailsMap from '@/components/TrailsMap.vue'
@@ -11,7 +11,7 @@ const route = useRoute()
 
 const visibleTrails = ref([])
 const reportDialogOpen = ref(false)
-const mapInstance = ref(null)
+const mapInstance = shallowRef(null)
 
 const selectedTrailId = ref(null)
 const focusTrailId = typeof route.query.trail === 'string' ? route.query.trail : null
