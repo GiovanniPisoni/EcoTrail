@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import { markResponse } from '@/utils/network.js'
 
 const api = axios.create({
   baseURL: '/api'
@@ -14,7 +15,10 @@ api.interceptors.request.use((config) => {
 })
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    markResponse(response.headers)
+    return response
+  },
   (error) => {
     if (error.response?.status === 401) {
       const auth = useAuthStore()
