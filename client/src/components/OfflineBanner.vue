@@ -1,10 +1,15 @@
 <script setup>
 import { isOffline } from '@/utils/network.js'
+import { waitingCount } from '@/utils/offlineReports.js'
 </script>
 
 <template>
   <div v-if="isOffline" class="offline-banner" role="status">
     You are offline. Showing the data saved on this device.
+    <template v-if="waitingCount > 0">
+      {{ waitingCount }} {{ waitingCount === 1 ? 'report' : 'reports' }} will be sent when you're
+      back online.
+    </template>
   </div>
 </template>
 
