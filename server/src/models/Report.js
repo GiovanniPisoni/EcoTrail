@@ -39,11 +39,16 @@ const reportSchema = new mongoose.Schema(
     trustScore: { type: Number, default: 0 },
     isSuspicious: { type: Boolean, default: false },
     markedAsSpam: { type: Boolean, default: false },
-    spamPenalty: { type: Number, default: 0 }
+    spamPenalty: { type: Number, default: 0 },
+    clientId: { type: String }
   },
   { timestamps: true }
 )
 
 reportSchema.index({ location: '2dsphere' })
+reportSchema.index(
+  { author: 1, clientId: 1 },
+  { unique: true, partialFilterExpression: { clientId: { $type: 'string' } } }
+)
 
 export default mongoose.model('Report', reportSchema)

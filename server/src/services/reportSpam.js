@@ -1,13 +1,9 @@
 import Report from '../models/Report.js'
 
-// Hard limit
 export const RATE_LIMIT_MAX_REPORTS = 10
 export const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000
-
-// Soft rule => suspicious
 export const SUSPICIOUS_RADIUS_METERS = 50
 export const SUSPICIOUS_WINDOW_MS = 60 * 1000
-
 export const SPAM_REPUTATION_PENALTY = 2
 
 const EARTH_RADIUS_METERS = 6378100
@@ -32,15 +28,18 @@ export async function checkRateLimit(userId, { now = new Date() } = {}) {
 }
 
 export async function isSuspiciousReport(
-  { author, type, longitude, latitude },
+  { author, type, longitude, latitude, createdAt },
   { now = new Date() } = {}
 ) {
-  const since = new Date(now.getTime() - SUSPICIOUS_WINDOW_MS)
+  const at = (createdAt ?? now).getTime()
 
   const previous = await Report.exists({
     author,
     type,
-    createdAt: { $gte: since },
+    createdAt: {
+      $gte: new Date(at - SUSPICIOUS_WINDOW_MS),
+      $lte: new Date(at + SUSPICIOUS_WINDOW_MS)
+    },
     location: {
       $geoWithin: {
         $centerSphere: [[longitude, latitude], SUSPICIOUS_RADIUS_METERS / EARTH_RADIUS_METERS]

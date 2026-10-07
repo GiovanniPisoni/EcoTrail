@@ -1,4 +1,5 @@
 import { REPORT_SEVERITIES, REPORT_TYPES } from '../models/Report.js'
+import { parseCapturedAt } from './reportCapture.js'
 
 export const MAX_DESCRIPTION_LENGTH = 1000
 
@@ -45,9 +46,23 @@ export function validateReportInput(body) {
     }
   }
 
+  const captured = parseCapturedAt(input.capturedAt)
+  if (captured.error) {
+    errors.capturedAt = captured.error
+  }
+
   if (Object.keys(errors).length > 0) {
     return { errors }
   }
 
-  return { value: { type: input.type, severity: input.severity, description, latitude, longitude } }
+  return {
+    value: {
+      type: input.type,
+      severity: input.severity,
+      description,
+      latitude,
+      longitude,
+      capturedAt: captured.value
+    }
+  }
 }
