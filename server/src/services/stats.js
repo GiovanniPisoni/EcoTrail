@@ -127,10 +127,11 @@ export async function getEvents(period, kind = null) {
                 trail: '$trail',
                 minute: { $dateTrunc: { date: '$sentAt', unit: 'minute' } }
               },
-              recipients: { $sum: 1 },
+              users: { $addToSet: '$user' },
               message: { $first: { $ifNull: ['$body', '$title'] } }
             }
           },
+          { $addFields: { recipients: { $size: '$users' } } },
           { $sort: { '_id.minute': -1 } },
           { $limit: EVENTS_LIMIT }
         ])

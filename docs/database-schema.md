@@ -140,7 +140,7 @@ La posizione attuale di un utente durante un'escursione. Separata da `User` perc
 | `updatedAt` | Date, TTL 15 min | Il documento scompare da solo se l'utente smette di inviare la posizione |
 
 ### `Notification`
-Le notifiche push effettivamente inviate, una per destinatario. Unica collezione con un campo `type` a discriminare lo scenario, così il centro notifiche dell'utente (3.10) e le statistiche (4.6) leggono la stessa fonte. Un indice TTL elimina le notifiche dopo 30 giorni: lo storico delle statistiche sulle notifiche copre al massimo gli ultimi 30 giorni.
+Le notifiche push effettivamente inviate, una per destinatario. Unica collezione con un campo `type` a discriminare lo scenario, così il centro notifiche dell'utente (3.10) e le statistiche (4.6) leggono la stessa fonte. Un indice TTL elimina le notifiche dopo 30 giorni: lo storico delle statistiche sulle notifiche copre al massimo gli ultimi 30 giorni. La notifica viene salvata anche se la push non parte (utente con le notifiche silenziate o senza sottoscrizione): le statistiche contano quindi le persone avvisate dal sistema, non le push effettivamente recapitate.
 
 | Campo | Tipo | A cosa serve |
 |---|---|---|

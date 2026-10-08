@@ -224,6 +224,29 @@ describe('GET /api/stats/events', () => {
     expect(res.body.notificationRetentionDays).toBe(30)
   })
 
+  it('counts a person once per group even when they got several notifications', async () => {
+    const user = new mongoose.Types.ObjectId()
+    const sentAt = new Date('2026-10-08T09:30:10Z')
+    await Notification.create([
+      { user, type: 'emergency', trail: trailA._id, title: 'Closed', body: 'Closed', sentAt },
+      { user, type: 'emergency', trail: trailA._id, title: 'Report', body: 'Report', sentAt },
+      {
+        user: new mongoose.Types.ObjectId(),
+        type: 'emergency',
+        trail: trailA._id,
+        title: 'Closed',
+        body: 'Closed',
+        sentAt
+      }
+    ])
+
+    const res = await get('/api/stats/events')
+
+    expect(res.body.totals.notifications).toBe(3)
+    expect(res.body.events).toHaveLength(1)
+    expect(res.body.events[0].count).toBe(2)
+  })
+
   it('filters the timeline by event type but keeps all totals', async () => {
     await seedEvents()
 
