@@ -1,11 +1,11 @@
 <script setup>
 import { ref, shallowRef } from 'vue'
 import { useRoute } from 'vue-router'
-import SendReportView from '@/views/SendReportView.vue'
-import TrailsMap from '@/components/TrailsMap.vue'
-import TrailsSidebar from '@/components/TrailsSidebar.vue'
-import ReportsLayer from '@/components/ReportsLayer.vue'
-import HikeModeToggle from '@/components/HikeModeToggle.vue'
+import SendReportView from '@/views/hiker/SendReportView.vue'
+import TrailsMap from '@/components/trails/TrailsMap.vue'
+import TrailsSidebar from '@/components/trails/TrailsSidebar.vue'
+import ReportsLayer from '@/components/reports/ReportsLayer.vue'
+import HikeModeToggle from '@/components/common/HikeModeToggle.vue'
 
 const route = useRoute()
 

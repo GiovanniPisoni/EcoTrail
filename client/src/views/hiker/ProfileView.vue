@@ -14,7 +14,7 @@ import {
   queuedReports,
   retryQueuedReport,
   sentCounter
-} from '@/utils/offlineReports.js'
+} from '@/utils/offline/offlineReports.js'
 
 const auth = useAuthStore()
 

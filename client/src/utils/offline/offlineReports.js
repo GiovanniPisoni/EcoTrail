@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import api from '@/api/client.js'
 import { useAuthStore } from '@/stores/auth'
-import { createReportQueue } from '@/utils/reportQueue.js'
+import { createReportQueue } from '@/utils/offline/reportQueue.js'
 
 const RETRY_INTERVAL_MS = 30 * 1000
 const LOCK_NAME = 'ecotrail-report-queue'

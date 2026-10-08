@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onMounted, ref, shallowRef } from 'vue'
-import TrailsMap from '@/components/TrailsMap.vue'
-import AdminReportsLayer from '@/components/AdminReportsLayer.vue'
-import AdminReportsSidebar from '@/components/AdminReportsSidebar.vue'
+import TrailsMap from '@/components/trails/TrailsMap.vue'
+import AdminReportsLayer from '@/components/admin/AdminReportsLayer.vue'
+import AdminReportsSidebar from '@/components/admin/AdminReportsSidebar.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import { REPORT_TYPE_OPTIONS } from '@/config/reportOptions.js'

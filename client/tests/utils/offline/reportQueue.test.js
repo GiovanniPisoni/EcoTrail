@@ -4,7 +4,7 @@ import {
   DEFAULT_RETRY_AFTER_SECONDS,
   classifyFailure,
   createReportQueue
-} from '@/utils/reportQueue.js'
+} from '@/utils/offline/reportQueue.js'
 
 let dbCounter = 0
 let clock

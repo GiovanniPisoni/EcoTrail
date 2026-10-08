@@ -1,9 +1,9 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { submitReport as sendOrQueueReport } from '@/utils/offlineReports.js'
+import { submitReport as sendOrQueueReport } from '@/utils/offline/offlineReports.js'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
-import LocationPicker from '@/components/LocationPicker.vue'
+import LocationPicker from '@/components/reports/LocationPicker.vue'
 import { REPORT_SEVERITY_OPTIONS, REPORT_TYPE_OPTIONS } from '@/config/reportOptions.js'
 
 const emit = defineEmits(['close'])

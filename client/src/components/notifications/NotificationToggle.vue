@@ -1,13 +1,13 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import NotificationPermissionHelp from '@/components/NotificationPermissionHelp.vue'
+import NotificationPermissionHelp from '@/components/notifications/NotificationPermissionHelp.vue'
 import {
   PUSH_SUBSCRIPTION_CHANGED,
   getExistingSubscription,
   isPushSupported,
   subscribeToPush,
   unsubscribeFromPush
-} from '@/utils/pushSubscription.js'
+} from '@/utils/push/pushSubscription.js'
 
 const supported = ref(true)
 const permission = ref('default')

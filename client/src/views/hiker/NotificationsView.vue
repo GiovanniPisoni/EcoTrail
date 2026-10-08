@@ -4,7 +4,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import api from '@/api/client.js'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
-import NotificationPermissionHelp from '@/components/NotificationPermissionHelp.vue'
+import NotificationPermissionHelp from '@/components/notifications/NotificationPermissionHelp.vue'
 import {
   MUTE_LABELS,
   NOTIFICATION_TYPES,
@@ -15,8 +15,8 @@ import {
   PUSH_SUBSCRIPTION_CHANGED,
   getExistingSubscription,
   isPushSupported
-} from '@/utils/pushSubscription.js'
-import { unreadNotificationCount } from '@/utils/notifications.js'
+} from '@/utils/push/pushSubscription.js'
+import { unreadNotificationCount } from '@/utils/push/notifications.js'
 
 const PAGE_SIZE = 20
 

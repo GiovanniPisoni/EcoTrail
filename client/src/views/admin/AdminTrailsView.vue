@@ -1,8 +1,8 @@
 <script setup>
 import { ref } from 'vue'
-import TrailsMap from '@/components/TrailsMap.vue'
-import AdminTrailsSidebar from '@/components/AdminTrailsSidebar.vue'
-import AdminTrailPanel from '@/components/AdminTrailPanel.vue'
+import TrailsMap from '@/components/trails/TrailsMap.vue'
+import AdminTrailsSidebar from '@/components/admin/AdminTrailsSidebar.vue'
+import AdminTrailPanel from '@/components/admin/AdminTrailPanel.vue'
 
 const mapRef = ref(null)
 const visibleTrails = ref([])

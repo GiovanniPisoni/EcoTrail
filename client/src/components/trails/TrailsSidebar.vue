@@ -1,7 +1,7 @@
 <script setup>
 import BaseCard from '@/components/base/BaseCard.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
-import TrailAlternative from '@/components/TrailAlternative.vue'
+import TrailAlternative from '@/components/trails/TrailAlternative.vue'
 import { getTrailDifficultyColor, getTrailDifficultyLabel } from '@/config/trailDifficulty.js'
 
 const props = defineProps({

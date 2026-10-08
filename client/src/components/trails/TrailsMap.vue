@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import api from '@/api/client.js'
 import { TRAIL_STATUSES, getTrailStatusColor, getTrailStatusLabel } from '@/config/trailStatus.js'
 import { onRealtime, RECONNECTED } from '@/utils/realtime.js'
-import { downloadArea } from '@/utils/offlineArea.js'
+import { downloadArea } from '@/utils/offline/offlineArea.js'
 
 const PILOT_AREA_CENTER = [46.1667, 10.9167]
 const PILOT_AREA_ZOOM = 13

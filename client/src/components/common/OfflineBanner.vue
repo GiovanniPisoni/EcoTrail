@@ -1,6 +1,6 @@
 <script setup>
-import { isOffline } from '@/utils/network.js'
-import { waitingCount } from '@/utils/offlineReports.js'
+import { isOffline } from '@/utils/offline/network.js'
+import { waitingCount } from '@/utils/offline/offlineReports.js'
 </script>
 
 <template>

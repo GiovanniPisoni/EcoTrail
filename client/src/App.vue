@@ -2,7 +2,7 @@
 import { watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { connectRealtime, disconnectRealtime } from '@/utils/realtime.js'
-import OfflineBanner from '@/components/OfflineBanner.vue'
+import OfflineBanner from '@/components/common/OfflineBanner.vue'
 
 const auth = useAuthStore()
 

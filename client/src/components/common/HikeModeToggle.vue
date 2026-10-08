@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { isPushSupported, subscribeToPush } from '@/utils/pushSubscription.js'
+import { isPushSupported, subscribeToPush } from '@/utils/push/pushSubscription.js'
 import {
   INACTIVITY_TIMEOUT_MS,
   hikeModeActive,
