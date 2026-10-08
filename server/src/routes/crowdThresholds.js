@@ -6,7 +6,7 @@ import {
   defaultCrowdThreshold,
   defaultReleaseThreshold,
   getCrowdThresholds
-} from '../services/overcrowding.js'
+} from '../services/trails/overcrowding.js'
 
 const router = Router()
 

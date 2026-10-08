@@ -2,7 +2,7 @@ import { Router } from 'express'
 import User from '../models/User.js'
 import Trail from '../models/Trail.js'
 import { requireAuth } from '../middleware/auth.js'
-import { sendPush } from '../services/sendPush.js'
+import { sendPush } from '../services/notifications/sendPush.js'
 
 const router = Router()
 

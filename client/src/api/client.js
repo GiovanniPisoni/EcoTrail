@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
-import { markResponse } from '@/utils/network.js'
+import { markResponse } from '@/utils/offline/network.js'
 
 const api = axios.create({
   baseURL: '/api'

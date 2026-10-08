@@ -7,13 +7,13 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('@/views/LoginView.vue'),
+      component: () => import('@/views/auth/LoginView.vue'),
       meta: { public: true }
     },
     {
       path: '/register',
       name: 'register',
-      component: () => import('@/views/RegisterView.vue'),
+      component: () => import('@/views/auth/RegisterView.vue'),
       meta: { public: true }
     },
     {
@@ -21,16 +21,20 @@ const router = createRouter({
       component: () => import('@/layouts/HikerLayout.vue'),
       meta: { requiresAuth: true, role: 'hiker' },
       children: [
-        { path: '', name: 'hiker-home', component: () => import('@/views/HikerHomeView.vue') },
+        {
+          path: '',
+          name: 'hiker-home',
+          component: () => import('@/views/hiker/HikerHomeView.vue')
+        },
         {
           path: 'profile',
           name: 'hiker-profile',
-          component: () => import('@/views/ProfileView.vue')
+          component: () => import('@/views/hiker/ProfileView.vue')
         },
         {
           path: 'notifications',
           name: 'hiker-notifications',
-          component: () => import('@/views/NotificationsView.vue')
+          component: () => import('@/views/hiker/NotificationsView.vue')
         }
       ]
     },
@@ -39,23 +43,22 @@ const router = createRouter({
       component: () => import('@/layouts/AdminLayout.vue'),
       meta: { requiresAuth: true, role: 'admin' },
       children: [
-        { path: '', name: 'admin-home', component: () => import('@/views/AdminHomeView.vue') },
+        {
+          path: '',
+          name: 'admin-home',
+          component: () => import('@/views/admin/AdminHomeView.vue')
+        },
         {
           path: 'trails',
           name: 'admin-trails',
-          component: () => import('@/views/AdminTrailsView.vue')
+          component: () => import('@/views/admin/AdminTrailsView.vue')
         },
         {
           path: 'stats',
           name: 'admin-stats',
-          component: () => import('@/views/AdminStatsView.vue')
+          component: () => import('@/views/admin/AdminStatsView.vue')
         }
       ]
-    },
-    {
-      path: '/push-test',
-      name: 'push-test',
-      component: () => import('@/views/PushTest.vue')
     }
   ]
 })

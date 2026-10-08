@@ -1,7 +1,7 @@
 import { Server } from 'socket.io'
 import jwt from 'jsonwebtoken'
-import { trailEvents, TRAIL_STATUS_CHANGED } from './trailEvents.js'
-import { reportEvents, REPORT_CREATED, REPORT_UPDATED } from './reportEvents.js'
+import { trailEvents, TRAIL_STATUS_CHANGED } from './trails/trailEvents.js'
+import { reportEvents, REPORT_CREATED, REPORT_UPDATED } from './reports/reportEvents.js'
 
 export const ADMIN_ROOM = 'admins'
 

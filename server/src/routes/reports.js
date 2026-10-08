@@ -3,21 +3,21 @@ import mongoose from 'mongoose'
 import Report, { REPORT_TYPES, REPORT_SEVERITIES } from '../models/Report.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { uploadReportPhoto } from '../middleware/uploadReportPhoto.js'
-import { validateReportInput } from '../services/validateReportInput.js'
-import { findNearestTrail, MAX_TRAIL_DISTANCE_METERS } from '../services/findNearestTrail.js'
+import { validateReportInput } from '../services/reports/validateReportInput.js'
+import { findNearestTrail, MAX_TRAIL_DISTANCE_METERS } from '../services/trails/findNearestTrail.js'
 import {
   InvalidPhotoError,
   deleteReportPhoto,
   processReportPhoto,
   storeReportPhoto
-} from '../services/reportPhoto.js'
-import { reportEvents, REPORT_CREATED, REPORT_UPDATED } from '../services/reportEvents.js'
+} from '../services/reports/reportPhoto.js'
+import { reportEvents, REPORT_CREATED, REPORT_UPDATED } from '../services/reports/reportEvents.js'
 import { parseBbox } from '../utils/bbox.js'
-import { adjustReputation, refreshTrustSafely } from '../services/reportTrust.js'
-import { isSuspiciousReport, SPAM_REPUTATION_PENALTY } from '../services/reportSpam.js'
+import { adjustReputation, refreshTrustSafely } from '../services/reports/reportTrust.js'
+import { isSuspiciousReport, SPAM_REPUTATION_PENALTY } from '../services/reports/reportSpam.js'
 import { reportRateLimit } from '../middleware/reportRateLimit.js'
-import { evaluateTrailAlertSafely } from '../services/autoTrailAlert.js'
-import { clampCapturedAt, readIdempotencyKey } from '../services/reportCapture.js'
+import { evaluateTrailAlertSafely } from '../services/trails/autoTrailAlert.js'
+import { clampCapturedAt, readIdempotencyKey } from '../services/reports/reportCapture.js'
 
 const DUPLICATE_KEY_ERROR = 11000
 

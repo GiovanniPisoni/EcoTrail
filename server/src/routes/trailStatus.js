@@ -3,7 +3,7 @@ import mongoose from 'mongoose'
 import Trail, { TRAIL_STATUSES } from '../models/Trail.js'
 import TrailStatusHistory from '../models/TrailStatusHistory.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { trailEvents, TRAIL_STATUS_CHANGED } from '../services/trailEvents.js'
+import { trailEvents, TRAIL_STATUS_CHANGED } from '../services/trails/trailEvents.js'
 
 const router = Router()
 

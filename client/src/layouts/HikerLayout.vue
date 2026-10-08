@@ -2,10 +2,13 @@
 import { onBeforeUnmount, onMounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import NotificationToggle from '@/components/NotificationToggle.vue'
+import NotificationToggle from '@/components/notifications/NotificationToggle.vue'
 import { hikeModeActive, resumeHikeModeIfEnabled, stopHikeMode } from '@/utils/hikeMode.js'
-import { refreshUnreadNotificationCount, unreadNotificationCount } from '@/utils/notifications.js'
-import { startOfflineReports } from '@/utils/offlineReports.js'
+import {
+  refreshUnreadNotificationCount,
+  unreadNotificationCount
+} from '@/utils/push/notifications.js'
+import { startOfflineReports } from '@/utils/offline/offlineReports.js'
 
 const UNREAD_REFRESH_INTERVAL_MS = 60 * 1000
 

@@ -2,8 +2,8 @@ import { Router } from 'express'
 import mongoose from 'mongoose'
 import Report from '../models/Report.js'
 import { requireAuth } from '../middleware/auth.js'
-import { reportEvents, REPORT_UPDATED } from '../services/reportEvents.js'
-import { refreshTrustSafely } from '../services/reportTrust.js'
+import { reportEvents, REPORT_UPDATED } from '../services/reports/reportEvents.js'
+import { refreshTrustSafely } from '../services/reports/reportTrust.js'
 
 const router = Router()
 
