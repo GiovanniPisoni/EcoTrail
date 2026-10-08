@@ -18,6 +18,12 @@ const NAV_ITEMS = [
     to: '/admin/trails',
     label: 'Trails',
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20 9 8l4 6 3-5 5 11z"/></svg>'
+  },
+  {
+    name: 'admin-stats',
+    to: '/admin/stats',
+    label: 'Statistics',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>'
   }
 ]
 
