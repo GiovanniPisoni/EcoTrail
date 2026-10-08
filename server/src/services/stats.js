@@ -3,11 +3,12 @@ import Report from '../models/Report.js'
 import Trail from '../models/Trail.js'
 import TrailActivity from '../models/TrailActivity.js'
 import TrailStatusHistory from '../models/TrailStatusHistory.js'
-import NotificationLog from '../models/NotificationLog.js'
+import Notification, { NOTIFICATION_RETENTION_SECONDS } from '../models/Notification.js'
 import { STATS_TIMEZONE } from './statsPeriod.js'
 
 export const HEATMAP_MAX_POINTS = 5000
 export const EVENTS_LIMIT = 200
+export const NOTIFICATION_RETENTION_DAYS = NOTIFICATION_RETENTION_SECONDS / (24 * 60 * 60)
 export const EVENT_KINDS = ['closure', 'alert', 'notification']
 
 const SEVERITY_INTENSITY = { low: 0.3, medium: 0.6, high: 1 }
@@ -102,7 +103,7 @@ export async function getEvents(period, kind = null) {
   const [closures, alerts, notifications] = await Promise.all([
     TrailStatusHistory.countDocuments(closureFilter),
     TrailStatusHistory.countDocuments(alertFilter),
-    NotificationLog.countDocuments(notificationFilter)
+    Notification.countDocuments(notificationFilter)
   ])
 
   const wantsHistory = !kind || kind === 'closure' || kind === 'alert'
@@ -117,19 +118,20 @@ export async function getEvents(period, kind = null) {
       ? TrailStatusHistory.find(historyFilter).sort({ changedAt: -1 }).limit(EVENTS_LIMIT).lean()
       : [],
     wantsNotifications
-      ? NotificationLog.aggregate([
+      ? Notification.aggregate([
           { $match: notificationFilter },
           {
             $group: {
               _id: {
                 type: '$type',
-                trail: '$relatedTrail',
+                trail: '$trail',
                 minute: { $dateTrunc: { date: '$sentAt', unit: 'minute' } }
               },
-              recipients: { $sum: 1 },
-              message: { $first: '$message' }
+              users: { $addToSet: '$user' },
+              message: { $first: { $ifNull: ['$body', '$title'] } }
             }
           },
+          { $addFields: { recipients: { $size: '$users' } } },
           { $sort: { '_id.minute': -1 } },
           { $limit: EVENTS_LIMIT }
         ])
@@ -160,5 +162,9 @@ export async function getEvents(period, kind = null) {
     .sort((a, b) => b.at - a.at)
     .slice(0, EVENTS_LIMIT)
 
-  return { totals: { closures, alerts, notifications }, events }
+  return {
+    totals: { closures, alerts, notifications },
+    notificationRetentionDays: NOTIFICATION_RETENTION_DAYS,
+    events
+  }
 }

@@ -9,7 +9,7 @@ import Trail from '../../src/models/Trail.js'
 import Report from '../../src/models/Report.js'
 import TrailActivity from '../../src/models/TrailActivity.js'
 import TrailStatusHistory from '../../src/models/TrailStatusHistory.js'
-import NotificationLog from '../../src/models/NotificationLog.js'
+import Notification from '../../src/models/Notification.js'
 
 const JWT_SECRET = 'test-secret'
 const DAY = '2026-10-08'
@@ -77,7 +77,7 @@ beforeEach(async () => {
     Report.deleteMany({}),
     TrailActivity.deleteMany({}),
     TrailStatusHistory.deleteMany({}),
-    NotificationLog.deleteMany({})
+    Notification.deleteMany({})
   ])
   admin = await User.create({ email: 'admin@ecotrail.test', password: 'hashed', role: 'admin' })
   hiker = await User.create({ email: 'hiker@ecotrail.test', password: 'hashed', role: 'hiker' })
@@ -199,12 +199,13 @@ describe('GET /api/stats/events', () => {
         changedAt: new Date('2026-10-08T11:00:00Z')
       }
     ])
-    await NotificationLog.create(
-      [1, 2, 3].map((n) => ({
-        recipient: new mongoose.Types.ObjectId(),
+    await Notification.create(
+      [1, 2, 3].map(() => ({
+        user: new mongoose.Types.ObjectId(),
         type: 'emergency',
-        relatedTrail: trailA._id,
-        message: `Trail A closed ${n}`,
+        trail: trailA._id,
+        title: 'Trail closed',
+        body: 'Trail A is closed',
         sentAt: new Date('2026-10-08T09:30:10Z')
       }))
     )
@@ -219,6 +220,31 @@ describe('GET /api/stats/events', () => {
     expect(res.body.totals).toEqual({ closures: 1, alerts: 1, notifications: 3 })
     expect(res.body.events.map((event) => event.kind)).toEqual(['alert', 'notification', 'closure'])
     expect(res.body.events[1].count).toBe(3)
+    expect(res.body.events[1].detail).toBe('Trail A is closed')
+    expect(res.body.notificationRetentionDays).toBe(30)
+  })
+
+  it('counts a person once per group even when they got several notifications', async () => {
+    const user = new mongoose.Types.ObjectId()
+    const sentAt = new Date('2026-10-08T09:30:10Z')
+    await Notification.create([
+      { user, type: 'emergency', trail: trailA._id, title: 'Closed', body: 'Closed', sentAt },
+      { user, type: 'emergency', trail: trailA._id, title: 'Report', body: 'Report', sentAt },
+      {
+        user: new mongoose.Types.ObjectId(),
+        type: 'emergency',
+        trail: trailA._id,
+        title: 'Closed',
+        body: 'Closed',
+        sentAt
+      }
+    ])
+
+    const res = await get('/api/stats/events')
+
+    expect(res.body.totals.notifications).toBe(3)
+    expect(res.body.events).toHaveLength(1)
+    expect(res.body.events[0].count).toBe(2)
   })
 
   it('filters the timeline by event type but keeps all totals', async () => {

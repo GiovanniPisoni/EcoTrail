@@ -5,7 +5,7 @@ import User from '../src/models/User.js'
 import Report, { REPORT_SEVERITIES, REPORT_TYPES } from '../src/models/Report.js'
 import TrailActivity from '../src/models/TrailActivity.js'
 import TrailStatusHistory from '../src/models/TrailStatusHistory.js'
-import NotificationLog from '../src/models/NotificationLog.js'
+import Notification from '../src/models/Notification.js'
 import { startOfHour } from '../src/services/trailActivity.js'
 
 const SIMULATED_EMAIL_DOMAIN = '@simulated.ecotrail.test'
@@ -77,7 +77,7 @@ async function removeSimulated() {
   await Promise.all([
     Report.deleteMany({ author: { $in: ids } }),
     TrailStatusHistory.deleteMany({ reason: { $regex: '^\\[sim\\]' } }),
-    NotificationLog.deleteMany({ recipient: { $in: ids } }),
+    Notification.deleteMany({ user: { $in: ids } }),
     User.deleteMany({ _id: { $in: ids } })
   ])
   return ids.length
@@ -175,12 +175,13 @@ async function simulateEvents(trails, userIds, days) {
       alertedCount: recipients.length
     })
 
-    await NotificationLog.insertMany(
-      recipients.map((recipient) => ({
-        recipient,
+    await Notification.insertMany(
+      recipients.map((user) => ({
+        user,
         type: 'emergency',
-        relatedTrail: trail._id,
-        message: `${trail.name} is now ${closure ? 'closed' : 'at risk'}`,
+        trail: trail._id,
+        title: `${trail.name} is now ${closure ? 'closed' : 'at risk'}`,
+        body: `${MARKER} ${trail.name} is now ${closure ? 'closed' : 'at risk'}`,
         sentAt: at
       }))
     )

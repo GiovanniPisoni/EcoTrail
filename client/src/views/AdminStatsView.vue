@@ -131,6 +131,7 @@ watch([params, trailFilter, eventType], load)
           :totals="events.totals"
           :events="events.events"
           :active-type="eventType"
+          :notification-retention-days="events.notificationRetentionDays"
           @select="eventType = $event"
         />
       </BaseCard>
