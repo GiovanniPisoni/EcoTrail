@@ -26,5 +26,19 @@ export default [
     }
   },
 
+  {
+    files: ['cypress.config.js', 'cypress/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+        ...globals.mocha,
+        cy: 'readonly',
+        expect: 'readonly',
+        Cypress: 'readonly'
+      }
+    }
+  },
+
   skipFormatting
 ]
