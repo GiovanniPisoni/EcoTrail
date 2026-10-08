@@ -9,6 +9,7 @@ import UserPresence from '../src/models/UserPresence.js'
 import { ACTIVE_WINDOW_MS, isUserActive } from '../src/services/userPresence.js'
 import { checkOvercrowdingNear } from '../src/services/overcrowding.js'
 import { checkApproachAlerts } from '../src/services/checkApproachAlerts.js'
+import { recordTrailActivity } from '../src/services/trailActivity.js'
 
 vi.mock('../src/services/overcrowding.js', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -18,6 +19,11 @@ vi.mock('../src/services/overcrowding.js', async (importOriginal) => ({
 vi.mock('../src/services/checkApproachAlerts.js', async (importOriginal) => ({
   ...(await importOriginal()),
   checkApproachAlerts: vi.fn(async () => 0)
+}))
+
+vi.mock('../src/services/trailActivity.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  recordTrailActivity: vi.fn(async () => null)
 }))
 
 const JWT_SECRET = 'test-secret'
@@ -61,6 +67,28 @@ describe('POST /api/presence', () => {
 
     expect(res.status).toBe(200)
     expect(checkOvercrowdingNear).toHaveBeenCalledWith(46.18, 10.9)
+  })
+
+  it('records the trail activity for the saved position', async () => {
+    const { user, token } = await createUser()
+
+    const res = await postPosition(token, { latitude: 46.18, longitude: 10.9 })
+
+    expect(res.status).toBe(200)
+    expect(recordTrailActivity).toHaveBeenCalledWith(user.id, {
+      latitude: 46.18,
+      longitude: 10.9
+    })
+  })
+
+  it('does not fail the request when recording the activity throws', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    recordTrailActivity.mockRejectedValueOnce(new Error('boom'))
+    const { token } = await createUser()
+
+    const res = await postPosition(token, { latitude: 46.18, longitude: 10.9 })
+
+    expect(res.status).toBe(200)
   })
 
   it('does not fail the request when the overcrowding check throws', async () => {

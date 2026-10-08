@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/auth.js'
 import { saveUserPosition, validatePosition } from '../services/userPresence.js'
 import { checkOvercrowdingNear } from '../services/overcrowding.js'
 import { checkApproachAlerts } from '../services/checkApproachAlerts.js'
+import { recordTrailActivity } from '../services/trailActivity.js'
 
 const router = Router()
 
@@ -20,6 +21,10 @@ router.post('/', requireAuth, async (req, res) => {
 
   checkApproachAlerts(req.user.id, validation.value).catch((err) => {
     console.error('[approach] check failed:', err.message)
+  })
+
+  recordTrailActivity(req.user.id, validation.value).catch((err) => {
+    console.error('[activity] record failed:', err.message)
   })
 
   res.json({ updatedAt: presence.updatedAt })
