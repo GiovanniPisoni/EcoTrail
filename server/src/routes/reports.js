@@ -17,6 +17,9 @@ import { adjustReputation, refreshTrustSafely } from '../services/reportTrust.js
 import { isSuspiciousReport, SPAM_REPUTATION_PENALTY } from '../services/reportSpam.js'
 import { reportRateLimit } from '../middleware/reportRateLimit.js'
 import { evaluateTrailAlertSafely } from '../services/autoTrailAlert.js'
+import { clampCapturedAt, readIdempotencyKey } from '../services/reportCapture.js'
+
+const DUPLICATE_KEY_ERROR = 11000
 
 const router = Router()
 
@@ -290,70 +293,110 @@ router.patch('/:id/validate', requireAuth, requireRole('admin'), async (req, res
   res.json(reportToAdminResponse(report))
 })
 
-router.post('/', requireAuth, reportRateLimit, uploadReportPhoto, async (req, res) => {
-  const validation = validateReportInput(req.body)
-  const errors = { ...validation.errors }
-
-  let jpeg
-  if (req.file) {
-    try {
-      jpeg = await processReportPhoto(req.file.buffer)
-    } catch (err) {
-      if (!(err instanceof InvalidPhotoError)) throw err
-      errors.photo = err.message
-    }
-  }
-
-  if (Object.keys(errors).length > 0) {
-    return res.status(400).json({ error: 'Invalid report data', details: errors })
-  }
-
-  const { value } = validation
-
-  const trail = await findNearestTrail(value.latitude, value.longitude)
-  if (!trail) {
-    return res
-      .status(422)
-      .json({ error: `No trail within ${MAX_TRAIL_DISTANCE_METERS} m of the given position` })
-  }
-
-  const isSuspicious = await isSuspiciousReport({
-    author: req.user.id,
-    type: value.type,
-    longitude: value.longitude,
-    latitude: value.latitude
-  })
-
-  const photoUrl = jpeg ? await storeReportPhoto(jpeg) : undefined
-
-  let report
+async function replaySavedReport(req, res, next) {
   try {
-    report = await Report.create({
+    const { key, error } = readIdempotencyKey(req.get('Idempotency-Key'))
+    if (error) return res.status(400).json({ error })
+
+    req.idempotencyKey = key
+    if (!key) return next()
+
+    const saved = await Report.findOne({ author: req.user.id, clientId: key }).populate(
+      'trail',
+      'name'
+    )
+    if (!saved) return next()
+
+    return res.status(200).json(reportToResponse(saved, saved.trail))
+  } catch (err) {
+    return next(err)
+  }
+}
+
+router.post(
+  '/',
+  requireAuth,
+  replaySavedReport,
+  reportRateLimit,
+  uploadReportPhoto,
+  async (req, res) => {
+    const validation = validateReportInput(req.body)
+    const errors = { ...validation.errors }
+
+    let jpeg
+    if (req.file) {
+      try {
+        jpeg = await processReportPhoto(req.file.buffer)
+      } catch (err) {
+        if (!(err instanceof InvalidPhotoError)) throw err
+        errors.photo = err.message
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({ error: 'Invalid report data', details: errors })
+    }
+
+    const { value } = validation
+
+    const trail = await findNearestTrail(value.latitude, value.longitude)
+    if (!trail) {
+      return res
+        .status(422)
+        .json({ error: `No trail within ${MAX_TRAIL_DISTANCE_METERS} m of the given position` })
+    }
+
+    const createdAt = value.capturedAt ? clampCapturedAt(value.capturedAt) : undefined
+
+    const isSuspicious = await isSuspiciousReport({
       author: req.user.id,
       type: value.type,
-      severity: value.severity,
-      description: value.description,
-      photoUrl,
-      location: { type: 'Point', coordinates: [value.longitude, value.latitude] },
-      trail: trail._id,
-      isSuspicious
+      longitude: value.longitude,
+      latitude: value.latitude,
+      createdAt
     })
-  } catch (err) {
-    await deleteReportPhoto(photoUrl)
-    throw err
+
+    const photoUrl = jpeg ? await storeReportPhoto(jpeg) : undefined
+
+    let report
+    try {
+      report = await Report.create({
+        author: req.user.id,
+        type: value.type,
+        severity: value.severity,
+        description: value.description,
+        photoUrl,
+        location: { type: 'Point', coordinates: [value.longitude, value.latitude] },
+        trail: trail._id,
+        isSuspicious,
+        clientId: req.idempotencyKey,
+        ...(createdAt && { createdAt })
+      })
+    } catch (err) {
+      await deleteReportPhoto(photoUrl)
+
+      if (err.code === DUPLICATE_KEY_ERROR && req.idempotencyKey) {
+        const saved = await Report.findOne({
+          author: req.user.id,
+          clientId: req.idempotencyKey
+        }).populate('trail', 'name')
+        if (saved) return res.status(200).json(reportToResponse(saved, saved.trail))
+      }
+      throw err
+    }
+
+    await refreshTrustSafely(report)
+    if (!isSuspicious) await evaluateTrailAlertSafely(report)
+
+    reportEvents.emit(REPORT_CREATED, {
+      reportId: report._id,
+      trailId: trail._id,
+      type: report.type,
+      severity: report.severity
+    })
+
+    res.status(201).json(reportToResponse(report, trail))
   }
-
-  await refreshTrustSafely(report)
-  if (!isSuspicious) await evaluateTrailAlertSafely(report)
-
-  reportEvents.emit(REPORT_CREATED, {
-    reportId: report._id,
-    trailId: trail._id,
-    type: report.type,
-    severity: report.severity
-  })
-
-  res.status(201).json(reportToResponse(report, trail))
-})
+)
 
 export default router

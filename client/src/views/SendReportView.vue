@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import api from '@/api/client.js'
+import { submitReport as sendOrQueueReport } from '@/utils/offlineReports.js'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import LocationPicker from '@/components/LocationPicker.vue'
@@ -24,6 +24,7 @@ const photoPreviewUrl = ref(null)
 const submitting = ref(false)
 const submitError = ref('')
 const submitted = ref(false)
+const queuedForLater = ref(false)
 
 const canSubmit = computed(
   () =>
@@ -81,16 +82,18 @@ async function submitReport() {
   submitting.value = true
   submitError.value = ''
 
-  const formData = new FormData()
-  formData.append('type', selectedType.value)
-  formData.append('severity', selectedSeverity.value)
-  formData.append('latitude', String(latitude.value))
-  formData.append('longitude', String(longitude.value))
-  if (description.value.trim()) formData.append('description', description.value.trim())
-  if (photoFile.value) formData.append('photo', photoFile.value)
-
   try {
-    await api.post('/reports', formData)
+    const result = await sendOrQueueReport(
+      {
+        type: selectedType.value,
+        severity: selectedSeverity.value,
+        latitude: latitude.value,
+        longitude: longitude.value,
+        description: description.value.trim()
+      },
+      photoFile.value
+    )
+    queuedForLater.value = result.queued
     submitted.value = true
   } catch (err) {
     submitError.value =
@@ -127,8 +130,12 @@ onBeforeUnmount(() => {
           <circle cx="12" cy="12" r="10" />
           <path d="M8 12l3 3 5-6" />
         </svg>
-        <h1>Report sent</h1>
-        <p>Thanks for helping keep the trails safe. An admin will review your report.</p>
+        <h1>{{ queuedForLater ? 'Report saved' : 'Report sent' }}</h1>
+        <p v-if="queuedForLater">
+          You're offline, so the report is saved on this device. It will be sent by itself as soon
+          as you're back online.
+        </p>
+        <p v-else>Thanks for helping keep the trails safe. An admin will review your report.</p>
         <BaseButton variant="primary" @click="close">Back to map</BaseButton>
       </BaseCard>
 

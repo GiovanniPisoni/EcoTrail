@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import NotificationToggle from '@/components/NotificationToggle.vue'
 import { hikeModeActive, resumeHikeModeIfEnabled, stopHikeMode } from '@/utils/hikeMode.js'
 import { refreshUnreadNotificationCount, unreadNotificationCount } from '@/utils/notifications.js'
+import { startOfflineReports } from '@/utils/offlineReports.js'
 
 const UNREAD_REFRESH_INTERVAL_MS = 60 * 1000
 
@@ -13,6 +14,7 @@ const router = useRouter()
 const route = useRoute()
 
 let unreadTimer = null
+let stopOfflineReports = null
 
 function refreshWhenVisible() {
   if (document.visibilityState === 'visible') refreshUnreadNotificationCount()
@@ -20,6 +22,7 @@ function refreshWhenVisible() {
 
 onMounted(() => {
   resumeHikeModeIfEnabled()
+  stopOfflineReports = startOfflineReports()
   refreshUnreadNotificationCount()
   unreadTimer = setInterval(refreshWhenVisible, UNREAD_REFRESH_INTERVAL_MS)
   document.addEventListener('visibilitychange', refreshWhenVisible)
@@ -27,6 +30,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopHikeMode()
+  stopOfflineReports?.()
   clearInterval(unreadTimer)
   document.removeEventListener('visibilitychange', refreshWhenVisible)
 })

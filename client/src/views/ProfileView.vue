@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/client.js'
@@ -9,6 +9,12 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
 import { REPORT_TYPE_OPTIONS } from '@/config/reportOptions.js'
 import { REPORT_VALIDATION_STATUSES } from '@/config/reportValidationStatus.js'
+import {
+  discardQueuedReport,
+  queuedReports,
+  retryQueuedReport,
+  sentCounter
+} from '@/utils/offlineReports.js'
 
 const auth = useAuthStore()
 
@@ -52,6 +58,8 @@ async function withdraw(report) {
     withdrawingId.value = null
   }
 }
+
+watch(sentCounter, loadReports)
 
 let stopRealtime = []
 
@@ -104,8 +112,50 @@ onUnmounted(() => {
     <section class="profile-page__reports">
       <h2 class="profile-page__reports-title">My reports</h2>
 
+      <ul v-if="queuedReports.length > 0" class="profile-page__list profile-page__list--queued">
+        <li v-for="queued in queuedReports" :key="queued.id">
+          <BaseCard class="profile-page__item profile-page__item--queued">
+            <div class="profile-page__item-row">
+              <span class="profile-page__item-icon" v-html="reportTypeOption(queued.type)?.icon" />
+              <div class="profile-page__item-text">
+                <span class="profile-page__item-name">{{
+                  reportTypeOption(queued.type)?.label ?? queued.type
+                }}</span>
+                <span class="profile-page__item-trail"
+                  >Written {{ formatDate(queued.capturedAt) }}</span
+                >
+              </div>
+              <span
+                class="profile-page__queue-badge"
+                :class="{ 'profile-page__queue-badge--failed': queued.status === 'failed' }"
+              >
+                {{ queued.status === 'failed' ? 'Not sent' : 'Waiting to be sent' }}
+              </span>
+            </div>
+            <p v-if="queued.status === 'failed'" class="profile-page__item-note">
+              {{ queued.error }}
+            </p>
+            <div class="profile-page__item-footer">
+              <span class="profile-page__item-date">Saved on this device</span>
+              <span class="profile-page__queue-actions">
+                <BaseButton
+                  v-if="queued.status === 'failed'"
+                  variant="secondary"
+                  @click="retryQueuedReport(queued.id)"
+                >
+                  Try again
+                </BaseButton>
+                <BaseButton variant="secondary" @click="discardQueuedReport(queued.id)">
+                  Discard
+                </BaseButton>
+              </span>
+            </div>
+          </BaseCard>
+        </li>
+      </ul>
+
       <p v-if="loading" class="profile-page__empty">Loading…</p>
-      <p v-else-if="reports.length === 0" class="profile-page__empty">
+      <p v-else-if="reports.length === 0 && queuedReports.length === 0" class="profile-page__empty">
         You haven't submitted any report yet.
       </p>
 
@@ -277,6 +327,30 @@ onUnmounted(() => {
 .profile-page__item-name {
   font-weight: 600;
   font-size: 0.95rem;
+}
+
+.profile-page__queue-badge {
+  flex-shrink: 0;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-status-crowded);
+  background-color: color-mix(in srgb, var(--color-status-crowded) 15%, white);
+}
+
+.profile-page__queue-badge--failed {
+  color: var(--color-status-closed);
+  background-color: color-mix(in srgb, var(--color-status-closed) 15%, white);
+}
+
+.profile-page__queue-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.profile-page__list--queued {
+  margin-bottom: 0.75rem;
 }
 
 .profile-page__item-trail {
