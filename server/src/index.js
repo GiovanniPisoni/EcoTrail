@@ -18,8 +18,8 @@ import notificationsRouter from './routes/notifications.js'
 import statsRouter from './routes/stats.js'
 import { serveUploads } from './middleware/serveUploads.js'
 import { attachRealtime } from './services/realtime.js'
-import { startCrowdSweep } from './services/overcrowding.js'
-import { registerEmergencyNotifications } from './services/notifyTrailEmergency.js'
+import { startCrowdSweep } from './services/trails/overcrowding.js'
+import { registerEmergencyNotifications } from './services/notifications/notifyTrailEmergency.js'
 
 const app = express()
 

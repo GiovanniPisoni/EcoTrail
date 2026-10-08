@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import mongoose from 'mongoose'
 import Trail from '../models/Trail.js'
-import { getAlternative, SUGGESTION_STATUSES } from '../services/aiAlternatives.js'
+import { getAlternative, SUGGESTION_STATUSES } from '../services/trails/aiAlternatives.js'
 
 const router = Router()
 

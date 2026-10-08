@@ -1,8 +1,8 @@
 import { Router } from 'express'
 import mongoose from 'mongoose'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { parsePeriod } from '../services/statsPeriod.js'
-import { EVENT_KINDS, getAttendance, getEvents, getHeatmap } from '../services/stats.js'
+import { parsePeriod } from '../services/stats/statsPeriod.js'
+import { EVENT_KINDS, getAttendance, getEvents, getHeatmap } from '../services/stats/stats.js'
 
 const router = Router()
 

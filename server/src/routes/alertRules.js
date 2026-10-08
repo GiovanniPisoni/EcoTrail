@@ -2,7 +2,7 @@ import { Router } from 'express'
 import mongoose from 'mongoose'
 import Trail from '../models/Trail.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { ALERT_DEFAULTS, getAlertRules } from '../services/autoTrailAlert.js'
+import { ALERT_DEFAULTS, getAlertRules } from '../services/trails/autoTrailAlert.js'
 
 const router = Router()
 

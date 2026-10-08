@@ -1,9 +1,9 @@
 import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.js'
-import { saveUserPosition, validatePosition } from '../services/userPresence.js'
-import { checkOvercrowdingNear } from '../services/overcrowding.js'
-import { checkApproachAlerts } from '../services/checkApproachAlerts.js'
-import { recordTrailActivity } from '../services/trailActivity.js'
+import { saveUserPosition, validatePosition } from '../services/presence/userPresence.js'
+import { checkOvercrowdingNear } from '../services/trails/overcrowding.js'
+import { checkApproachAlerts } from '../services/notifications/checkApproachAlerts.js'
+import { recordTrailActivity } from '../services/trails/trailActivity.js'
 
 const router = Router()
 
