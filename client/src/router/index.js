@@ -44,6 +44,11 @@ const router = createRouter({
           path: 'trails',
           name: 'admin-trails',
           component: () => import('@/views/AdminTrailsView.vue')
+        },
+        {
+          path: 'stats',
+          name: 'admin-stats',
+          component: () => import('@/views/AdminStatsView.vue')
         }
       ]
     },
