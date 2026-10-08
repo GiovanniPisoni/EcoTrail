@@ -2,7 +2,8 @@
 const props = defineProps({
   totals: { type: Object, required: true },
   events: { type: Array, required: true },
-  activeType: { type: String, default: null }
+  activeType: { type: String, default: null },
+  notificationRetentionDays: { type: Number, default: null }
 })
 
 const emit = defineEmits(['select'])
@@ -49,6 +50,10 @@ function formatCount(event) {
         <span class="events__total-label">{{ meta.label }}</span>
       </button>
     </div>
+
+    <p v-if="notificationRetentionDays" class="events__note">
+      Notification history is kept for {{ notificationRetentionDays }} days.
+    </p>
 
     <p v-if="events.length === 0" class="events__empty">No events in this period</p>
     <ul v-else class="events__list">
@@ -117,6 +122,12 @@ function formatCount(event) {
 .events__total-label {
   font-size: 0.8rem;
   color: var(--color-text-muted);
+}
+
+.events__note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
 }
 
 .events__empty {
