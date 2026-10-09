@@ -9,6 +9,11 @@ dist/
 
 server/uploads/
 
+# Cypress
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
+
 #LaTeX
 docs/*.aux
 docs/*.log
