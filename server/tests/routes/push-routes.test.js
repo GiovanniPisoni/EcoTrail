@@ -51,9 +51,9 @@ function samplePath() {
   }
 }
 
-async function createUserAndToken() {
+async function createUserAndToken(email = 'hiker@ecotrail.test') {
   const user = await User.create({
-    email: 'hiker@ecotrail.test',
+    email,
     password: 'hashed',
     role: 'hiker'
   })
@@ -106,6 +106,53 @@ describe('POST /api/push/subscribe', () => {
     expect(res.status).toBe(201)
     const updated = await User.findOne({ email: 'hiker@ecotrail.test' })
     expect(updated.pushSubscriptions).toHaveLength(1)
+  })
+
+  it('moves a device to the account that registers it last', async () => {
+    const first = await createUserAndToken()
+    const second = await createUserAndToken('second@ecotrail.test')
+    const device = { endpoint: 'https://push.test/shared', keys: { p256dh: 'x', auth: 'y' } }
+    const otherDevice = { endpoint: 'https://push.test/other', keys: { p256dh: 'x', auth: 'y' } }
+
+    await request(app)
+      .post('/api/push/subscribe')
+      .set('Authorization', `Bearer ${first.token}`)
+      .send(device)
+    await request(app)
+      .post('/api/push/subscribe')
+      .set('Authorization', `Bearer ${first.token}`)
+      .send(otherDevice)
+    const res = await request(app)
+      .post('/api/push/subscribe')
+      .set('Authorization', `Bearer ${second.token}`)
+      .send(device)
+
+    expect(res.status).toBe(201)
+    const previousOwner = await User.findById(first.user._id)
+    const newOwner = await User.findById(second.user._id)
+    expect(previousOwner.pushSubscriptions.map((sub) => sub.endpoint)).toEqual([
+      'https://push.test/other'
+    ])
+    expect(newOwner.pushSubscriptions.map((sub) => sub.endpoint)).toEqual([
+      'https://push.test/shared'
+    ])
+  })
+
+  it('keeps the subscriptions of the other accounts when the endpoint is new', async () => {
+    const first = await createUserAndToken()
+    const second = await createUserAndToken('second@ecotrail.test')
+
+    await request(app)
+      .post('/api/push/subscribe')
+      .set('Authorization', `Bearer ${first.token}`)
+      .send({ endpoint: 'https://push.test/a', keys: { p256dh: 'x', auth: 'y' } })
+    await request(app)
+      .post('/api/push/subscribe')
+      .set('Authorization', `Bearer ${second.token}`)
+      .send({ endpoint: 'https://push.test/b', keys: { p256dh: 'x', auth: 'y' } })
+
+    expect((await User.findById(first.user._id)).pushSubscriptions).toHaveLength(1)
+    expect((await User.findById(second.user._id)).pushSubscriptions).toHaveLength(1)
   })
 
   it('rejects an incomplete subscription', async () => {

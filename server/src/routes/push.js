@@ -17,6 +17,11 @@ router.post('/subscribe', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Invalid subscription' })
   }
 
+  await User.updateMany(
+    { _id: { $ne: req.user.id }, 'pushSubscriptions.endpoint': endpoint },
+    { $pull: { pushSubscriptions: { endpoint } } }
+  )
+
   const user = await User.findById(req.user.id)
   const alreadySubscribed = user.pushSubscriptions.some((sub) => sub.endpoint === endpoint)
 
