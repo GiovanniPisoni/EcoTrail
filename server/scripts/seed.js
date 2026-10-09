@@ -1,22 +1,22 @@
 import 'dotenv/config'
 import mongoose from 'mongoose'
 import bcrypt from 'bcrypt'
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import path from 'node:path'
 import User from '../src/models/User.js'
 import Trail from '../src/models/Trail.js'
 import Report from '../src/models/Report.js'
 import TrailStatusHistory from '../src/models/TrailStatusHistory.js'
-import { enrichTrail } from './data/enrich-trails.js'
+import { loadTrails } from './data/load-trails.js'
 import { deleteAllReportPhotos } from '../src/services/reports/reportPhoto.js'
 import { refreshTrustAround } from '../src/services/reports/reportTrust.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const rawTrails = JSON.parse(
-  readFileSync(path.join(__dirname, '..', 'data', 'trails-andalo.json'), 'utf-8')
-)
-const trails = rawTrails.map(enrichTrail)
+const trails = loadTrails()
+
+const PILOT_AREA_CENTER = [10.9167, 46.1667]
+
+function distanceToPilotArea(trail) {
+  const [longitude, latitude] = trail.path.coordinates[0]
+  return Math.hypot(longitude - PILOT_AREA_CENTER[0], latitude - PILOT_AREA_CENTER[1])
+}
 
 const HOURS_AGO = (hours) => new Date(Date.now() - hours * 60 * 60 * 1000)
 
@@ -70,7 +70,9 @@ async function seed() {
   ])
 
   const [hiker] = await User.find({ role: 'hiker' })
-  const createdTrails = await Trail.create(trails)
+  const createdTrails = (await Trail.create(trails)).sort(
+    (a, b) => distanceToPilotArea(a) - distanceToPilotArea(b)
+  )
 
   const fakeReports = FAKE_REPORTS.map((report, index) => {
     const trail = createdTrails[index % createdTrails.length]
