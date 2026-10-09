@@ -239,6 +239,40 @@ describe('POST /api/push/test', () => {
     expect(webpush.sendNotification).toHaveBeenCalled()
   })
 
+  it('reports the result of each device', async () => {
+    const { token } = await createUserAndToken()
+    for (const endpoint of ['https://one.push.test/a', 'https://two.push.test/b']) {
+      await request(app)
+        .post('/api/push/subscribe')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ endpoint, keys: { p256dh: 'x', auth: 'y' } })
+    }
+
+    const res = await request(app).post('/api/push/test').set('Authorization', `Bearer ${token}`)
+
+    expect(res.body.results).toEqual([
+      { host: 'one.push.test', ok: true },
+      { host: 'two.push.test', ok: true }
+    ])
+  })
+
+  it('answers 502 with the result of each device when nothing could be delivered', async () => {
+    const { token } = await createUserAndToken()
+    await request(app)
+      .post('/api/push/subscribe')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ endpoint: 'https://broken.push.test/a', keys: { p256dh: 'x', auth: 'y' } })
+    const webpush = (await import('web-push')).default
+    webpush.sendNotification.mockRejectedValueOnce(
+      Object.assign(new Error('Unauthorized'), { statusCode: 401 })
+    )
+
+    const res = await request(app).post('/api/push/test').set('Authorization', `Bearer ${token}`)
+
+    expect(res.status).toBe(502)
+    expect(res.body.results).toEqual([{ host: 'broken.push.test', ok: false, statusCode: 401 }])
+  })
+
   it('returns 404 when the given trailId does not exist', async () => {
     const { token } = await createUserAndToken()
     await request(app)

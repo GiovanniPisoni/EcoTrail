@@ -71,9 +71,13 @@ router.post('/test', requireAuth, async (req, res) => {
     payload.url = `/?trail=${trail._id}`
   }
 
-  await sendPush(user, payload)
-
-  res.json({ ok: true })
+  try {
+    const results = await sendPush(user, payload)
+    res.json({ ok: true, results })
+  } catch (err) {
+    if (!err.results) throw err
+    res.status(502).json({ error: 'The notification could not be delivered', results: err.results })
+  }
 })
 
 export default router
