@@ -27,8 +27,8 @@ const NAV_ITEMS = [
   }
 ]
 
-function handleLogout() {
-  auth.logout()
+async function handleLogout() {
+  await auth.endSession()
   router.push('/login')
 }
 </script>
