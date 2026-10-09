@@ -22,6 +22,7 @@ export default defineConfig({
     viewportHeight: 800,
     video: false,
     defaultCommandTimeout: 8000,
+    retries: { runMode: 2, openMode: 0 },
     setupNodeEvents(on) {
       on('task', {
         'db:seed': seedDatabase,
