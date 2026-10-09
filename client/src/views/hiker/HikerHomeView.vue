@@ -21,7 +21,19 @@ function toggleSelection(trailId) {
   selectedTrailId.value = selectedTrailId.value === trailId ? null : trailId
 }
 
+function selectFromSidebar(trailId) {
+  const selecting = Boolean(trailId) && selectedTrailId.value !== trailId
+  toggleSelection(trailId)
+  if (selecting) trailsMap.value?.centerOnTrail(trailId)
+}
+
 const sidebarOpen = ref(true)
+
+function selectFromMap(trailId) {
+  const selecting = selectedTrailId.value !== trailId
+  toggleSelection(trailId)
+  if (selecting) sidebarOpen.value = true
+}
 
 function showTrailOnMap(trailId) {
   trailsMap.value?.focusOnTrail(trailId)
@@ -36,7 +48,7 @@ function showTrailOnMap(trailId) {
       :selected-id="selectedTrailId"
       class="map-page__sidebar"
       @close="sidebarOpen = false"
-      @select="toggleSelection"
+      @select="selectFromSidebar"
       @focus-trail="showTrailOnMap"
     />
     <button
@@ -66,7 +78,7 @@ function showTrailOnMap(trailId) {
         :focus-trail-id="focusTrailId"
         class="map-page__map"
         @trails-loaded="visibleTrails = $event"
-        @trail-selected="toggleSelection"
+        @trail-selected="selectFromMap"
         @map-ready="mapInstance = $event"
       />
       <ReportsLayer v-if="mapInstance" :map="mapInstance" :sidebar-open="sidebarOpen" />

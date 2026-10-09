@@ -19,6 +19,48 @@ describe('Hiker trail list', () => {
     cy.get('.trails-sidebar__details').should('not.exist')
   })
 
+  it('centers the map on the trail selected in the list', () => {
+    cy.visitAs('hiker', '/')
+    selectTrail()
+
+    cy.get('.leaflet-container').then(($map) => {
+      cy.get('path.leaflet-interactive').should(($path) => {
+        const mapBox = $map[0].getBoundingClientRect()
+        const pathBox = $path[0].getBoundingClientRect()
+        const offsetX = pathBox.left + pathBox.width / 2 - (mapBox.left + mapBox.width / 2)
+        const offsetY = pathBox.top + pathBox.height / 2 - (mapBox.top + mapBox.height / 2)
+
+        expect(Math.abs(offsetX)).to.be.lessThan(40)
+        expect(Math.abs(offsetY)).to.be.lessThan(40)
+      })
+    })
+  })
+
+  it('brings the list to the trail picked on the map', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.trails-sidebar__item').should('have.length.greaterThan', 5)
+
+    cy.get('path.leaflet-interactive').last().trigger('click', { force: true })
+
+    cy.get('.trails-sidebar__item--selected').should(($item) => {
+      const sidebarBox = Cypress.$('.trails-sidebar')[0].getBoundingClientRect()
+      const itemBox = $item[0].getBoundingClientRect()
+
+      expect(itemBox.top).to.be.at.least(sidebarBox.top - 1)
+      expect(itemBox.top).to.be.lessThan(sidebarBox.bottom)
+    })
+  })
+
+  it('opens the sidebar when a trail is picked on the map while it is hidden', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('button[title="Hide nearby trails"]').click()
+
+    cy.get('path.leaflet-interactive').first().trigger('click', { force: true })
+
+    cy.get('.trails-sidebar').should('be.visible')
+    cy.get('.trails-sidebar__item--selected').should('exist')
+  })
+
   it('hides and shows the sidebar', () => {
     cy.visitAs('hiker', '/')
     cy.get('.trails-sidebar').should('be.visible')
