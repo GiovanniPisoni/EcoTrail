@@ -5,6 +5,8 @@ import { parseBbox } from '../utils/bbox.js'
 
 const router = Router()
 
+export const MAX_TRAILS_PER_REQUEST = 500
+
 const VALID_STATUSES = ['free', 'crowded', 'at_risk', 'closed']
 
 function trailToFeature(trail, { includeFragileSegments = false } = {}) {
@@ -52,7 +54,7 @@ router.get('/', async (req, res) => {
     query.status = status
   }
 
-  const trails = await Trail.find(query)
+  const trails = await Trail.find(query).limit(MAX_TRAILS_PER_REQUEST)
   res.json(trailsToFeatureCollection(trails))
 })
 

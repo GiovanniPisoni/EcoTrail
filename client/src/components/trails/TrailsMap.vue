@@ -9,6 +9,7 @@ import { downloadArea } from '@/utils/offline/offlineArea.js'
 
 const PILOT_AREA_CENTER = [46.1667, 10.9167]
 const PILOT_AREA_ZOOM = 13
+const MIN_TRAILS_ZOOM = 10
 
 const props = defineProps({
   selectedTrailId: {
@@ -24,6 +25,7 @@ const props = defineProps({
 const emit = defineEmits(['trails-loaded', 'trail-selected', 'map-ready'])
 
 const mapContainer = ref(null)
+const zoomedOutTooFar = ref(false)
 let map = null
 let trailsLayer = null
 let lastTrailsData = null
@@ -65,6 +67,15 @@ function renderTrailsLayer() {
 }
 
 async function loadTrails() {
+  zoomedOutTooFar.value = map.getZoom() < MIN_TRAILS_ZOOM && !props.selectedTrailId
+  if (zoomedOutTooFar.value) {
+    lastTrailsData = null
+    trailsLayer?.remove()
+    trailsLayer = null
+    emit('trails-loaded', [])
+    return
+  }
+
   const bounds = map.getBounds()
   const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(',')
 
@@ -84,7 +95,10 @@ async function loadTrails() {
 
 watch(
   () => props.selectedTrailId,
-  () => renderTrailsLayer()
+  (selectedId) => {
+    if (!selectedId && map.getZoom() < MIN_TRAILS_ZOOM) loadTrails()
+    else renderTrailsLayer()
+  }
 )
 
 let locationMarker = null
@@ -214,19 +228,38 @@ function addLegend() {
   legend.addTo(map)
 }
 
-async function focusOnTrail(trailId) {
-  let feature
-  try {
-    ;({ data: feature } = await api.get(`/trails/${trailId}`))
-  } catch (err) {
-    console.error('Failed to load the trail to focus on:', err)
-    return false
-  }
+async function loadTrailFeature(trailId) {
+  const loaded = lastTrailsData?.features?.find(
+    (feature) => String(feature.properties.id) === String(trailId)
+  )
+  if (loaded) return loaded
 
+  try {
+    const { data } = await api.get(`/trails/${trailId}`)
+    return data
+  } catch (err) {
+    console.error('Failed to load the trail:', err)
+    return null
+  }
+}
+
+function fitToFeature(feature) {
   const bounds = L.geoJSON(feature).getBounds()
   if (!bounds.isValid()) return false
 
-  map.fitBounds(bounds, { maxZoom: 16 })
+  map.fitBounds(bounds, { maxZoom: 16, padding: [40, 40] })
+  return true
+}
+
+async function centerOnTrail(trailId) {
+  const feature = await loadTrailFeature(trailId)
+  return feature ? fitToFeature(feature) : false
+}
+
+async function focusOnTrail(trailId) {
+  const feature = await loadTrailFeature(trailId)
+  if (!feature || !fitToFeature(feature)) return false
+
   emit('trail-selected', String(feature.properties.id))
   return true
 }
@@ -271,18 +304,45 @@ onUnmounted(() => {
   map = null
 })
 
-defineExpose({ refresh: loadTrails, focusOnTrail })
+defineExpose({ refresh: loadTrails, focusOnTrail, centerOnTrail })
 </script>
 
 <template>
-  <div ref="mapContainer" class="trails-map"></div>
+  <div class="trails-map-wrap">
+    <div ref="mapContainer" class="trails-map"></div>
+    <p v-if="zoomedOutTooFar" class="trails-map__zoom-hint" role="status">
+      Zoom in to see the trails
+    </p>
+  </div>
 </template>
 
 <style scoped>
-.trails-map {
+.trails-map-wrap {
+  position: relative;
   width: 100%;
   height: 100%;
   min-height: 500px;
+}
+
+.trails-map {
+  position: absolute;
+  inset: 0;
+}
+
+.trails-map__zoom-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 1000;
+  margin: 0;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  box-shadow: 0 1px 4px rgba(26, 62, 47, 0.12);
+  pointer-events: none;
 }
 </style>
 

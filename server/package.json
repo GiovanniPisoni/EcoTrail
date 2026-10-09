@@ -8,6 +8,7 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "seed": "node scripts/seed.js",
+    "import:trails": "node scripts/data/import-trails.js",
     "setup:production": "node scripts/setup-production.js",
     "simulate:crowd": "node scripts/simulate/crowd.js",
     "simulate:hazard": "node scripts/simulate/hazard.js",

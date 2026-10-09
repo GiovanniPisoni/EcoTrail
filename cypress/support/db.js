@@ -14,7 +14,7 @@ import { enrichTrail } from '../../server/scripts/data/enrich-trails.js'
 import { E2E_MONGODB_URI, E2E_USERS, E2E_TRAIL_NAME } from './e2e-config.js'
 
 const trailsData = JSON.parse(
-  readFileSync(new URL('../../server/data/trails-andalo.json', import.meta.url), 'utf-8')
+  readFileSync(new URL('../fixtures/trails.json', import.meta.url), 'utf-8')
 )
 
 const MODELS = [

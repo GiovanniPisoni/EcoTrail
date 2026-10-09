@@ -1,4 +1,5 @@
 <script setup>
+import { nextTick, onMounted, ref, watch } from 'vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
 import TrailAlternative from '@/components/trails/TrailAlternative.vue'
@@ -16,6 +17,20 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'select', 'focus-trail'])
+
+const root = ref(null)
+
+async function scrollToSelected() {
+  if (!props.selectedId) return
+
+  await nextTick()
+  root.value
+    ?.querySelector(`[data-trail-id="${props.selectedId}"]`)
+    ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+}
+
+watch(() => props.selectedId, scrollToSelected)
+onMounted(scrollToSelected)
 
 function trailId(trail) {
   return String(trail.properties.id)
@@ -42,7 +57,7 @@ function formatDuration(durationMinutes) {
 </script>
 
 <template>
-  <aside class="trails-sidebar">
+  <aside ref="root" class="trails-sidebar">
     <div class="trails-sidebar__header">
       <h2 class="trails-sidebar__title">Nearby trails</h2>
       <button
@@ -70,7 +85,7 @@ function formatDuration(durationMinutes) {
     </p>
 
     <ul v-else class="trails-sidebar__list">
-      <li v-for="trail in trails" :key="trailId(trail)">
+      <li v-for="trail in trails" :key="trailId(trail)" :data-trail-id="trailId(trail)">
         <BaseCard
           class="trails-sidebar__item"
           :class="{ 'trails-sidebar__item--selected': isSelected(trail) }"

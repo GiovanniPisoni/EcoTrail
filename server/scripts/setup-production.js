@@ -1,26 +1,15 @@
 import 'dotenv/config'
 import mongoose from 'mongoose'
 import bcrypt from 'bcrypt'
-import { readFileSync } from 'node:fs'
-import { fileURLToPath, pathToFileURL } from 'node:url'
-import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import User from '../src/models/User.js'
 import Trail from '../src/models/Trail.js'
-import { enrichTrail } from './data/enrich-trails.js'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+import { loadTrails } from './data/load-trails.js'
 
 export const MIN_ADMIN_PASSWORD_LENGTH = 10
 
-export function loadTrails() {
-  const rawTrails = JSON.parse(
-    readFileSync(path.join(__dirname, '..', 'data', 'trails-andalo.json'), 'utf-8')
-  )
-  return rawTrails.map(enrichTrail)
-}
+export { loadTrails }
 
-// Adds the trails that are not in the database yet and leaves the others as
-// they are, so their status and history survive running the script again.
 export async function ensureTrails(trails = loadTrails()) {
   const existing = new Set((await Trail.find({}, 'name').lean()).map((trail) => trail.name))
   const missing = trails.filter((trail) => !existing.has(trail.name))

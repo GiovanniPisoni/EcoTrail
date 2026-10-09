@@ -4,6 +4,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server'
 import request from 'supertest'
 import app from '../../src/index.js'
 import Trail from '../../src/models/Trail.js'
+import { MAX_TRAILS_PER_REQUEST } from '../../src/routes/trails.js'
 
 let mongod
 
@@ -188,5 +189,27 @@ describe('GET /api/trails/:id', () => {
   it('returns 400 for a malformed id', async () => {
     const res = await request(app).get('/api/trails/not-an-id')
     expect(res.status).toBe(400)
+  })
+})
+
+describe('GET /api/trails limit', () => {
+  it('returns at most MAX_TRAILS_PER_REQUEST trails for a crowded bbox', async () => {
+    await Trail.insertMany(
+      Array.from({ length: MAX_TRAILS_PER_REQUEST + 1 }, (_, index) => ({
+        name: `Trail ${index}`,
+        path: {
+          type: 'LineString',
+          coordinates: [
+            [10.2, 40.2],
+            [10.3, 40.3]
+          ]
+        }
+      }))
+    )
+
+    const res = await request(app).get('/api/trails').query({ bbox: BBOX })
+
+    expect(res.status).toBe(200)
+    expect(res.body.features).toHaveLength(MAX_TRAILS_PER_REQUEST)
   })
 })
