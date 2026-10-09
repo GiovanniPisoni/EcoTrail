@@ -16,7 +16,9 @@ import myReportsRouter from './routes/myReports.js'
 import presenceRouter from './routes/presence.js'
 import notificationsRouter from './routes/notifications.js'
 import statsRouter from './routes/stats.js'
-import { serveUploads } from './middleware/serveUploads.js'
+import { serveReportPhoto } from './middleware/serveReportPhoto.js'
+import { createClientRouter } from './middleware/serveClient.js'
+import { findProductionEnvProblems } from './config/productionEnv.js'
 import { attachRealtime } from './services/realtime.js'
 import { startCrowdSweep } from './services/trails/overcrowding.js'
 import { registerEmergencyNotifications } from './services/notifications/notifyTrailEmergency.js'
@@ -42,10 +44,23 @@ app.use('/api/reports', myReportsRouter)
 app.use('/api/presence', presenceRouter)
 app.use('/api/notifications', notificationsRouter)
 app.use('/api/stats', statsRouter)
-app.use('/api/uploads', serveUploads)
+app.get('/api/uploads/reports/:filename', serveReportPhoto)
+
+if (process.env.NODE_ENV === 'production') {
+  const clientRouter = createClientRouter()
+  if (clientRouter) app.use(clientRouter)
+}
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const PORT = process.env.PORT || 3000
+
+  if (process.env.NODE_ENV === 'production') {
+    const problems = findProductionEnvProblems()
+    if (problems.length > 0) {
+      console.error(`Cannot start in production: ${problems.join('; ')}`)
+      process.exit(1)
+    }
+  }
 
   registerEmergencyNotifications()
 

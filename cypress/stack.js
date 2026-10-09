@@ -1,7 +1,6 @@
 // Starts the API and the Vite dev server against the dedicated e2e database
 import { spawn } from 'node:child_process'
-import { existsSync, mkdtempSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { E2E_MONGODB_URI } from './support/e2e-config.js'
@@ -15,8 +14,7 @@ const serverEnv = {
   MONGODB_URI: E2E_MONGODB_URI,
   JWT_SECRET: 'e2e-secret',
   // Never call the real LLM from the tests: the closest free trail is used instead
-  GEMINI_API_KEY: '',
-  UPLOADS_DIR: mkdtempSync(path.join(tmpdir(), 'ecotrail-e2e-uploads-'))
+  GEMINI_API_KEY: ''
 }
 
 const viteBin = [
