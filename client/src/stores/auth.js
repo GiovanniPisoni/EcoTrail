@@ -1,9 +1,11 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import api from '@/api/client'
+import { forgetPushSubscription } from '@/utils/push/pushSubscription.js'
 
 const TOKEN_KEY = 'ecotrail_token'
 const USER_KEY = 'ecotrail_user'
+const FORGET_PUSH_TIMEOUT_MS = 3000
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem(TOKEN_KEY))
@@ -39,9 +41,19 @@ export const useAuthStore = defineStore('auth', () => {
     await login(email, password)
   }
 
+  // Used when the session is no longer valid, so it must not call the server
   function logout() {
     clearSession()
   }
 
-  return { token, user, isAuthenticated, isAdmin, login, register, logout }
+  // The logout the person asks for: first stops this account from getting alerts on this device
+  async function endSession() {
+    await Promise.race([
+      forgetPushSubscription(),
+      new Promise((resolve) => setTimeout(resolve, FORGET_PUSH_TIMEOUT_MS))
+    ])
+    clearSession()
+  }
+
+  return { token, user, isAuthenticated, isAdmin, login, register, logout, endSession }
 })

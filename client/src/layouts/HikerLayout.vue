@@ -9,6 +9,7 @@ import {
   unreadNotificationCount
 } from '@/utils/push/notifications.js'
 import { startOfflineReports } from '@/utils/offline/offlineReports.js'
+import { syncPushSubscription } from '@/utils/push/pushSubscription.js'
 
 const UNREAD_REFRESH_INTERVAL_MS = 60 * 1000
 
@@ -25,6 +26,7 @@ function refreshWhenVisible() {
 
 onMounted(() => {
   resumeHikeModeIfEnabled()
+  syncPushSubscription().catch((err) => console.error('Failed to sync the push subscription:', err))
   stopOfflineReports = startOfflineReports()
   refreshUnreadNotificationCount()
   unreadTimer = setInterval(refreshWhenVisible, UNREAD_REFRESH_INTERVAL_MS)
@@ -38,9 +40,9 @@ onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', refreshWhenVisible)
 })
 
-function handleLogout() {
+async function handleLogout() {
   stopHikeMode()
-  auth.logout()
+  await auth.endSession()
   router.push('/login')
 }
 </script>
