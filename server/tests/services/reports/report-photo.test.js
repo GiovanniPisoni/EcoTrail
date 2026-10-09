@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import os from 'node:os'
-import path from 'node:path'
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+import mongoose from 'mongoose'
+import { MongoMemoryServer } from 'mongodb-memory-server'
 import sharp from 'sharp'
+import ReportPhoto from '../../../src/models/ReportPhoto.js'
 import {
   InvalidPhotoError,
   MAX_PHOTO_DIMENSION,
@@ -12,8 +12,7 @@ import {
   saveReportPhoto
 } from '../../../src/services/reports/reportPhoto.js'
 
-let uploadsDir
-let originalUploadsDir
+let mongod
 
 function solid(width, height, options = {}) {
   return sharp({
@@ -21,32 +20,23 @@ function solid(width, height, options = {}) {
   })
 }
 
-function pathOf(photoUrl) {
-  return path.join(uploadsDir, 'reports', photoUrl.slice(PHOTO_URL_PREFIX.length))
-}
-
-async function exists(file) {
-  try {
-    await access(file)
-    return true
-  } catch {
-    return false
-  }
+async function savedPhoto(photoUrl) {
+  const photo = await ReportPhoto.findById(photoUrl.slice(PHOTO_URL_PREFIX.length, -'.jpg'.length))
+  return photo?.data
 }
 
 beforeAll(async () => {
-  originalUploadsDir = process.env.UPLOADS_DIR
-  uploadsDir = await mkdtemp(path.join(os.tmpdir(), 'ecotrail-uploads-'))
-  process.env.UPLOADS_DIR = uploadsDir
+  mongod = await MongoMemoryServer.create()
+  await mongoose.connect(mongod.getUri())
 })
 
 afterAll(async () => {
-  if (originalUploadsDir === undefined) {
-    delete process.env.UPLOADS_DIR
-  } else {
-    process.env.UPLOADS_DIR = originalUploadsDir
-  }
-  await rm(uploadsDir, { recursive: true, force: true })
+  await mongoose.connection.close()
+  await mongod.stop()
+})
+
+beforeEach(async () => {
+  await ReportPhoto.deleteMany({})
 })
 
 describe('saveReportPhoto', () => {
@@ -65,7 +55,7 @@ describe('saveReportPhoto', () => {
 
     const photoUrl = await saveReportPhoto(bigPhoto)
 
-    const saved = await readFile(pathOf(photoUrl))
+    const saved = await savedPhoto(photoUrl)
     const metadata = await sharp(saved).metadata()
     expect(saved.length).toBeLessThan(400 * 1024)
     expect(metadata.format).toBe('jpeg')
@@ -73,7 +63,7 @@ describe('saveReportPhoto', () => {
     expect(metadata.width / metadata.height).toBeCloseTo(4000 / 3000, 2)
   })
 
-  it('returns a random URL under the uploads prefix and writes the file', async () => {
+  it('returns a random URL under the photos prefix and saves the image', async () => {
     const buffer = await solid(300, 200).jpeg().toBuffer()
 
     const first = await saveReportPhoto(buffer)
@@ -81,14 +71,14 @@ describe('saveReportPhoto', () => {
 
     expect(first).toMatch(/^\/api\/uploads\/reports\/[0-9a-f-]{36}\.jpg$/)
     expect(first).not.toBe(second)
-    expect(await exists(pathOf(first))).toBe(true)
-    expect(await exists(pathOf(second))).toBe(true)
+    expect(await savedPhoto(first)).toBeDefined()
+    expect(await savedPhoto(second)).toBeDefined()
   })
 
   it('does not enlarge small photos', async () => {
     const photoUrl = await saveReportPhoto(await solid(300, 200).jpeg().toBuffer())
 
-    const metadata = await sharp(pathOf(photoUrl)).metadata()
+    const metadata = await sharp(await savedPhoto(photoUrl)).metadata()
     expect([metadata.width, metadata.height]).toEqual([300, 200])
   })
 
@@ -101,7 +91,7 @@ describe('saveReportPhoto', () => {
 
     const photoUrl = await saveReportPhoto(withExif)
 
-    const saved = await readFile(pathOf(photoUrl))
+    const saved = await savedPhoto(photoUrl)
     expect((await sharp(saved).metadata()).exif).toBeUndefined()
     expect(saved.includes(Buffer.from('TestPhone'))).toBe(false)
   })
@@ -113,7 +103,7 @@ describe('saveReportPhoto', () => {
 
     const photoUrl = await saveReportPhoto(sideways)
 
-    const after = await sharp(pathOf(photoUrl)).metadata()
+    const after = await sharp(await savedPhoto(photoUrl)).metadata()
     expect([after.width, after.height]).toEqual([200, 400])
     expect(after.orientation).toBeUndefined()
   })
@@ -124,7 +114,7 @@ describe('saveReportPhoto', () => {
       await solid(100, 100).webp().toBuffer()
     ]) {
       const photoUrl = await saveReportPhoto(buffer)
-      expect((await sharp(pathOf(photoUrl)).metadata()).format).toBe('jpeg')
+      expect((await sharp(await savedPhoto(photoUrl)).metadata()).format).toBe('jpeg')
     }
   })
 
@@ -137,7 +127,9 @@ describe('saveReportPhoto', () => {
 
     const photoUrl = await saveReportPhoto(transparent)
 
-    const { data } = await sharp(pathOf(photoUrl)).raw().toBuffer({ resolveWithObject: true })
+    const { data } = await sharp(await savedPhoto(photoUrl))
+      .raw()
+      .toBuffer({ resolveWithObject: true })
     expect([data[0], data[1], data[2]].every((value) => value > 240)).toBe(true)
   })
 
@@ -163,54 +155,55 @@ describe('saveReportPhoto', () => {
 
       await expect(saveReportPhoto(jpeg.subarray(0, 200))).rejects.toThrow(InvalidPhotoError)
     })
+
+    it('saves nothing when the file is rejected', async () => {
+      await expect(saveReportPhoto(Buffer.from('not an image'))).rejects.toThrow()
+
+      expect(await ReportPhoto.countDocuments()).toBe(0)
+    })
   })
 })
 
 describe('deleteAllReportPhotos', () => {
-  it('removes every saved photo but leaves the rest of the uploads folder alone', async () => {
+  it('removes every saved photo', async () => {
     const first = await saveReportPhoto(await solid(100, 100).jpeg().toBuffer())
     const second = await saveReportPhoto(await solid(100, 100).jpeg().toBuffer())
-    const other = path.join(uploadsDir, 'other-file.txt')
-    await writeFile(other, 'not a report photo')
 
     await deleteAllReportPhotos()
 
-    expect(await exists(pathOf(first))).toBe(false)
-    expect(await exists(pathOf(second))).toBe(false)
-    expect(await exists(other)).toBe(true)
+    expect(await savedPhoto(first)).toBeUndefined()
+    expect(await savedPhoto(second)).toBeUndefined()
   })
 
   it('does nothing when there are no photos yet', async () => {
-    await deleteAllReportPhotos()
-
     await expect(deleteAllReportPhotos()).resolves.toBeUndefined()
   })
 })
 
 describe('deleteReportPhoto', () => {
-  it('deletes a saved photo', async () => {
+  it('deletes a saved photo and keeps the others', async () => {
     const photoUrl = await saveReportPhoto(await solid(100, 100).jpeg().toBuffer())
+    const other = await saveReportPhoto(await solid(100, 100).jpeg().toBuffer())
 
     await deleteReportPhoto(photoUrl)
 
-    expect(await exists(pathOf(photoUrl))).toBe(false)
+    expect(await savedPhoto(photoUrl)).toBeUndefined()
+    expect(await savedPhoto(other)).toBeDefined()
   })
 
-  it('does nothing when the file is already gone', async () => {
+  it('does nothing when the photo is already gone', async () => {
     const photoUrl = `${PHOTO_URL_PREFIX}00000000-0000-0000-0000-000000000000.jpg`
 
     await expect(deleteReportPhoto(photoUrl)).resolves.toBeUndefined()
   })
 
-  it('never deletes anything outside the reports folder', async () => {
-    const decoy = path.join(uploadsDir, 'secret.txt')
-    await writeFile(decoy, 'keep me')
+  it('ignores anything that is not the URL of a saved photo', async () => {
+    const photoUrl = await saveReportPhoto(await solid(100, 100).jpeg().toBuffer())
 
     for (const url of [
       `${PHOTO_URL_PREFIX}../secret.txt`,
-      '/api/uploads/reports/../secret.txt',
       '/api/uploads/secret.txt',
-      decoy,
+      '/api/uploads/reports/not-a-photo.jpg',
       '',
       undefined,
       null
@@ -218,6 +211,6 @@ describe('deleteReportPhoto', () => {
       await expect(deleteReportPhoto(url)).resolves.toBeUndefined()
     }
 
-    expect(await exists(decoy)).toBe(true)
+    expect(await savedPhoto(photoUrl)).toBeDefined()
   })
 })

@@ -119,6 +119,15 @@ Una segnalazione fatta da un escursionista: cosa ha visto, dove, con che foto, e
 | `trustScore` | Number, default 0 | Cresce con conferme indipendenti di altri utenti; alimenta le soglie automatiche (4.3, 4.5) |
 | `isSuspicious` | Boolean, default false | Segnala un pattern di abuso da un singolo utente; nasconde il report al pubblico ed esclude che faccia salire il trustScore di altri (4.4) |
 
+### `ReportPhoto`
+La foto allegata a una segnalazione, già ridimensionata a JPEG (lato massimo 1280 px, senza metadati EXIF). Sta nel database e non su disco perché il disco dei servizi di hosting gratuiti viene azzerato a ogni riavvio. Non ha un riferimento verso `Report`: la segnalazione conserva solo l'indirizzo `/api/uploads/reports/<id>.jpg` (campo `photoUrl`), che il server risolve cercando il documento con quell'`_id` (4.10).
+
+| Campo | Tipo | A cosa serve |
+|---|---|---|
+| `_id` | String (UUID) | Identificativo casuale e non indovinabile, parte dell'indirizzo pubblico della foto |
+| `data` | Buffer | I byte del JPEG |
+| `createdAt` | Date | Quando è stata caricata |
+
 ### `TrailStatusHistory`
 La traccia di "chi ha cambiato cosa e perché" su un sentiero. Separata da `Trail` perché cresce senza limite nel tempo, un documento per ogni cambio di stato, tenerla embedded avrebbe fatto crescere `Trail` indefinitamente e appesantito ogni singola lettura della mappa.
 

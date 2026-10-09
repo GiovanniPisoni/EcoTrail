@@ -7,8 +7,6 @@ dist/
 .vscode/
 .idea/
 
-server/uploads/
-
 #LaTeX
 docs/*.aux
 docs/*.log

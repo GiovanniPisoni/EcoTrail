@@ -1,7 +1,4 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest'
-import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises'
-import os from 'node:os'
-import path from 'node:path'
 import mongoose from 'mongoose'
 import { MongoMemoryServer } from 'mongodb-memory-server'
 import request from 'supertest'
@@ -11,6 +8,7 @@ import app from '../../src/index.js'
 import User from '../../src/models/User.js'
 import Trail from '../../src/models/Trail.js'
 import Report from '../../src/models/Report.js'
+import ReportPhoto from '../../src/models/ReportPhoto.js'
 import { MAX_PHOTO_BYTES } from '../../src/middleware/uploadReportPhoto.js'
 import { PHOTO_URL_PREFIX } from '../../src/services/reports/reportPhoto.js'
 
@@ -25,8 +23,6 @@ const validFields = {
 }
 
 let mongod
-let uploadsDir
-let originalUploadsDir
 let smallJpeg
 let bigJpeg
 
@@ -62,15 +58,11 @@ function submit(token, { fields = validFields, photo, field = 'photo' } = {}) {
 }
 
 async function storedFiles() {
-  return readdir(path.join(uploadsDir, 'reports')).catch(() => [])
+  return (await ReportPhoto.find().distinct('_id')).map((id) => `${id}.jpg`)
 }
 
 beforeAll(async () => {
   process.env.JWT_SECRET = JWT_SECRET
-  originalUploadsDir = process.env.UPLOADS_DIR
-  uploadsDir = await mkdtemp(path.join(os.tmpdir(), 'ecotrail-uploads-'))
-  process.env.UPLOADS_DIR = uploadsDir
-
   mongod = await MongoMemoryServer.create()
   await mongoose.connect(mongod.getUri())
   await Trail.init()
@@ -95,17 +87,15 @@ beforeAll(async () => {
 afterAll(async () => {
   await mongoose.connection.close()
   await mongod.stop()
-  if (originalUploadsDir === undefined) {
-    delete process.env.UPLOADS_DIR
-  } else {
-    process.env.UPLOADS_DIR = originalUploadsDir
-  }
-  await rm(uploadsDir, { recursive: true, force: true })
 })
 
 beforeEach(async () => {
-  await Promise.all([User.deleteMany({}), Trail.deleteMany({}), Report.deleteMany({})])
-  await rm(path.join(uploadsDir, 'reports'), { recursive: true, force: true })
+  await Promise.all([
+    User.deleteMany({}),
+    Trail.deleteMany({}),
+    Report.deleteMany({}),
+    ReportPhoto.deleteMany({})
+  ])
 })
 
 afterEach(() => {
@@ -113,7 +103,7 @@ afterEach(() => {
 })
 
 describe('POST /api/reports with a photo', () => {
-  it('stores the photo on disk and returns its URL', async () => {
+  it('stores the photo in the database and returns its URL', async () => {
     const { token } = await createUserAndToken()
     await Trail.create(trailAt('Near trail', 46.18))
 
@@ -150,8 +140,7 @@ describe('POST /api/reports with a photo', () => {
     const res = await submit(token, { photo: bigJpeg })
 
     expect(res.status).toBe(201)
-    const [file] = await storedFiles()
-    const stored = await readFile(path.join(uploadsDir, 'reports', file))
+    const stored = (await ReportPhoto.findOne()).data
     const metadata = await sharp(stored).metadata()
     expect(stored.length).toBeLessThan(400 * 1024)
     expect(Math.max(metadata.width, metadata.height)).toBe(1280)
