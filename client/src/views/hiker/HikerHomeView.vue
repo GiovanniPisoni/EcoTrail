@@ -210,6 +210,10 @@ function showTrailOnMap(trailId) {
     order: 2;
   }
 
+  .map-page .map-page__sidebar {
+    padding-bottom: 5rem;
+  }
+
   .map-page__map-wrap {
     min-height: 60vh;
     order: 1;
