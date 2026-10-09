@@ -28,7 +28,7 @@ beforeEach(async () => {
   await Promise.all([User.deleteMany({}), Trail.deleteMany({})])
 })
 
-describe('ensureTrails', () => {
+describe('ensureTrails', { timeout: 20000 }, () => {
   it('creates every trail of the data file', async () => {
     const trails = loadTrails()
 

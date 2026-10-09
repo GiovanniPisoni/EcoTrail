@@ -19,15 +19,22 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "seed": "npm run seed -w server"
+    "seed": "npm run seed -w server",
+    "e2e": "start-server-and-test e2e:stack http://localhost:5173/api/health e2e:run",
+    "e2e:open": "start-server-and-test e2e:stack http://localhost:5173/api/health e2e:open:ui",
+    "e2e:stack": "node cypress/stack.js",
+    "e2e:run": "cypress run",
+    "e2e:open:ui": "cypress open"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@vue/eslint-config-prettier": "^10.2.0",
     "concurrently": "^10.0.5",
+    "cypress": "^16.1.1",
     "eslint": "^10.10.0",
     "eslint-plugin-vue": "^10.11.0",
     "globals": "^17.12.0",
-    "prettier": "^3.9.6"
+    "prettier": "^3.9.6",
+    "start-server-and-test": "^3.0.13"
   }
 }

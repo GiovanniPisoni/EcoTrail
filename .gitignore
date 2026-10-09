@@ -7,6 +7,11 @@ dist/
 .vscode/
 .idea/
 
+# Cypress
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
+
 #LaTeX
 docs/*.aux
 docs/*.log
