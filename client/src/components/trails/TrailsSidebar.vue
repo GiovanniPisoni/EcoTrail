@@ -101,6 +101,11 @@ function formatDuration(durationMinutes) {
             <StatusBadge :status="trail.properties.status" />
           </div>
 
+          <p v-if="trail.properties.statusReason" class="trails-sidebar__reason">
+            <span class="trails-sidebar__reason-label">Why:</span>
+            {{ trail.properties.statusReason }}
+          </p>
+
           <div v-if="isSelected(trail)" class="trails-sidebar__details">
             <img
               v-if="trail.properties.photoUrl"
@@ -147,6 +152,19 @@ function formatDuration(durationMinutes) {
   gap: 0.75rem;
   padding: 1rem;
   overflow-y: auto;
+}
+
+.trails-sidebar__reason {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.trails-sidebar__reason-label {
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
 .trails-sidebar__header {

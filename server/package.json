@@ -10,6 +10,7 @@
     "seed": "node scripts/seed.js",
     "import:trails": "node scripts/data/import-trails.js",
     "setup:production": "node scripts/setup-production.js",
+    "reset:test-data": "node scripts/reset-test-data.js",
     "simulate:crowd": "node scripts/simulate/crowd.js",
     "simulate:hazard": "node scripts/simulate/hazard.js",
     "simulate:stats": "node scripts/simulate/stats.js",

@@ -45,6 +45,13 @@ function buildPopupContent(feature) {
   status.textContent = getTrailStatusLabel(feature.properties.status)
   container.append(status)
 
+  if (feature.properties.statusReason) {
+    container.append(document.createElement('br'))
+    const reason = document.createElement('span')
+    reason.textContent = feature.properties.statusReason
+    container.append(reason)
+  }
+
   return container
 }
 
@@ -135,8 +142,9 @@ function addLocateControl() {
     const button = L.DomUtil.create('button', 'locate-button')
     button.type = 'button'
     button.innerHTML =
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-7.58 7-13a7 7 0 1 0-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/><circle cx="12" cy="9" r="0.6" fill="currentColor" stroke="none"/></svg>'
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-7.58 7-13a7 7 0 1 0-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/><circle cx="12" cy="9" r="0.6" fill="currentColor" stroke="none"/></svg><span>My position</span>'
     button.title = 'Center on my location'
+    button.setAttribute('aria-label', button.title)
     L.DomEvent.disableClickPropagation(button)
     button.addEventListener('click', locateUser)
     return button
@@ -158,7 +166,7 @@ function addDownloadControl() {
     button.setAttribute('aria-label', button.title)
     const icon =
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>'
-    button.innerHTML = icon
+    button.innerHTML = `${icon}<span>Offline map</span>`
 
     const message = L.DomUtil.create('div', 'download-area-message', wrapper)
     message.hidden = true
@@ -351,11 +359,15 @@ defineExpose({ refresh: loadTrails, focusOnTrail, centerOnTrail })
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   background: var(--color-surface);
   border: none;
   border-radius: var(--radius-pill);
-  width: 44px;
+  min-width: 44px;
   height: 44px;
+  padding: 0 14px 0 12px;
+  font: 600 0.85rem var(--font-body);
+  white-space: nowrap;
   cursor: pointer;
   color: var(--color-primary);
   box-shadow: 0 1px 4px rgba(26, 62, 47, 0.12);
@@ -364,6 +376,7 @@ defineExpose({ refresh: loadTrails, focusOnTrail, centerOnTrail })
 .locate-button svg {
   width: 22px;
   height: 22px;
+  flex-shrink: 0;
 }
 
 .locate-button:hover {
@@ -377,7 +390,7 @@ defineExpose({ refresh: loadTrails, focusOnTrail, centerOnTrail })
 .download-area-message {
   position: absolute;
   top: 0;
-  left: 52px;
+  left: calc(100% + 8px);
   width: max-content;
   max-width: 220px;
   padding: 8px 12px;

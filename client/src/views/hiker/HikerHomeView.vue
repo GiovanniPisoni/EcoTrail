@@ -69,6 +69,7 @@ function showTrailOnMap(trailId) {
         <path d="M3 20 9 8l4 6 3-5 5 11z" />
         <circle cx="9" cy="5" r="1.4" fill="currentColor" stroke="none" />
       </svg>
+      Trails
     </button>
 
     <div class="map-page__map-wrap">
@@ -134,12 +135,15 @@ function showTrailOnMap(trailId) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
+  gap: 8px;
+  min-width: 44px;
   height: 44px;
+  padding: 0 14px 0 12px;
   border: none;
   border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-primary);
+  font: 600 0.85rem var(--font-body);
   box-shadow: 0 1px 4px rgba(26, 62, 47, 0.12);
   cursor: pointer;
 }
@@ -151,6 +155,7 @@ function showTrailOnMap(trailId) {
 .map-page__sidebar-toggle svg {
   width: 22px;
   height: 22px;
+  flex-shrink: 0;
 }
 
 .map-page__map-wrap {
@@ -229,6 +234,13 @@ function showTrailOnMap(trailId) {
   .map-page__map-wrap {
     min-height: 60vh;
     order: 1;
+  }
+
+  /* Fill the whole area even when the trails list is hidden, so the buttons stay on the map */
+  .map-page__map {
+    position: absolute;
+    inset: 0;
+    height: auto;
   }
 }
 </style>
