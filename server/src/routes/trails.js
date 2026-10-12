@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import mongoose from 'mongoose'
 import Trail from '../models/Trail.js'
+import TrailStatusHistory from '../models/TrailStatusHistory.js'
 import { parseBbox } from '../utils/bbox.js'
 
 const router = Router()
@@ -9,7 +10,36 @@ export const MAX_TRAILS_PER_REQUEST = 500
 
 const VALID_STATUSES = ['free', 'crowded', 'at_risk', 'closed']
 
-function trailToFeature(trail, { includeFragileSegments = false } = {}) {
+// Why a trail is not free: the reason given at its latest status change. Only returned when that
+// change is the one that put the trail in its current status, so a stale reason is never shown.
+async function findStatusReasons(trails) {
+  const notFree = trails.filter((trail) => trail.status !== 'free')
+  if (notFree.length === 0) return new Map()
+
+  const latest = await TrailStatusHistory.aggregate([
+    { $match: { trail: { $in: notFree.map((trail) => trail._id) } } },
+    { $sort: { changedAt: -1 } },
+    {
+      $group: {
+        _id: '$trail',
+        newStatus: { $first: '$newStatus' },
+        reason: { $first: '$reason' },
+        changedAt: { $first: '$changedAt' }
+      }
+    }
+  ])
+
+  const reasons = new Map()
+  for (const entry of latest) {
+    const trail = notFree.find((candidate) => String(candidate._id) === String(entry._id))
+    if (trail?.status === entry.newStatus) {
+      reasons.set(String(entry._id), { reason: entry.reason, changedAt: entry.changedAt })
+    }
+  }
+  return reasons
+}
+
+function trailToFeature(trail, { includeFragileSegments = false, statusReason } = {}) {
   const properties = {
     id: trail._id,
     name: trail.name,
@@ -18,6 +48,10 @@ function trailToFeature(trail, { includeFragileSegments = false } = {}) {
     durationMinutes: trail.durationMinutes,
     difficulty: trail.difficulty,
     photoUrl: trail.photoUrl
+  }
+  if (statusReason) {
+    properties.statusReason = statusReason.reason
+    properties.statusChangedAt = statusReason.changedAt
   }
   if (includeFragileSegments) {
     properties.fragileSegments = trail.fragileSegments
@@ -30,10 +64,14 @@ function trailToFeature(trail, { includeFragileSegments = false } = {}) {
   }
 }
 
-function trailsToFeatureCollection(trails) {
+async function trailsToFeatureCollection(trails) {
+  const reasons = await findStatusReasons(trails)
+
   return {
     type: 'FeatureCollection',
-    features: trails.map((trail) => trailToFeature(trail))
+    features: trails.map((trail) =>
+      trailToFeature(trail, { statusReason: reasons.get(String(trail._id)) })
+    )
   }
 }
 
@@ -55,7 +93,7 @@ router.get('/', async (req, res) => {
   }
 
   const trails = await Trail.find(query).limit(MAX_TRAILS_PER_REQUEST)
-  res.json(trailsToFeatureCollection(trails))
+  res.json(await trailsToFeatureCollection(trails))
 })
 
 router.get('/:id', async (req, res) => {
@@ -68,7 +106,13 @@ router.get('/:id', async (req, res) => {
     return res.status(404).json({ error: 'Trail not found' })
   }
 
-  res.json(trailToFeature(trail, { includeFragileSegments: true }))
+  const reasons = await findStatusReasons([trail])
+  res.json(
+    trailToFeature(trail, {
+      includeFragileSegments: true,
+      statusReason: reasons.get(String(trail._id))
+    })
+  )
 })
 
 export default router
