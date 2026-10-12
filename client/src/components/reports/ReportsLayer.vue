@@ -185,6 +185,7 @@ onUnmounted(() => {
       >
         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
       </svg>
+      Filters
     </button>
 
     <div v-if="filtersOpen" class="reports-filters__panel">
@@ -233,8 +234,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
+  gap: 8px;
+  min-width: 44px;
   height: 44px;
+  padding: 0 14px 0 12px;
+  font: 600 0.85rem var(--font-body);
   border: none;
   border-radius: var(--radius-pill);
   background: var(--color-surface);
@@ -250,6 +254,7 @@ onUnmounted(() => {
 .reports-filters__toggle svg {
   width: 20px;
   height: 20px;
+  flex-shrink: 0;
 }
 
 .reports-filters__panel {
