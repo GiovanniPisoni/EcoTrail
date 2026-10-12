@@ -150,7 +150,7 @@ function formatDuration(durationMinutes) {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding: 1rem;
+  padding: 0 1rem 1rem;
   overflow-y: auto;
 }
 
@@ -167,10 +167,16 @@ function formatDuration(durationMinutes) {
   color: var(--color-text-muted);
 }
 
+/* Stays in view while the list scrolls, so the close button is always within reach */
 .trails-sidebar__header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 1rem 0 0.5rem;
+  background-color: var(--color-background);
 }
 
 .trails-sidebar__title {
