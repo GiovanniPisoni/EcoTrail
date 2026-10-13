@@ -230,6 +230,13 @@ onUnmounted(() => {
   bottom: 10px;
 }
 
+@media (max-width: 640px) {
+  .reports-filters,
+  .reports-filters--sidebar-open {
+    bottom: calc(var(--sheet-h, 0px) + 12px);
+  }
+}
+
 .reports-filters__toggle {
   display: flex;
   align-items: center;

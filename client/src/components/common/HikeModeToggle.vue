@@ -137,7 +137,7 @@ function dismissNotice() {
 .hike-mode {
   position: absolute;
   right: 16px;
-  bottom: 80px;
+  bottom: calc(var(--sheet-h, 0px) + 80px);
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -308,7 +308,7 @@ function dismissNotice() {
 
 @media (max-width: 640px) {
   .hike-mode {
-    bottom: 78px;
+    bottom: calc(var(--sheet-h, 0px) + 78px);
   }
 }
 </style>

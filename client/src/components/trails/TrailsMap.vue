@@ -459,4 +459,17 @@ defineExpose({ refresh: loadTrails, focusOnTrail, centerOnTrail })
   width: 14px;
   height: 14px;
 }
+
+@media (max-width: 640px) {
+  .trail-legend {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  /* The credits stay visible above the trails panel */
+  .map-page .leaflet-bottom {
+    bottom: var(--sheet-h, 0px);
+  }
+}
 </style>

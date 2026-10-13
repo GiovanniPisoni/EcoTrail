@@ -1,5 +1,5 @@
 <script setup>
-import { ref, shallowRef } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import SendReportView from '@/views/hiker/SendReportView.vue'
 import TrailsMap from '@/components/trails/TrailsMap.vue'
@@ -27,7 +27,49 @@ function selectFromSidebar(trailId) {
   if (selecting) trailsMap.value?.centerOnTrail(trailId)
 }
 
-const sidebarOpen = ref(true)
+const MOBILE_QUERY = '(max-width: 640px)'
+const mobileScreen = window.matchMedia(MOBILE_QUERY)
+
+// On a phone the trails list is a panel over the map: it starts closed so the map comes first
+const sidebarOpen = ref(!mobileScreen.matches)
+
+const mapPage = ref(null)
+let sheetObserver = null
+
+// The buttons on the map sit above the panel, wherever its top edge is
+function trackSheetHeight() {
+  sheetObserver?.disconnect()
+  sheetObserver = null
+
+  const page = mapPage.value
+  const sheet = page?.querySelector('.map-page__sheet')
+  if (!page) return
+
+  if (!mobileScreen.matches || !sheet) {
+    page.style.removeProperty('--sheet-h')
+    return
+  }
+
+  const update = () => page.style.setProperty('--sheet-h', `${sheet.offsetHeight}px`)
+  update()
+  sheetObserver = new ResizeObserver(update)
+  sheetObserver.observe(sheet)
+}
+
+watch(sidebarOpen, async () => {
+  await nextTick()
+  trackSheetHeight()
+})
+
+onMounted(() => {
+  trackSheetHeight()
+  mobileScreen.addEventListener('change', trackSheetHeight)
+})
+
+onBeforeUnmount(() => {
+  sheetObserver?.disconnect()
+  mobileScreen.removeEventListener('change', trackSheetHeight)
+})
 
 function selectFromMap(trailId) {
   const selecting = selectedTrailId.value !== trailId
@@ -41,12 +83,12 @@ function showTrailOnMap(trailId) {
 </script>
 
 <template>
-  <main class="map-page">
+  <main ref="mapPage" class="map-page">
     <TrailsSidebar
       v-if="sidebarOpen"
       :trails="visibleTrails"
       :selected-id="selectedTrailId"
-      class="map-page__sidebar"
+      class="map-page__sidebar map-page__sheet"
       @close="sidebarOpen = false"
       @select="selectFromSidebar"
       @focus-trail="showTrailOnMap"
@@ -54,7 +96,7 @@ function showTrailOnMap(trailId) {
     <button
       v-else
       type="button"
-      class="map-page__sidebar-toggle"
+      class="map-page__sidebar-toggle map-page__sheet"
       title="Show nearby trails"
       @click="sidebarOpen = true"
     >
@@ -69,7 +111,18 @@ function showTrailOnMap(trailId) {
         <path d="M3 20 9 8l4 6 3-5 5 11z" />
         <circle cx="9" cy="5" r="1.4" fill="currentColor" stroke="none" />
       </svg>
-      Trails
+      <span>Trails ({{ visibleTrails.length }})</span>
+      <svg
+        class="map-page__sidebar-chevron"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="6 15 12 9 18 15" />
+      </svg>
     </button>
 
     <div class="map-page__map-wrap">
@@ -158,6 +211,10 @@ function showTrailOnMap(trailId) {
   flex-shrink: 0;
 }
 
+.map-page__sidebar-chevron {
+  display: none;
+}
+
 .map-page__map-wrap {
   position: relative;
   flex: 1;
@@ -171,7 +228,7 @@ function showTrailOnMap(trailId) {
 
 .map-page__new-report {
   position: absolute;
-  bottom: 16px;
+  bottom: calc(var(--sheet-h, 0px) + 16px);
   right: 16px;
   z-index: 1000;
   display: flex;
@@ -213,34 +270,66 @@ function showTrailOnMap(trailId) {
 }
 
 @media (max-width: 640px) {
+  /* The page is exactly as tall as the screen and does not scroll: a finger on the map only moves
+     the map, and the trails list is a panel over its bottom edge. */
   .map-page {
-    flex-direction: column;
-    height: auto;
-    min-height: calc(100vh - 65px);
-  }
-
-  .map-page__sidebar {
-    width: 100%;
-    max-height: 40vh;
-    border-right: none;
-    border-top: 1px solid rgba(26, 62, 47, 0.1);
-    order: 2;
-  }
-
-  .map-page .map-page__sidebar {
-    padding-bottom: 5rem;
+    --sheet-h: 52px;
+    display: block;
+    height: calc(100vh - var(--hiker-bar-height, 49px));
+    height: calc(100dvh - var(--hiker-bar-height, 49px));
+    min-height: 0;
+    overflow: hidden;
   }
 
   .map-page__map-wrap {
-    min-height: 60vh;
-    order: 1;
+    position: absolute;
+    inset: 0;
+    min-height: 0;
   }
 
-  /* Fill the whole area even when the trails list is hidden, so the buttons stay on the map */
   .map-page__map {
     position: absolute;
     inset: 0;
     height: auto;
+  }
+
+  .map-page__sidebar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1100;
+    width: 100%;
+    max-height: 45vh;
+    max-height: 45dvh;
+    border-right: none;
+    border-top: 1px solid rgba(26, 62, 47, 0.1);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -2px 12px rgba(26, 62, 47, 0.18);
+    overscroll-behavior: contain;
+  }
+
+  .map-page__sidebar-toggle {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1100;
+    justify-content: space-between;
+    width: 100%;
+    height: 52px;
+    padding: 0 1rem;
+    border-radius: 16px 16px 0 0;
+    font-size: 0.95rem;
+    box-shadow: 0 -2px 12px rgba(26, 62, 47, 0.18);
+  }
+
+  .map-page__sidebar-toggle span {
+    flex: 1;
+    text-align: left;
+  }
+
+  .map-page__sidebar-chevron {
+    display: block;
   }
 }
 </style>
