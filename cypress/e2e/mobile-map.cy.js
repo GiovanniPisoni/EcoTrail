@@ -75,18 +75,76 @@ describe('Map page on a phone', () => {
     cy.get('.trails-sidebar').should('not.exist')
   })
 
-  it('keeps the buttons on the map above the trails list', () => {
+  it('keeps the bottom buttons above the trails list', () => {
     cy.visitAs('hiker', '/')
     cy.get('.map-page__sidebar-toggle').click()
     cy.get('.trails-sidebar').should('be.visible')
 
     rectOf('.trails-sidebar').then((list) => {
-      for (const selector of ['.map-page__new-report', '.reports-filters__toggle']) {
+      for (const selector of ['.map-page__new-report', '.hike-mode__button']) {
         rectOf(selector).should((button) => {
           expect(button.bottom, `${selector} is above the list`).to.be.at.most(list.top)
         })
       }
     })
+  })
+
+  it('places the controls: tools top left, legend top right, walking bottom left, report bottom right', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.leaflet-container').should('be.visible')
+
+    cy.get('.leaflet-control-zoom').should('not.be.visible')
+
+    rectOf('.leaflet-top.leaflet-left .locate-button').then((position) => {
+      rectOf('.download-area .locate-button').then((offline) => {
+        rectOf('.reports-filters__toggle').then((filters) => {
+          expect(position.left, 'My position is on the left').to.be.lessThan(PHONE.width / 2)
+          expect(offline.top, 'Offline map is under My position').to.be.at.least(position.bottom)
+          expect(filters.top, 'Filters is under Offline map').to.be.at.least(offline.bottom)
+          expect(filters.left, 'Filters is on the left').to.be.lessThan(PHONE.width / 2)
+        })
+      })
+    })
+
+    rectOf('.trail-legend').should((legend) => {
+      expect(legend.left, 'the legend is on the right').to.be.greaterThan(PHONE.width / 2)
+      expect(legend.top, 'the legend is at the top').to.be.lessThan(PHONE.height / 3)
+    })
+
+    rectOf('.hike-mode__button').should((walking) => {
+      expect(walking.left, "I'm walking is on the left").to.be.lessThan(PHONE.width / 2)
+      expect(walking.top, "I'm walking is at the bottom").to.be.greaterThan(PHONE.height / 2)
+    })
+
+    rectOf('.map-page__new-report').should((report) => {
+      expect(report.left, 'New report is on the right').to.be.greaterThan(PHONE.width / 2)
+      expect(report.top, 'New report is at the bottom').to.be.greaterThan(PHONE.height / 2)
+    })
+  })
+
+  it('opens the filters panel under its button', () => {
+    cy.visitAs('hiker', '/')
+
+    cy.get('.reports-filters__toggle').click()
+
+    cy.get('.reports-filters__panel').should('be.visible')
+    rectOf('.reports-filters__toggle').then((toggle) => {
+      rectOf('.reports-filters__panel').should((panel) => {
+        expect(panel.top).to.be.at.least(toggle.bottom)
+        expect(panel.height).to.be.greaterThan(100)
+      })
+    })
+  })
+
+  it('hides the trails of the statuses unticked in the legend', () => {
+    cy.task('db:updateTrail', { set: { status: 'closed' } })
+    cy.visitAs('hiker', '/')
+    cy.get('.map-page__sidebar-toggle').click()
+    cy.contains('.trails-sidebar__item', E2E_TRAIL_NAME).should('exist')
+
+    cy.get('.trail-legend-checkbox[data-status="closed"]').uncheck()
+
+    cy.contains('.trails-sidebar__item', E2E_TRAIL_NAME).should('not.exist')
   })
 
   it('shows why a trail is not free in the list', () => {

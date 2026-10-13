@@ -308,7 +308,10 @@ function dismissNotice() {
 
 @media (max-width: 640px) {
   .hike-mode {
-    bottom: calc(var(--sheet-h, 0px) + 78px);
+    right: auto;
+    left: 16px;
+    bottom: calc(var(--sheet-h, 0px) + 16px);
+    align-items: flex-start;
   }
 }
 </style>

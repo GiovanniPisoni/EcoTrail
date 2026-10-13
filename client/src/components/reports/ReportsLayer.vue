@@ -233,7 +233,13 @@ onUnmounted(() => {
 @media (max-width: 640px) {
   .reports-filters,
   .reports-filters--sidebar-open {
-    bottom: calc(var(--sheet-h, 0px) + 12px);
+    top: 118px;
+    bottom: auto;
+  }
+
+  .reports-filters .reports-filters__panel {
+    top: calc(100% + 0.5rem);
+    bottom: auto;
   }
 }
 

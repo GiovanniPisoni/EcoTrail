@@ -22,13 +22,14 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['trails-loaded', 'trail-selected', 'map-ready'])
+const emit = defineEmits(['trails-loaded', 'trail-selected', 'map-ready', 'filter-changed'])
 
 const mapContainer = ref(null)
 const zoomedOutTooFar = ref(false)
 let map = null
 let trailsLayer = null
 let lastTrailsData = null
+const hiddenStatuses = new Set()
 let resizeObserver = null
 let stopRealtime = []
 
@@ -61,7 +62,9 @@ function renderTrailsLayer() {
   trailsLayer?.remove()
   trailsLayer = L.geoJSON(lastTrailsData, {
     filter: (feature) =>
-      !props.selectedTrailId || String(feature.properties.id) === String(props.selectedTrailId),
+      props.selectedTrailId
+        ? String(feature.properties.id) === String(props.selectedTrailId)
+        : !hiddenStatuses.has(feature.properties.status),
     style: (feature) => ({
       color: getTrailStatusColor(feature.properties.status),
       weight: props.selectedTrailId ? 6 : 4
@@ -96,8 +99,24 @@ async function loadTrails() {
 
   lastTrailsData = data
   renderTrailsLayer()
+  emitVisibleTrails()
+}
 
-  emit('trails-loaded', data.features ?? [])
+function emitVisibleTrails() {
+  const features = lastTrailsData?.features ?? []
+  emit(
+    'trails-loaded',
+    features.filter((feature) => !hiddenStatuses.has(feature.properties.status))
+  )
+}
+
+function setStatusVisible(status, visible) {
+  if (visible) hiddenStatuses.delete(status)
+  else hiddenStatuses.add(status)
+
+  renderTrailsLayer()
+  emitVisibleTrails()
+  emit('filter-changed', [...hiddenStatuses])
 }
 
 watch(
@@ -214,9 +233,20 @@ function addLegend() {
   legend.onAdd = () => {
     const div = L.DomUtil.create('div', 'trail-legend')
 
-    Object.values(TRAIL_STATUSES).forEach(({ label, color, icon }) => {
-      const item = document.createElement('div')
+    div.setAttribute('role', 'group')
+    div.setAttribute('aria-label', 'Show trails by status')
+
+    Object.entries(TRAIL_STATUSES).forEach(([status, { label, color, icon }]) => {
+      const item = document.createElement('label')
       item.className = 'trail-legend-item'
+
+      const checkbox = document.createElement('input')
+      checkbox.type = 'checkbox'
+      checkbox.className = 'trail-legend-checkbox'
+      checkbox.checked = !hiddenStatuses.has(status)
+      checkbox.dataset.status = status
+      checkbox.addEventListener('change', () => setStatusVisible(status, checkbox.checked))
+      item.append(checkbox)
 
       const swatch = document.createElement('span')
       swatch.className = 'trail-legend-swatch'
@@ -229,6 +259,9 @@ function addLegend() {
 
       div.append(item)
     })
+
+    L.DomEvent.disableClickPropagation(div)
+    L.DomEvent.disableScrollPropagation(div)
 
     return div
   }
@@ -428,7 +461,7 @@ defineExpose({ refresh: loadTrails, focusOnTrail, centerOnTrail })
 }
 
 .trail-legend {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(10px);
   padding: 8px 10px;
   border-radius: 4px;
@@ -441,6 +474,15 @@ defineExpose({ refresh: loadTrails, focusOnTrail, centerOnTrail })
   display: flex;
   align-items: center;
   gap: 6px;
+  cursor: pointer;
+}
+
+.trail-legend-checkbox {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
 }
 
 .trail-legend-swatch {
@@ -462,12 +504,15 @@ defineExpose({ refresh: loadTrails, focusOnTrail, centerOnTrail })
 
 @media (max-width: 640px) {
   .trail-legend {
-    padding: 4px 8px;
-    font-size: 0.75rem;
-    line-height: 1.4;
+    padding: 6px 8px;
+    font-size: 0.8rem;
+    line-height: 1.6;
   }
 
-  /* The credits stay visible above the trails panel */
+  .map-page .leaflet-control-zoom {
+    display: none;
+  }
+
   .map-page .leaflet-bottom {
     bottom: var(--sheet-h, 0px);
   }

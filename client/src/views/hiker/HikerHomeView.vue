@@ -10,6 +10,7 @@ import HikeModeToggle from '@/components/common/HikeModeToggle.vue'
 const route = useRoute()
 
 const visibleTrails = ref([])
+const hiddenStatuses = ref([])
 const reportDialogOpen = ref(false)
 const mapInstance = shallowRef(null)
 const trailsMap = ref(null)
@@ -30,13 +31,11 @@ function selectFromSidebar(trailId) {
 const MOBILE_QUERY = '(max-width: 640px)'
 const mobileScreen = window.matchMedia(MOBILE_QUERY)
 
-// On a phone the trails list is a panel over the map: it starts closed so the map comes first
 const sidebarOpen = ref(!mobileScreen.matches)
 
 const mapPage = ref(null)
 let sheetObserver = null
 
-// The buttons on the map sit above the panel, wherever its top edge is
 function trackSheetHeight() {
   sheetObserver?.disconnect()
   sheetObserver = null
@@ -88,6 +87,7 @@ function showTrailOnMap(trailId) {
       v-if="sidebarOpen"
       :trails="visibleTrails"
       :selected-id="selectedTrailId"
+      :filtered="hiddenStatuses.length > 0"
       class="map-page__sidebar map-page__sheet"
       @close="sidebarOpen = false"
       @select="selectFromSidebar"
@@ -132,6 +132,7 @@ function showTrailOnMap(trailId) {
         :focus-trail-id="focusTrailId"
         class="map-page__map"
         @trails-loaded="visibleTrails = $event"
+        @filter-changed="hiddenStatuses = $event"
         @trail-selected="selectFromMap"
         @map-ready="mapInstance = $event"
       />
@@ -270,8 +271,6 @@ function showTrailOnMap(trailId) {
 }
 
 @media (max-width: 640px) {
-  /* The page is exactly as tall as the screen and does not scroll: a finger on the map only moves
-     the map, and the trails list is a panel over its bottom edge. */
   .map-page {
     --sheet-h: 52px;
     display: block;
