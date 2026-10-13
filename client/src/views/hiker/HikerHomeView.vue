@@ -259,14 +259,10 @@ function showTrailOnMap(trailId) {
 }
 
 @media (max-width: 640px) {
-  .map-page__new-report span {
-    display: none;
-  }
-
   .map-page__new-report {
-    width: 52px;
-    padding: 0;
-    justify-content: center;
+    height: 48px;
+    padding: 0 1rem;
+    font-size: 0.9rem;
   }
 }
 

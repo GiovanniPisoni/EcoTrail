@@ -233,7 +233,7 @@ onUnmounted(() => {
 @media (max-width: 640px) {
   .reports-filters,
   .reports-filters--sidebar-open {
-    top: 118px;
+    top: 64px;
     bottom: auto;
   }
 

@@ -513,6 +513,15 @@ defineExpose({ refresh: loadTrails, focusOnTrail, centerOnTrail })
     display: none;
   }
 
+  .map-page .download-area {
+    margin-top: 64px;
+  }
+
+  .map-page .download-area-message {
+    top: calc(100% + 8px);
+    left: 0;
+  }
+
   .map-page .leaflet-bottom {
     bottom: var(--sheet-h, 0px);
   }
