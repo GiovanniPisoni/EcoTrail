@@ -28,9 +28,7 @@ function setStoredFlag(enabled) {
   try {
     if (enabled) localStorage.setItem(STORAGE_KEY, '1')
     else localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // storage unavailable: hike mode just won't resume after a reload
-  }
+  } catch {}
 }
 
 function hasStoredFlag() {
@@ -163,9 +161,7 @@ export async function resumeHikeModeIfEnabled() {
       startHikeMode()
       return
     }
-  } catch {
-    // Permissions API not available: do not start without an explicit user action
-  }
+  } catch {}
 
   setStoredFlag(false)
 }

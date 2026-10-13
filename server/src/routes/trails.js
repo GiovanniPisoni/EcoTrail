@@ -10,8 +10,6 @@ export const MAX_TRAILS_PER_REQUEST = 500
 
 const VALID_STATUSES = ['free', 'crowded', 'at_risk', 'closed']
 
-// Why a trail is not free: the reason given at its latest status change. Only returned when that
-// change is the one that put the trail in its current status, so a stale reason is never shown.
 async function findStatusReasons(trails) {
   const notFree = trails.filter((trail) => trail.status !== 'free')
   if (notFree.length === 0) return new Map()

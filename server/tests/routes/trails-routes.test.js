@@ -22,7 +22,6 @@ beforeEach(async () => {
   await Trail.deleteMany({})
 })
 
-// test rectangle: west=10, south=40, east=11, north=41
 const BBOX = '10,40,11,41'
 
 describe('GET /api/trails', () => {

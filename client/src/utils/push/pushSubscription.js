@@ -32,8 +32,6 @@ export async function subscribeToPush() {
   return subscription
 }
 
-// The browser keeps its subscription when the person logs out or switches account, so the server
-// has to be told again who owns it each time the app opens.
 export async function syncPushSubscription() {
   if (!isPushSupported() || Notification.permission !== 'granted') return false
 
@@ -44,8 +42,6 @@ export async function syncPushSubscription() {
   return true
 }
 
-// Stops the current account from getting alerts on this device, keeping the browser subscription so
-// the next account that logs in can claim it. Best effort: it must never block a logout.
 export async function forgetPushSubscription() {
   try {
     if (!isPushSupported()) return
@@ -53,9 +49,7 @@ export async function forgetPushSubscription() {
     if (!subscription) return
 
     await api.delete('/push/subscribe', { data: { endpoint: subscription.endpoint } })
-  } catch {
-    // the server may not know this device for this account, or be unreachable
-  }
+  } catch {}
 }
 
 export async function unsubscribeFromPush() {
@@ -65,8 +59,6 @@ export async function unsubscribeFromPush() {
   try {
     await api.delete('/push/subscribe', { data: { endpoint: subscription.endpoint } })
   } catch (err) {
-    // The server does not have it for this account (it was registered by another one): turning
-    // alerts off must still work, so the browser subscription is removed anyway.
     if (err.response?.status !== 404) throw err
   }
   await subscription.unsubscribe()

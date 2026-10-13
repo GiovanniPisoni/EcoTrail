@@ -1,6 +1,5 @@
 import { checkRateLimit, RATE_LIMIT_MAX_REPORTS } from '../services/reports/reportSpam.js'
 
-// Runs before the upload middleware so that a refused request never reads the photo
 export async function reportRateLimit(req, res, next) {
   try {
     const { limited, retryAfterSeconds } = await checkRateLimit(req.user.id)

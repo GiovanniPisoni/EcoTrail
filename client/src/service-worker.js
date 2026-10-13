@@ -8,8 +8,6 @@ import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from 'workbox-strategi
 import { ExpirationPlugin } from 'workbox-expiration'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 
-// Lifecycle and app shell
-
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
 
@@ -24,11 +22,7 @@ try {
       denylist: [/^\/api\//, /^\/socket\.io\//]
     })
   )
-} catch {
-  // index.html is not precached: navigation falls back to the network
-}
-
-// Offline runtime caching
+} catch {}
 
 const TILE_HOST = 'tile.openstreetmap.org'
 const API_TIMEOUT_MS = 8000
@@ -144,8 +138,6 @@ registerRoute(
     ]
   })
 )
-
-// Push notifications
 
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {}

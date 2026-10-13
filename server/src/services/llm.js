@@ -1,4 +1,3 @@
-// Thin client for the LLM provider (Google Gemini). The API key only lives in the server environment.
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
 
 export const DEFAULT_AI_MODEL = 'gemini-3.5-flash-lite'
@@ -8,7 +7,6 @@ export function isLlmConfigured() {
   return Boolean(process.env.GEMINI_API_KEY)
 }
 
-// Asks for a JSON answer that follows `responseSchema`. Throws on any failure: callers must have a fallback.
 export async function generateJson(prompt, responseSchema, { timeoutMs = LLM_TIMEOUT_MS } = {}) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error('GEMINI_API_KEY is not set')

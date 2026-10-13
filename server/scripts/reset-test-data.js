@@ -23,8 +23,6 @@ const CLEARED = [
   ['user positions', UserPresence]
 ]
 
-// Brings the database back to a clean starting point after trying the app: no reports, no history,
-// every trail free. Trails and admin accounts are never deleted. Without `apply` it only counts.
 export async function resetTestData({ keepEmails = [], riskTrail, reason, apply = false } = {}) {
   const keep = keepEmails.map((email) => email.trim().toLowerCase()).filter(Boolean)
   const userFilter = { role: { $ne: 'admin' }, email: { $nin: keep } }

@@ -19,7 +19,6 @@ const route = useRoute()
 
 const menuOpen = ref(false)
 
-// The menu is only a drawer on small screens: it closes when the person goes somewhere else
 watch(
   () => route.fullPath,
   () => (menuOpen.value = false)

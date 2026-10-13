@@ -394,7 +394,6 @@ describe('reputation penalty for spam', () => {
     const res = await review(report._id, { status: 'validated' })
 
     expect(res.body.markedAsSpam).toBe(false)
-    // +2 given back, +1 for the validated report
     expect((await User.findById(user._id)).reputation).toBe(5 + 1)
     const reasons = (await ReputationChange.find().sort({ _id: 1 })).map((c) => c.reason)
     expect(reasons).toEqual(['spam', 'spam_reverted', 'report_validated'])

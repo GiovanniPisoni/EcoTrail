@@ -13,6 +13,10 @@ const props = defineProps({
   selectedId: {
     type: String,
     default: null
+  },
+  filtered: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -81,7 +85,8 @@ function formatDuration(durationMinutes) {
     </div>
 
     <p v-if="trails.length === 0" class="trails-sidebar__empty">
-      No trails in view. Move or zoom the map to see nearby trails.
+      <template v-if="filtered">No trails match the statuses ticked in the legend.</template>
+      <template v-else>No trails in view. Move or zoom the map to see nearby trails.</template>
     </p>
 
     <ul v-else class="trails-sidebar__list">
@@ -167,7 +172,6 @@ function formatDuration(durationMinutes) {
   color: var(--color-text-muted);
 }
 
-/* Stays in view while the list scrolls, so the close button is always within reach */
 .trails-sidebar__header {
   position: sticky;
   top: 0;
