@@ -69,7 +69,6 @@ export async function seedDatabase() {
   return { trail: { id: String(trail._id), name: trail.name, latitude, longitude } }
 }
 
-// Each entry: type, severity, validationStatus, isSuspicious, minutesAgo, description
 export async function insertReports(entries) {
   await connect()
   const hiker = await findHiker()
@@ -126,7 +125,6 @@ export async function getHikerReputation() {
   return hiker.reputation
 }
 
-// Each entry: type, title, body, url, minutesAgo, read
 export async function insertNotifications(entries) {
   await connect()
   const hiker = await findHiker()
@@ -161,7 +159,6 @@ export async function insertActivity({ hikers = 3, hoursAgo = 2 } = {}) {
   return null
 }
 
-// Each entry: newStatus, reason, automatic, alertedCount
 export async function insertTrailHistory(entries) {
   await connect()
   const trail = await findE2eTrail()

@@ -15,7 +15,6 @@ router.get('/:id/alternative', async (req, res) => {
     return res.status(404).json({ error: 'Trail not found' })
   }
 
-  // Nothing to suggest while the trail is fine
   if (!SUGGESTION_STATUSES.includes(trail.status)) {
     return res.json({ alternative: null, reason: null, source: null })
   }

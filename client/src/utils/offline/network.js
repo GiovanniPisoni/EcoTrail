@@ -2,7 +2,6 @@ import { ref } from 'vue'
 
 export const OFFLINE_HEADER = 'x-offline-cache'
 
-// True when the browser reports no connection or the last data came from the offline cache
 export const isOffline = ref(typeof navigator !== 'undefined' && navigator.onLine === false)
 
 let servedFromCache = false

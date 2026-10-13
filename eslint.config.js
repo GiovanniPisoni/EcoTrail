@@ -13,6 +13,12 @@ export default [
   ...pluginVue.configs['flat/essential'],
 
   {
+    rules: {
+      'no-empty': ['error', { allowEmptyCatch: true }]
+    }
+  },
+
+  {
     files: ['client/**/*.{js,vue}'],
     languageOptions: {
       globals: { ...globals.browser }

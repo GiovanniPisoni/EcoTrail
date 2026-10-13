@@ -32,7 +32,6 @@ export function clearAlternativeCache() {
   cache.clear()
 }
 
-// Closed trails are never offered. Results come sorted by distance from the middle of the trail.
 async function findCandidates(trail) {
   const { coordinates } = trail.path
   const middle = coordinates[Math.floor(coordinates.length / 2)]
@@ -96,7 +95,6 @@ function toAlternative(candidate) {
   }
 }
 
-// The simple suggestion: the closest free trail
 function simpleSuggestion(candidates) {
   const closestFree = candidates.find((candidate) => candidate.status === 'free')
   if (!closestFree) {
@@ -114,7 +112,6 @@ function simpleSuggestion(candidates) {
   }
 }
 
-// The model can only choose among the candidates we sent, so an invented trail is discarded
 function readAnswer(answer, candidates) {
   const chosen = candidates.find((candidate) => String(candidate._id) === String(answer?.trailId))
   const reason = typeof answer?.reason === 'string' ? answer.reason.trim() : ''

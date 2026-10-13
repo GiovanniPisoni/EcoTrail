@@ -3,8 +3,6 @@ import { E2E_USERS } from './e2e-config.js'
 const TOKEN_KEY = 'ecotrail_token'
 const USER_KEY = 'ecotrail_user'
 
-// Logs in through the API and opens the page with the session already in localStorage.
-// Options: geolocation ({ latitude, longitude } or 'denied'), onBeforeLoad(win).
 Cypress.Commands.add('visitAs', (role, path = '/', options = {}) => {
   const { email, password } = E2E_USERS[role]
 

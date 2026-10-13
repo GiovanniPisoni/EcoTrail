@@ -41,12 +41,10 @@ export const useAuthStore = defineStore('auth', () => {
     await login(email, password)
   }
 
-  // Used when the session is no longer valid, so it must not call the server
   function logout() {
     clearSession()
   }
 
-  // The logout the person asks for: first stops this account from getting alerts on this device
   async function endSession() {
     await Promise.race([
       forgetPushSubscription(),

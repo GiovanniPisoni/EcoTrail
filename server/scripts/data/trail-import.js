@@ -118,7 +118,6 @@ function roundCoordinates(coordinates) {
   ])
 }
 
-// CAI scale: T tourist, E hiking, EE experts, EEA experts with equipment
 export function difficultyFromCaiScale(caiScale) {
   if (typeof caiScale !== 'string') return undefined
 
@@ -132,7 +131,6 @@ export function difficultyFromCaiScale(caiScale) {
   return undefined
 }
 
-// OSM duration is "H:MM" or "H:MM:SS"
 export function parseOsmDurationMinutes(duration) {
   if (typeof duration !== 'string') return undefined
 

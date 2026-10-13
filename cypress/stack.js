@@ -1,4 +1,3 @@
-// Starts the API and the Vite dev server against the dedicated e2e database
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
@@ -13,7 +12,6 @@ const serverEnv = {
   CLIENT_ORIGIN: 'http://localhost:5173',
   MONGODB_URI: E2E_MONGODB_URI,
   JWT_SECRET: 'e2e-secret',
-  // Never call the real LLM from the tests: the closest free trail is used instead
   GEMINI_API_KEY: ''
 }
 

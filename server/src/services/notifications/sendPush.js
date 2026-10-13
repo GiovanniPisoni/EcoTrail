@@ -27,8 +27,6 @@ function isGone(err) {
   return err.statusCode === 404 || err.statusCode === 410
 }
 
-// Sends to every device of the user. A device that fails must not stop the others: the result of
-// each one is returned (and logged), and an error is thrown only when nothing was delivered.
 export async function sendPush(user, payload, { type, trail } = {}) {
   if (type) {
     await Notification.create({
