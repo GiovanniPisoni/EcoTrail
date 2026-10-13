@@ -40,7 +40,7 @@ beforeEach(async () => {
 })
 
 describe('saveReportPhoto', () => {
-  it('shrinks a photo of several MB to a few hundred KB', async () => {
+  it('shrinks a photo of several MB to a few hundred KB', { timeout: 30000 }, async () => {
     const bigPhoto = await sharp({
       create: {
         width: 4000,

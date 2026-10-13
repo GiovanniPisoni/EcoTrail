@@ -260,7 +260,8 @@ onUnmounted(() => {
 
 .profile-page__account-stats {
   display: flex;
-  gap: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
   margin: 0;
 }
 
@@ -272,6 +273,13 @@ onUnmounted(() => {
 .profile-page__account-stats dd {
   margin: 0.2rem 0 0;
   font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .profile-page__account-stats dd {
+    font-size: 0.9rem;
+  }
 }
 
 .profile-page__reports-title {

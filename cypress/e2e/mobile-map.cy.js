@@ -96,12 +96,12 @@ describe('Map page on a phone', () => {
     cy.get('.leaflet-control-zoom').should('not.be.visible')
 
     rectOf('.leaflet-top.leaflet-left .locate-button').then((position) => {
-      rectOf('.download-area .locate-button').then((offline) => {
-        rectOf('.reports-filters__toggle').then((filters) => {
+      rectOf('.reports-filters__toggle').then((filters) => {
+        rectOf('.download-area .locate-button').then((offline) => {
           expect(position.left, 'My position is on the left').to.be.lessThan(PHONE.width / 2)
-          expect(offline.top, 'Offline map is under My position').to.be.at.least(position.bottom)
-          expect(filters.top, 'Filters is under Offline map').to.be.at.least(offline.bottom)
-          expect(filters.left, 'Filters is on the left').to.be.lessThan(PHONE.width / 2)
+          expect(filters.top, 'Filters is under My position').to.be.at.least(position.bottom)
+          expect(offline.top, 'Offline map is under Filters').to.be.at.least(filters.bottom)
+          expect(offline.left, 'Offline map is on the left').to.be.lessThan(PHONE.width / 2)
         })
       })
     })
@@ -115,6 +115,8 @@ describe('Map page on a phone', () => {
       expect(walking.left, "I'm walking is on the left").to.be.lessThan(PHONE.width / 2)
       expect(walking.top, "I'm walking is at the bottom").to.be.greaterThan(PHONE.height / 2)
     })
+
+    cy.contains('.map-page__new-report span', 'New Report').should('be.visible')
 
     rectOf('.map-page__new-report').should((report) => {
       expect(report.left, 'New report is on the right').to.be.greaterThan(PHONE.width / 2)
@@ -159,5 +161,39 @@ describe('Map page on a phone', () => {
       .find('.trails-sidebar__reason')
       .should('contain', 'Why:')
       .and('contain', 'Fallen tree after the storm')
+  })
+
+  it('keeps the offline message clear of the legend', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.download-area-message').invoke('text', 'Area saved for offline use')
+    cy.get('.download-area-message').invoke('prop', 'hidden', false)
+
+    rectOf('.download-area-message').then((message) => {
+      rectOf('.trail-legend').should((legend) => {
+        const overlapsHorizontally = message.left < legend.right && legend.left < message.right
+        const overlapsVertically = message.top < legend.bottom && legend.top < message.bottom
+        expect(overlapsHorizontally && overlapsVertically).to.equal(false)
+      })
+    })
+  })
+
+  it('keeps the profile inside the screen with a long email', () => {
+    cy.visitAs('hiker', '/profile', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem(
+          'ecotrail_user',
+          JSON.stringify({
+            email: 'giovanni.pisoni2002.with.a.long.name@example-university.com',
+            role: 'hiker',
+            reputation: 0
+          })
+        )
+      }
+    })
+
+    cy.contains('.profile-page__account-stats', 'giovanni.pisoni2002').should('be.visible')
+    cy.document().should((doc) => {
+      expect(doc.documentElement.scrollWidth).to.be.at.most(PHONE.width)
+    })
   })
 })
