@@ -21,6 +21,12 @@ describe('Authentication', () => {
     cy.window().its('localStorage.ecotrail_token').should('exist')
   })
 
+  it('declares the language of the page, so the browser does not offer to translate it', () => {
+    cy.visit('/login')
+
+    cy.get('html').should('have.attr', 'lang', 'en')
+  })
+
   it('shows a clear Sign up button for who has no account yet', () => {
     cy.visit('/login')
 
