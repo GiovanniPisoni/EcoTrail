@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import NotificationPermissionHelp from '@/components/notifications/NotificationPermissionHelp.vue'
 import {
   PUSH_SUBSCRIPTION_CHANGED,
-  getExistingSubscription,
+  alertsAreOn,
   isPushSupported,
   subscribeToPush,
   unsubscribeFromPush
@@ -19,7 +19,7 @@ const showBlockedHelp = ref(false)
 
 async function refreshState() {
   permission.value = Notification.permission
-  subscribed.value = permission.value === 'granted' && !!(await getExistingSubscription())
+  subscribed.value = await alertsAreOn()
 }
 
 onMounted(async () => {
@@ -34,6 +34,7 @@ onBeforeUnmount(() => window.removeEventListener(PUSH_SUBSCRIPTION_CHANGED, refr
 
 function describeError(err) {
   if (err.response) return `server answered ${err.response.status}`
+  if (err.name === 'AbortError') return 'the notification service did not answer, wait a minute'
   return [err.name, err.message].filter(Boolean).join(': ').slice(0, 90)
 }
 
