@@ -1,3 +1,5 @@
+import { E2E_TRAIL_NAME } from '../support/e2e-config.js'
+
 const SEARCH = 'https://nominatim.openstreetmap.org/search*'
 const MARKER = '.leaflet-overlay-pane path[fill="#1a3e2f"]'
 
@@ -59,7 +61,7 @@ describe('Search of a place on the map', () => {
 
     search('Nowhereland')
 
-    cy.contains('.map-search__message', 'No place found').should('be.visible')
+    cy.contains('.map-search__message', 'No trail or place found').should('be.visible')
     cy.get(MARKER).should('not.exist')
   })
 
@@ -144,5 +146,65 @@ describe('Search of a place on the admin maps', () => {
     search('Andalo')
     cy.wait('@search')
     cy.get('.map-search__input').should('contain.value', 'Andalo')
+  })
+})
+
+describe('Search of a trail by name', () => {
+  beforeEach(() => {
+    cy.intercept('GET', SEARCH, []).as('places')
+  })
+
+  it('suggests the trail while the person is typing', () => {
+    cy.visitAs('hiker', '/')
+
+    cy.get('.map-search__input').type('ceda')
+
+    cy.contains('.map-search__result--trail', E2E_TRAIL_NAME).should('be.visible')
+    cy.get('@places.all').should('have.length', 0)
+  })
+
+  it('finds the trail even when the words are in another order', () => {
+    cy.visitAs('hiker', '/')
+
+    cy.get('.map-search__input').type('ceda sentiero')
+
+    cy.contains('.map-search__result--trail', E2E_TRAIL_NAME).should('be.visible')
+  })
+
+  it('selects the trail on the map and in the list when it is chosen', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.map-search__input').type('ceda')
+
+    cy.contains('.map-search__result--trail', E2E_TRAIL_NAME).click()
+
+    cy.get('.map-search__input').should('have.value', E2E_TRAIL_NAME)
+    cy.get('.map-search__result').should('not.exist')
+    cy.get('.trails-sidebar__item--selected').should('contain', E2E_TRAIL_NAME)
+  })
+
+  it('goes straight to the trail when it is the only one found', () => {
+    cy.visitAs('hiker', '/')
+
+    cy.get('.map-search__input').type('sentiero ceda{enter}')
+
+    cy.get('.trails-sidebar__item--selected').should('contain', E2E_TRAIL_NAME)
+  })
+
+  it('closes the keyboard once the search is sent', () => {
+    cy.visitAs('hiker', '/')
+
+    cy.get('.map-search__input').type('Nowhereland{enter}')
+
+    cy.contains('.map-search__message', 'No trail or place found').should('be.visible')
+    cy.get('.map-search__input').should('not.be.focused')
+  })
+
+  it('works on the trails page of the admin', () => {
+    cy.visitAs('admin', '/admin/trails')
+    cy.get('.map-search__input').type('ceda')
+
+    cy.contains('.map-search__result--trail', E2E_TRAIL_NAME).click()
+
+    cy.get('.admin-trail-panel__name').should('contain', E2E_TRAIL_NAME)
   })
 })

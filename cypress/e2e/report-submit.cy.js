@@ -36,14 +36,40 @@ describe('Hiker sends a report', () => {
     cy.contains('h1', 'Report sent').should('not.exist')
   })
 
-  it('keeps the submit button disabled until type, severity and position are set', function () {
+  it('says what is missing and does not send an incomplete report', function () {
     visitMap(this.seed, 'denied')
     cy.openReportDialog()
     cy.contains("We couldn't get your location").should('be.visible')
+    cy.get('.send-report__section--missing').should('not.exist')
 
-    cy.contains('button', 'Submit incident report').should('be.disabled')
+    cy.contains('button', 'Submit incident report').click()
+
+    cy.get('.send-report__error')
+      .should('contain', 'what you are reporting')
+      .and('contain', 'the severity level')
+      .and('contain', 'the location on the map')
+    cy.get('.send-report__section--missing').should('have.length', 3)
+
     cy.fillReport({ type: 'Landslide', severity: 'Low' })
-    cy.contains('button', 'Submit incident report').should('be.disabled')
+
+    cy.get('.send-report__section--missing').should('have.length', 1)
+    cy.get('.send-report__error')
+      .should('contain', 'the location on the map')
+      .and('not.contain', 'the severity level')
+    cy.get('@createReport.all').should('have.length', 0)
+  })
+
+  it('marks which questions are required and tells how to set the position', function () {
+    visitMap(this.seed, 'denied')
+    cy.openReportDialog()
+
+    cy.get('.send-report__required').should('have.length', 3)
+    cy.contains('Tap the map where the problem is').should('be.visible')
+    cy.contains('Position not set yet').should('be.visible')
+
+    cy.get('.location-picker').click(60, 60)
+
+    cy.contains('Position set.').should('be.visible')
   })
 
   it('refuses a position that is far from every trail', function () {

@@ -38,7 +38,7 @@ function onStatusChanged() {
           @trail-selected="toggleSelection"
           @map-ready="mapInstance = $event"
         />
-        <MapSearch v-if="mapInstance" :map="mapInstance" />
+        <MapSearch v-if="mapInstance" :map="mapInstance" @trail-picked="selectedTrailId = $event" />
       </div>
 
       <AdminTrailPanel

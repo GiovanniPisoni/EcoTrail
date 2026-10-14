@@ -80,12 +80,14 @@ async function loadTrails() {
 
     trailsLayer?.remove()
     trailsLayer = L.geoJSON(data, {
-      interactive: false,
       style: (feature) => ({
         color: getTrailStatusColor(feature.properties.status),
         weight: 4,
         opacity: 0.85
-      })
+      }),
+      onEachFeature: (feature, layer) => {
+        layer.bindTooltip(feature.properties.name, { sticky: true })
+      }
     }).addTo(map)
   } catch (err) {
     console.error('Failed to load the trails on the location map:', err)
@@ -147,6 +149,13 @@ watch(
 <style scoped>
 .location-picker-wrap {
   position: relative;
+}
+
+.location-picker-wrap :deep(.map-search) {
+  left: 10px;
+  right: 10px;
+  width: auto;
+  transform: none;
 }
 
 .location-picker {

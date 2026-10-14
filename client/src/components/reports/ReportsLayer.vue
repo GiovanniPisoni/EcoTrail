@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 import L from 'leaflet'
 import 'leaflet.markercluster'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
@@ -172,7 +173,7 @@ onUnmounted(() => {
     <button
       type="button"
       class="reports-filters__toggle"
-      title="Filter reports"
+      title="Choose which problem reports are shown on the map"
       @click="filtersOpen = !filtersOpen"
     >
       <svg
@@ -185,10 +186,15 @@ onUnmounted(() => {
       >
         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
       </svg>
-      Filters
+      Report filters
     </button>
 
     <div v-if="filtersOpen" class="reports-filters__panel">
+      <p class="reports-filters__help">
+        Choose which problem reports are shown on the map. This only changes what you see. To stop
+        receiving alerts, go to
+        <RouterLink to="/notifications">Notifications and alerts</RouterLink>.
+      </p>
       <label class="reports-filters__field">
         <span>Type</span>
         <select v-model="typeFilter">
@@ -282,6 +288,18 @@ onUnmounted(() => {
   background: var(--color-surface);
   border-radius: var(--radius-card);
   box-shadow: 0 1px 4px rgba(26, 62, 47, 0.12);
+}
+
+.reports-filters__help {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.reports-filters__help a {
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 .reports-filters__field {

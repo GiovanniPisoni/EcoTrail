@@ -56,3 +56,37 @@ describe('Legend of the map', () => {
     trailInList().should('exist')
   })
 })
+
+describe('Explanation of the filters', () => {
+  it('says what the legend does', () => {
+    cy.visitAs('hiker', '/')
+
+    cy.get('.trail-legend-title').should('be.visible').and('contain', 'Show trails by status')
+  })
+
+  it('says what the report filters do and where to turn the alerts off', () => {
+    cy.visitAs('hiker', '/')
+
+    cy.get('.reports-filters__toggle').should('contain', 'Report filters').click()
+
+    cy.get('.reports-filters__help')
+      .should('contain', 'only changes what you see')
+      .find('a')
+      .should('contain', 'Notifications and alerts')
+      .click()
+    cy.location('pathname').should('eq', '/notifications')
+  })
+
+  it('tells At risk and Crowded apart by color', () => {
+    cy.visitAs('hiker', '/')
+
+    cy.get('.trail-legend-checkbox[data-status="crowded"]')
+      .parent()
+      .find('.trail-legend-swatch')
+      .should('have.css', 'background-color', 'rgb(139, 92, 246)')
+    cy.get('.trail-legend-checkbox[data-status="at_risk"]')
+      .parent()
+      .find('.trail-legend-swatch')
+      .should('have.css', 'background-color', 'rgb(249, 115, 22)')
+  })
+})

@@ -21,6 +21,15 @@ describe('Authentication', () => {
     cy.window().its('localStorage.ecotrail_token').should('exist')
   })
 
+  it('shows a clear Sign up button for who has no account yet', () => {
+    cy.visit('/login')
+
+    cy.contains('You need an account').should('be.visible')
+    cy.contains('a.signup__button', 'Sign up').should('be.visible').click()
+
+    cy.location('pathname').should('eq', '/register')
+  })
+
   it('logs an admin in and lands on the admin area', () => {
     cy.visit('/login')
     fillLogin(E2E_USERS.admin)

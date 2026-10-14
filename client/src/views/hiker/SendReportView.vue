@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { submitReport as sendOrQueueReport } from '@/utils/offline/offlineReports.js'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -26,13 +26,32 @@ const submitError = ref('')
 const submitted = ref(false)
 const queuedForLater = ref(false)
 
-const canSubmit = computed(
-  () =>
-    selectedType.value &&
-    selectedSeverity.value &&
-    latitude.value != null &&
-    longitude.value != null
-)
+const attempted = ref(false)
+
+const missing = computed(() => {
+  const fields = []
+  if (!selectedType.value) fields.push({ id: 'type', label: 'what you are reporting' })
+  if (!selectedSeverity.value) fields.push({ id: 'severity', label: 'the severity level' })
+  if (latitude.value == null || longitude.value == null) {
+    fields.push({ id: 'location', label: 'the location on the map' })
+  }
+  return fields
+})
+
+const missingText = computed(() => missing.value.map((field) => field.label).join(', '))
+
+function isMissing(id) {
+  return attempted.value && missing.value.some((field) => field.id === id)
+}
+
+const hasLocation = computed(() => latitude.value != null && longitude.value != null)
+
+async function showFirstMissing() {
+  await nextTick()
+  document
+    .querySelector('.send-report-dialog [data-missing="true"]')
+    ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
 
 function requestLocation() {
   if (!navigator.geolocation) {
@@ -77,7 +96,13 @@ function clearPhoto(event) {
 }
 
 async function submitReport() {
-  if (!canSubmit.value || submitting.value) return
+  if (submitting.value) return
+
+  if (missing.value.length > 0) {
+    attempted.value = true
+    showFirstMissing()
+    return
+  }
 
   submitting.value = true
   submitError.value = ''
@@ -159,8 +184,14 @@ onBeforeUnmount(() => {
 
         <div class="send-report-dialog__body">
           <div class="send-report-dialog__column">
-            <section class="send-report__section">
-              <h2>1. What are you reporting?</h2>
+            <section
+              class="send-report__section"
+              :class="{ 'send-report__section--missing': isMissing('type') }"
+              :data-missing="isMissing('type')"
+            >
+              <h2>
+                1. What are you reporting? <span class="send-report__required">required</span>
+              </h2>
               <div class="send-report__type-grid">
                 <button
                   v-for="option in REPORT_TYPE_OPTIONS"
@@ -176,8 +207,12 @@ onBeforeUnmount(() => {
               </div>
             </section>
 
-            <section class="send-report__section">
-              <h2>2. Severity level</h2>
+            <section
+              class="send-report__section"
+              :class="{ 'send-report__section--missing': isMissing('severity') }"
+              :data-missing="isMissing('severity')"
+            >
+              <h2>2. Severity level <span class="send-report__required">required</span></h2>
               <div class="send-report__severity-group">
                 <button
                   v-for="option in REPORT_SEVERITY_OPTIONS"
@@ -197,8 +232,16 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="send-report-dialog__column">
-            <section class="send-report__section">
-              <h2>3. Incident location</h2>
+            <section
+              class="send-report__section"
+              :class="{ 'send-report__section--missing': isMissing('location') }"
+              :data-missing="isMissing('location')"
+            >
+              <h2>3. Incident location <span class="send-report__required">required</span></h2>
+              <p class="send-report__instruction">
+                Tap the map where the problem is. Searching only moves the map. Tap a trail to see
+                its name.
+              </p>
               <LocationPicker
                 v-model:latitude="latitude"
                 v-model:longitude="longitude"
@@ -212,6 +255,12 @@ onBeforeUnmount(() => {
               >
                 {{ locatingUser ? 'Locating…' : 'Use current GPS coordinates' }}
               </BaseButton>
+              <p
+                class="send-report__location-state"
+                :class="{ 'send-report__location-state--set': hasLocation }"
+              >
+                {{ hasLocation ? 'Position set.' : 'Position not set yet. Tap the map.' }}
+              </p>
               <p v-if="accuracyMeters != null" class="send-report__hint">
                 Accuracy: ~{{ accuracyMeters }} m. Drag the pin or tap the map if it's not quite
                 right.
@@ -222,7 +271,9 @@ onBeforeUnmount(() => {
             </section>
 
             <section class="send-report__section">
-              <h2>4. Attach evidence photo</h2>
+              <h2>
+                4. Attach evidence photo <span class="send-report__optional">(optional)</span>
+              </h2>
               <label class="send-report__photo">
                 <input
                   type="file"
@@ -268,16 +319,14 @@ onBeforeUnmount(() => {
           />
         </details>
 
+        <p v-if="attempted && missing.length > 0" class="send-report__error" role="alert">
+          Please complete: {{ missingText }}.
+        </p>
         <p v-if="submitError" class="send-report__error">{{ submitError }}</p>
 
         <div class="send-report-dialog__footer">
           <BaseButton variant="secondary" type="button" @click="close">Cancel</BaseButton>
-          <BaseButton
-            variant="primary"
-            type="button"
-            :disabled="!canSubmit || submitting"
-            @click="submitReport"
-          >
+          <BaseButton variant="primary" type="button" :disabled="submitting" @click="submitReport">
             {{ submitting ? 'Sending…' : 'Submit incident report' }}
           </BaseButton>
         </div>
@@ -373,6 +422,40 @@ onBeforeUnmount(() => {
 .send-report__optional {
   font-weight: 400;
   color: var(--color-text-muted);
+}
+
+.send-report__required {
+  margin-left: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.send-report__section--missing {
+  padding: 0.5rem;
+  margin: -0.5rem;
+  border-radius: var(--radius-card);
+  outline: 2px solid #ef4444;
+  background: color-mix(in srgb, #ef4444 6%, white);
+}
+
+.send-report__instruction {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.send-report__location-state {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+.send-report__location-state--set {
+  color: var(--color-status-open);
 }
 
 .send-report__hint {

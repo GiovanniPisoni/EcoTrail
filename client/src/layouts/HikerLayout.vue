@@ -108,8 +108,12 @@ async function handleLogout() {
         >
           Hike mode on
         </button>
+        <RouterLink :to="{ name: 'hiker-home' }" class="profile-link">Map and trails</RouterLink>
+        <RouterLink :to="{ name: 'hiker-home', query: { report: '1' } }" class="profile-link">
+          New report
+        </RouterLink>
         <RouterLink to="/notifications" class="profile-link">
-          Notifications
+          Notifications and alerts
           <span
             v-if="unreadNotificationCount > 0"
             class="unread-badge"

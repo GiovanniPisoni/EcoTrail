@@ -273,6 +273,11 @@ function addLegend() {
     div.setAttribute('role', 'group')
     div.setAttribute('aria-label', 'Show trails by status')
 
+    const title = document.createElement('p')
+    title.className = 'trail-legend-title'
+    title.textContent = 'Show trails by status'
+    div.append(title)
+
     Object.entries(TRAIL_STATUSES).forEach(([status, { label, color, icon }]) => {
       const item = document.createElement('label')
       item.className = 'trail-legend-item'
@@ -505,6 +510,14 @@ defineExpose({ refresh: loadTrails, focusOnTrail, centerOnTrail })
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   font-size: 0.85rem;
   line-height: 1.6;
+}
+
+.trail-legend-title {
+  margin: 0 0 2px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text-muted);
 }
 
 .trail-legend-item {
