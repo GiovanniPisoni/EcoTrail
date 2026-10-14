@@ -124,6 +124,17 @@ describe('Map page on a phone', () => {
     })
   })
 
+  it('opens the notifications from the bell, where the alerts can be turned on', () => {
+    cy.visitAs('hiker', '/')
+
+    cy.get('.layout-header .notification-toggle').should('not.exist')
+    cy.get('.bell-link').click()
+
+    cy.location('pathname').should('eq', '/notifications')
+    cy.get('.notifications-page .notification-toggle').should('be.visible')
+    cy.contains('.notification-toggle__button', 'Enable trail alerts').should('be.visible')
+  })
+
   it('opens the filters panel under its button', () => {
     cy.visitAs('hiker', '/')
 

@@ -6,6 +6,10 @@ import api from '@/api/client.js'
 import { TRAIL_STATUSES, getTrailStatusColor, getTrailStatusLabel } from '@/config/trailStatus.js'
 import { onRealtime, RECONNECTED } from '@/utils/realtime.js'
 import { downloadArea } from '@/utils/offline/offlineArea.js'
+import { getTrailDifficultyLabel } from '@/config/trailDifficulty.js'
+import { formatDistance, formatDuration } from '@/utils/trailFormat.js'
+
+const phoneScreen = window.matchMedia('(max-width: 640px)')
 
 const PILOT_AREA_CENTER = [46.1667, 10.9167]
 const PILOT_AREA_ZOOM = 13
@@ -53,6 +57,16 @@ function buildPopupContent(feature) {
     container.append(reason)
   }
 
+  const { distanceKm, durationMinutes, difficulty } = feature.properties
+  container.append(document.createElement('br'))
+  const stats = document.createElement('span')
+  stats.textContent = [
+    formatDistance(distanceKm),
+    formatDuration(durationMinutes),
+    getTrailDifficultyLabel(difficulty)
+  ].join(' · ')
+  container.append(stats)
+
   return container
 }
 
@@ -61,19 +75,28 @@ function renderTrailsLayer() {
 
   trailsLayer?.remove()
   trailsLayer = L.geoJSON(lastTrailsData, {
-    filter: (feature) =>
-      props.selectedTrailId
-        ? String(feature.properties.id) === String(props.selectedTrailId)
-        : !hiddenStatuses.has(feature.properties.status),
-    style: (feature) => ({
-      color: getTrailStatusColor(feature.properties.status),
-      weight: props.selectedTrailId ? 6 : 4
-    }),
+    filter: (feature) => isSelected(feature) || !hiddenStatuses.has(feature.properties.status),
+    style: (feature) => {
+      const color = getTrailStatusColor(feature.properties.status)
+      if (isSelected(feature)) return { color, weight: 7, opacity: 1 }
+      if (props.selectedTrailId) return { color, weight: 3, opacity: 0.35 }
+      return { color, weight: 4, opacity: 1 }
+    },
     onEachFeature: (feature, layer) => {
-      layer.bindPopup(buildPopupContent(feature))
+      if (!phoneScreen.matches) layer.bindPopup(buildPopupContent(feature))
       layer.on('click', () => emit('trail-selected', String(feature.properties.id)))
     }
   }).addTo(map)
+
+  trailsLayer.eachLayer((layer) => {
+    if (isSelected(layer.feature)) layer.bringToFront()
+  })
+}
+
+function isSelected(feature) {
+  return (
+    props.selectedTrailId != null && String(feature.properties.id) === String(props.selectedTrailId)
+  )
 }
 
 async function loadTrails() {
@@ -511,6 +534,10 @@ defineExpose({ refresh: loadTrails, focusOnTrail, centerOnTrail })
 
   .map-page .leaflet-control-zoom {
     display: none;
+  }
+
+  .map-page .leaflet-top {
+    margin-top: 54px;
   }
 
   .map-page .download-area {

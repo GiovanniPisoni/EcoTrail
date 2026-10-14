@@ -5,6 +5,7 @@ import SendReportView from '@/views/hiker/SendReportView.vue'
 import TrailsMap from '@/components/trails/TrailsMap.vue'
 import TrailsSidebar from '@/components/trails/TrailsSidebar.vue'
 import ReportsLayer from '@/components/reports/ReportsLayer.vue'
+import MapSearch from '@/components/trails/MapSearch.vue'
 import HikeModeToggle from '@/components/common/HikeModeToggle.vue'
 
 const route = useRoute()
@@ -32,6 +33,11 @@ const MOBILE_QUERY = '(max-width: 640px)'
 const mobileScreen = window.matchMedia(MOBILE_QUERY)
 
 const sidebarOpen = ref(!mobileScreen.matches)
+
+function closeSidebar() {
+  sidebarOpen.value = false
+  selectedTrailId.value = null
+}
 
 const mapPage = ref(null)
 let sheetObserver = null
@@ -89,7 +95,7 @@ function showTrailOnMap(trailId) {
       :selected-id="selectedTrailId"
       :filtered="hiddenStatuses.length > 0"
       class="map-page__sidebar map-page__sheet"
-      @close="sidebarOpen = false"
+      @close="closeSidebar"
       @select="selectFromSidebar"
       @focus-trail="showTrailOnMap"
     />
@@ -137,6 +143,7 @@ function showTrailOnMap(trailId) {
         @map-ready="mapInstance = $event"
       />
       <ReportsLayer v-if="mapInstance" :map="mapInstance" :sidebar-open="sidebarOpen" />
+      <MapSearch v-if="mapInstance" :map="mapInstance" />
       <HikeModeToggle />
     </div>
 

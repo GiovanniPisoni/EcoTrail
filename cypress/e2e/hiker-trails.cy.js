@@ -24,7 +24,7 @@ describe('Hiker trail list', () => {
     selectTrail()
 
     cy.get('.leaflet-container').then(($map) => {
-      cy.get('path.leaflet-interactive').should(($path) => {
+      cy.get('path.leaflet-interactive[stroke-width="7"]').should(($path) => {
         const mapBox = $map[0].getBoundingClientRect()
         const pathBox = $path[0].getBoundingClientRect()
         const offsetX = pathBox.left + pathBox.width / 2 - (mapBox.left + mapBox.width / 2)
