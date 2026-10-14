@@ -18,14 +18,30 @@ export async function getExistingSubscription() {
   return registration.pushManager.getSubscription()
 }
 
+function sameKey(subscription, key) {
+  const current = subscription.options?.applicationServerKey
+  if (!current) return false
+  const bytes = new Uint8Array(current)
+  return bytes.length === key.length && bytes.every((value, index) => value === key[index])
+}
+
 export async function subscribeToPush() {
   const registration = await navigator.serviceWorker.ready
   const { data } = await api.get('/push/public-key')
+  const applicationServerKey = urlBase64ToUint8Array(data.publicKey)
 
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(data.publicKey)
-  })
+  let subscription = await registration.pushManager.getSubscription()
+  if (subscription && !sameKey(subscription, applicationServerKey)) {
+    await subscription.unsubscribe()
+    subscription = null
+  }
+
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey
+    })
+  }
 
   await api.post('/push/subscribe', subscription.toJSON())
   window.dispatchEvent(new Event(PUSH_SUBSCRIPTION_CHANGED))
