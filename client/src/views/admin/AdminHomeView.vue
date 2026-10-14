@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, shallowRef } from 'vue'
 import TrailsMap from '@/components/trails/TrailsMap.vue'
+import MapSearch from '@/components/trails/MapSearch.vue'
 import AdminReportsLayer from '@/components/admin/AdminReportsLayer.vue'
 import AdminReportsSidebar from '@/components/admin/AdminReportsSidebar.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
@@ -212,6 +213,7 @@ onMounted(() => {
               @map-ready="mapInstance = $event"
               @trails-loaded="visibleTrails = $event"
             />
+            <MapSearch v-if="mapInstance" :map="mapInstance" />
             <AdminReportsLayer
               v-if="mapInstance"
               :map="mapInstance"
