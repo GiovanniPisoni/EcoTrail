@@ -1,7 +1,10 @@
 <script setup>
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import api from '@/api/client.js'
+import MapSearch from '@/components/trails/MapSearch.vue'
+import { getTrailStatusColor } from '@/config/trailStatus.js'
 
 const props = defineProps({
   latitude: {
@@ -20,8 +23,13 @@ const props = defineProps({
 
 const emit = defineEmits(['update:latitude', 'update:longitude'])
 
+const MIN_TRAILS_ZOOM = 11
+
 const mapContainer = ref(null)
+const mapInstance = shallowRef(null)
 let map = null
+let trailsLayer = null
+let trailsRequest = 0
 let marker = null
 let accuracyCircle = null
 
@@ -53,6 +61,37 @@ function setAccuracyCircle(latitude, longitude, accuracyMeters) {
   }).addTo(map)
 }
 
+async function loadTrails() {
+  if (!map) return
+
+  if (map.getZoom() < MIN_TRAILS_ZOOM) {
+    trailsLayer?.remove()
+    trailsLayer = null
+    return
+  }
+
+  const current = ++trailsRequest
+  const bounds = map.getBounds()
+  const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(',')
+
+  try {
+    const { data } = await api.get('/trails', { params: { bbox } })
+    if (!map || current !== trailsRequest) return
+
+    trailsLayer?.remove()
+    trailsLayer = L.geoJSON(data, {
+      interactive: false,
+      style: (feature) => ({
+        color: getTrailStatusColor(feature.properties.status),
+        weight: 4,
+        opacity: 0.85
+      })
+    }).addTo(map)
+  } catch (err) {
+    console.error('Failed to load the trails on the location map:', err)
+  }
+}
+
 onMounted(() => {
   const initialCenter = [props.latitude ?? 46.1667, props.longitude ?? 10.9167]
 
@@ -70,6 +109,10 @@ onMounted(() => {
     setAccuracyCircle(props.latitude, props.longitude, props.accuracyMeters)
   }
 
+  mapInstance.value = map
+  map.on('moveend', loadTrails)
+  loadTrails()
+
   map.on('click', (event) => {
     emit('update:latitude', event.latlng.lat)
     emit('update:longitude', event.latlng.lng)
@@ -79,6 +122,8 @@ onMounted(() => {
 onUnmounted(() => {
   map?.remove()
   map = null
+  mapInstance.value = null
+  trailsLayer = null
 })
 
 watch(
@@ -93,13 +138,20 @@ watch(
 </script>
 
 <template>
-  <div ref="mapContainer" class="location-picker"></div>
+  <div class="location-picker-wrap">
+    <div ref="mapContainer" class="location-picker"></div>
+    <MapSearch v-if="mapInstance" :map="mapInstance" />
+  </div>
 </template>
 
 <style scoped>
+.location-picker-wrap {
+  position: relative;
+}
+
 .location-picker {
   width: 100%;
-  height: 150px;
+  height: 260px;
   border-radius: var(--radius-card);
   overflow: hidden;
 }

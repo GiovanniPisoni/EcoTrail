@@ -32,6 +32,7 @@ const mapContainer = ref(null)
 const zoomedOutTooFar = ref(false)
 let map = null
 let trailsLayer = null
+let trailsTouchLayer = null
 let lastTrailsData = null
 const hiddenStatuses = new Set()
 let resizeObserver = null
@@ -74,23 +75,34 @@ function renderTrailsLayer() {
   if (!lastTrailsData) return
 
   trailsLayer?.remove()
+  trailsTouchLayer?.remove()
+  const filter = (feature) => isSelected(feature) || !hiddenStatuses.has(feature.properties.status)
+  const select = (feature, layer) =>
+    layer.on('click', () => emit('trail-selected', String(feature.properties.id)))
+
   trailsLayer = L.geoJSON(lastTrailsData, {
-    filter: (feature) => isSelected(feature) || !hiddenStatuses.has(feature.properties.status),
+    filter,
     style: (feature) => {
       const color = getTrailStatusColor(feature.properties.status)
       if (isSelected(feature)) return { color, weight: 7, opacity: 1 }
       if (props.selectedTrailId) return { color, weight: 3, opacity: 0.35 }
       return { color, weight: 4, opacity: 1 }
     },
-    onEachFeature: (feature, layer) => {
-      if (!phoneScreen.matches) layer.bindPopup(buildPopupContent(feature))
-      layer.on('click', () => emit('trail-selected', String(feature.properties.id)))
-    }
+    onEachFeature: select
   }).addTo(map)
 
   trailsLayer.eachLayer((layer) => {
     if (isSelected(layer.feature)) layer.bringToFront()
   })
+
+  trailsTouchLayer = L.geoJSON(lastTrailsData, {
+    filter,
+    style: { color: '#000000', weight: phoneScreen.matches ? 28 : 16, opacity: 0 },
+    onEachFeature: (feature, layer) => {
+      select(feature, layer)
+      if (!phoneScreen.matches) layer.bindPopup(buildPopupContent(feature))
+    }
+  }).addTo(map)
 }
 
 function isSelected(feature) {
@@ -105,6 +117,8 @@ async function loadTrails() {
     lastTrailsData = null
     trailsLayer?.remove()
     trailsLayer = null
+    trailsTouchLayer?.remove()
+    trailsTouchLayer = null
     emit('trails-loaded', [])
     return
   }
