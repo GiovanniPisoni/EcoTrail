@@ -32,6 +32,11 @@ onMounted(async () => {
 
 onBeforeUnmount(() => window.removeEventListener(PUSH_SUBSCRIPTION_CHANGED, refreshState))
 
+function describeError(err) {
+  if (err.response) return `server answered ${err.response.status}`
+  return [err.name, err.message].filter(Boolean).join(': ').slice(0, 90)
+}
+
 async function enable() {
   loading.value = true
   error.value = ''
@@ -45,7 +50,7 @@ async function enable() {
       subscribed.value = true
     }
   } catch (err) {
-    error.value = 'Could not enable trail alerts. Please try again.'
+    error.value = `Could not enable trail alerts (${describeError(err)}). Please try again.`
     console.error('Failed to enable push notifications:', err)
   } finally {
     loading.value = false
@@ -61,7 +66,7 @@ async function disable() {
     await unsubscribeFromPush()
     subscribed.value = false
   } catch (err) {
-    error.value = 'Could not turn off trail alerts. Please try again.'
+    error.value = `Could not turn off trail alerts (${describeError(err)}). Please try again.`
     console.error('Failed to disable push notifications:', err)
   } finally {
     loading.value = false

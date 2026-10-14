@@ -7,6 +7,7 @@ vi.mock('@/api/client.js', () => ({
 import api from '@/api/client.js'
 import {
   forgetPushSubscription,
+  subscribeToPush,
   syncPushSubscription,
   unsubscribeFromPush
 } from '@/utils/push/pushSubscription.js'
@@ -41,6 +42,74 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+})
+
+describe('subscribeToPush', () => {
+  const KEY = 'AQID'
+  const keyBytes = [1, 2, 3]
+
+  beforeEach(() => {
+    api.get.mockResolvedValue({ data: { publicKey: KEY } })
+  })
+
+  function registrationWith(existing) {
+    const created = {
+      endpoint: 'https://push.test/new',
+      toJSON: () => ({ endpoint: 'https://push.test/new', keys: { p256dh: 'x', auth: 'y' } })
+    }
+    const pushManager = {
+      getSubscription: vi.fn().mockResolvedValue(existing),
+      subscribe: vi.fn().mockResolvedValue(created)
+    }
+    vi.stubGlobal('navigator', { serviceWorker: { ready: Promise.resolve({ pushManager }) } })
+    return { pushManager, created }
+  }
+
+  it('creates a subscription and registers it on the server', async () => {
+    const { pushManager, created } = registrationWith(null)
+
+    expect(await subscribeToPush()).toBe(created)
+
+    expect(pushManager.subscribe).toHaveBeenCalledWith({
+      userVisibleOnly: true,
+      applicationServerKey: Uint8Array.from(keyBytes)
+    })
+    expect(api.post).toHaveBeenCalledWith('/push/subscribe', {
+      endpoint: 'https://push.test/new',
+      keys: { p256dh: 'x', auth: 'y' }
+    })
+  })
+
+  it('reuses the subscription the browser already has for the same key', async () => {
+    const existing = {
+      ...subscription,
+      options: { applicationServerKey: Uint8Array.from(keyBytes) }
+    }
+    const { pushManager } = registrationWith(existing)
+
+    expect(await subscribeToPush()).toBe(existing)
+
+    expect(pushManager.subscribe).not.toHaveBeenCalled()
+    expect(api.post).toHaveBeenCalledWith('/push/subscribe', existing.toJSON())
+  })
+
+  it('replaces a subscription made with another key', async () => {
+    const existing = { ...subscription, options: { applicationServerKey: Uint8Array.from([9, 9]) } }
+    const { pushManager, created } = registrationWith(existing)
+
+    expect(await subscribeToPush()).toBe(created)
+
+    expect(existing.unsubscribe).toHaveBeenCalled()
+    expect(pushManager.subscribe).toHaveBeenCalled()
+  })
+
+  it('lets the error through when the browser cannot subscribe', async () => {
+    const { pushManager } = registrationWith(null)
+    pushManager.subscribe.mockRejectedValue(new Error('push service error'))
+
+    await expect(subscribeToPush()).rejects.toThrow('push service error')
+    expect(api.post).not.toHaveBeenCalled()
+  })
 })
 
 describe('syncPushSubscription', () => {
