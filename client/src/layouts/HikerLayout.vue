@@ -2,7 +2,6 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import NotificationToggle from '@/components/notifications/NotificationToggle.vue'
 import { hikeModeActive, resumeHikeModeIfEnabled, stopHikeMode } from '@/utils/hikeMode.js'
 import {
   refreshUnreadNotificationCount,
@@ -109,7 +108,6 @@ async function handleLogout() {
         >
           Hike mode on
         </button>
-        <NotificationToggle />
         <RouterLink to="/notifications" class="profile-link">
           Notifications
           <span

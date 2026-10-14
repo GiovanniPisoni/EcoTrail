@@ -213,6 +213,62 @@ describe('DELETE /api/push/subscribe', () => {
   })
 })
 
+describe('POST /api/push/unsubscribe', () => {
+  function unsubscribe(token, body) {
+    return request(app)
+      .post('/api/push/unsubscribe')
+      .set('Authorization', `Bearer ${token}`)
+      .send(body)
+  }
+
+  function subscribe(token, endpoint) {
+    return request(app)
+      .post('/api/push/subscribe')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ endpoint, keys: { p256dh: 'x', auth: 'y' } })
+  }
+
+  it('returns 401 without a token', async () => {
+    const res = await request(app).post('/api/push/unsubscribe').send({})
+
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 400 without an endpoint', async () => {
+    const { token } = await createUserAndToken()
+
+    expect((await unsubscribe(token, {})).status).toBe(400)
+  })
+
+  it('removes the subscription and keeps the others', async () => {
+    const { user, token } = await createUserAndToken()
+    await subscribe(token, 'https://push.test/a')
+    await subscribe(token, 'https://push.test/b')
+
+    const res = await unsubscribe(token, { endpoint: 'https://push.test/a' })
+
+    expect(res.status).toBe(200)
+    const updated = await User.findById(user._id)
+    expect(updated.pushSubscriptions.map((sub) => sub.endpoint)).toEqual(['https://push.test/b'])
+  })
+
+  it('answers 200 even when the account does not have that subscription', async () => {
+    const { token } = await createUserAndToken()
+
+    expect((await unsubscribe(token, { endpoint: 'https://push.test/unknown' })).status).toBe(200)
+  })
+
+  it('does not touch the subscriptions of other accounts', async () => {
+    const first = await createUserAndToken()
+    const second = await createUserAndToken('second@ecotrail.test')
+    await subscribe(first.token, 'https://push.test/a')
+
+    await unsubscribe(second.token, { endpoint: 'https://push.test/a' })
+
+    expect((await User.findById(first.user._id)).pushSubscriptions).toHaveLength(1)
+  })
+})
+
 describe('POST /api/push/test', () => {
   it('returns 401 without a token', async () => {
     const res = await request(app).post('/api/push/test')

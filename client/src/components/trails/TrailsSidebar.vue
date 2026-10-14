@@ -4,6 +4,7 @@ import BaseCard from '@/components/base/BaseCard.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
 import TrailAlternative from '@/components/trails/TrailAlternative.vue'
 import { getTrailDifficultyColor, getTrailDifficultyLabel } from '@/config/trailDifficulty.js'
+import { formatDistance, formatDuration } from '@/utils/trailFormat.js'
 
 const props = defineProps({
   trails: {
@@ -28,9 +29,18 @@ async function scrollToSelected() {
   if (!props.selectedId) return
 
   await nextTick()
-  root.value
-    ?.querySelector(`[data-trail-id="${props.selectedId}"]`)
-    ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  await new Promise((resolve) => requestAnimationFrame(resolve))
+
+  const list = root.value
+  const item = list?.querySelector(`[data-trail-id="${props.selectedId}"]`)
+  if (!list || !item) return
+
+  const header = list.querySelector('.trails-sidebar__header')
+  const offset = item.getBoundingClientRect().top - list.getBoundingClientRect().top
+  list.scrollTo({
+    top: list.scrollTop + offset - (header?.offsetHeight ?? 0) - 8,
+    behavior: 'auto'
+  })
 }
 
 watch(() => props.selectedId, scrollToSelected)
@@ -46,17 +56,6 @@ function isSelected(trail) {
 
 function onSelect(trail) {
   emit('select', isSelected(trail) ? null : trailId(trail))
-}
-
-function formatDistance(distanceKm) {
-  return typeof distanceKm === 'number' ? `${distanceKm.toFixed(1)} km` : '-'
-}
-
-function formatDuration(durationMinutes) {
-  if (typeof durationMinutes !== 'number') return '-'
-  const hours = Math.floor(durationMinutes / 60)
-  const minutes = Math.round(durationMinutes % 60)
-  return hours > 0 ? `${hours}h ${minutes}min` : `${minutes}min`
 }
 </script>
 

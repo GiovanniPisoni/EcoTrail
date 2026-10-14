@@ -48,7 +48,7 @@ export async function forgetPushSubscription() {
     const subscription = await getExistingSubscription()
     if (!subscription) return
 
-    await api.delete('/push/subscribe', { data: { endpoint: subscription.endpoint } })
+    await api.post('/push/unsubscribe', { endpoint: subscription.endpoint })
   } catch {}
 }
 
@@ -57,9 +57,10 @@ export async function unsubscribeFromPush() {
   if (!subscription) return
 
   try {
-    await api.delete('/push/subscribe', { data: { endpoint: subscription.endpoint } })
+    await api.post('/push/unsubscribe', { endpoint: subscription.endpoint })
   } catch (err) {
-    if (err.response?.status !== 404) throw err
+    console.error('Could not tell the server that alerts are off:', err)
   }
   await subscription.unsubscribe()
+  window.dispatchEvent(new Event(PUSH_SUBSCRIPTION_CHANGED))
 }

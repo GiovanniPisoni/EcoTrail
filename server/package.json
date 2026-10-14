@@ -14,6 +14,7 @@
     "simulate:crowd": "node scripts/simulate/crowd.js",
     "simulate:hazard": "node scripts/simulate/hazard.js",
     "simulate:stats": "node scripts/simulate/stats.js",
+    "simulate:presence": "node scripts/simulate/presence.js",
     "simulate:approach": "node scripts/simulate/approach.js",
     "test": "vitest run"
   },

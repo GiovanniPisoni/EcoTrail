@@ -5,6 +5,7 @@ import api from '@/api/client.js'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import NotificationPermissionHelp from '@/components/notifications/NotificationPermissionHelp.vue'
+import NotificationToggle from '@/components/notifications/NotificationToggle.vue'
 import {
   MUTE_LABELS,
   NOTIFICATION_TYPES,
@@ -195,12 +196,11 @@ onBeforeUnmount(() => window.removeEventListener(PUSH_SUBSCRIPTION_CHANGED, refr
       </div>
       <div v-else-if="subscribed" class="notifications-page__status">
         <p>Push notifications are on for this device, even when the app is closed.</p>
+        <NotificationToggle />
       </div>
       <div v-else class="notifications-page__status">
-        <p>
-          Push notifications are off on this device. Use "Enable trail alerts" in the top bar to
-          turn them on.
-        </p>
+        <p>Push notifications are off on this device.</p>
+        <NotificationToggle />
       </div>
     </BaseCard>
 

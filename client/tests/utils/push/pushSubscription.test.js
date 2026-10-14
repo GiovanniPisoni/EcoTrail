@@ -23,7 +23,7 @@ function httpError(status) {
 function stubBrowser({ permission = 'granted', existing = subscription } = {}) {
   pushManager = { getSubscription: vi.fn().mockResolvedValue(existing) }
   vi.stubGlobal('navigator', { serviceWorker: { ready: Promise.resolve({ pushManager }) } })
-  vi.stubGlobal('window', { PushManager: class {} })
+  vi.stubGlobal('window', { PushManager: class {}, dispatchEvent: vi.fn() })
   vi.stubGlobal('Notification', { permission })
 }
 
@@ -76,27 +76,41 @@ describe('syncPushSubscription', () => {
 })
 
 describe('unsubscribeFromPush', () => {
-  it('removes the subscription from the server and from the browser', async () => {
+  it('tells the server and removes the subscription from the browser', async () => {
     await unsubscribeFromPush()
 
-    expect(api.delete).toHaveBeenCalledWith('/push/subscribe', { data: { endpoint: ENDPOINT } })
+    expect(api.post).toHaveBeenCalledWith('/push/unsubscribe', { endpoint: ENDPOINT })
     expect(subscription.unsubscribe).toHaveBeenCalled()
   })
 
-  it('still turns alerts off when the server does not have the subscription', async () => {
-    api.delete.mockRejectedValue(httpError(404))
+  it.each([404, 401, 500])(
+    'still turns alerts off in the browser when the server answers %i',
+    async (status) => {
+      api.post.mockRejectedValue(httpError(status))
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      await expect(unsubscribeFromPush()).resolves.toBeUndefined()
+
+      expect(subscription.unsubscribe).toHaveBeenCalled()
+    }
+  )
+
+  it('still turns alerts off when the server cannot be reached', async () => {
+    api.post.mockRejectedValue(new Error('Network Error'))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
 
     await expect(unsubscribeFromPush()).resolves.toBeUndefined()
 
     expect(subscription.unsubscribe).toHaveBeenCalled()
   })
 
-  it('keeps the subscription when the server cannot be reached', async () => {
-    api.delete.mockRejectedValue(httpError(500))
+  it('announces the change, so the pages showing the state refresh', async () => {
+    const dispatchEvent = vi.fn()
+    vi.stubGlobal('window', { PushManager: class {}, dispatchEvent })
 
-    await expect(unsubscribeFromPush()).rejects.toBeDefined()
+    await unsubscribeFromPush()
 
-    expect(subscription.unsubscribe).not.toHaveBeenCalled()
+    expect(dispatchEvent).toHaveBeenCalled()
   })
 
   it('does nothing when there is no subscription', async () => {
@@ -104,6 +118,7 @@ describe('unsubscribeFromPush', () => {
 
     await unsubscribeFromPush()
 
+    expect(api.post).not.toHaveBeenCalled()
     expect(api.delete).not.toHaveBeenCalled()
   })
 })
@@ -112,7 +127,7 @@ describe('forgetPushSubscription', () => {
   it('tells the server to stop alerting this device for the current account', async () => {
     await forgetPushSubscription()
 
-    expect(api.delete).toHaveBeenCalledWith('/push/subscribe', { data: { endpoint: ENDPOINT } })
+    expect(api.post).toHaveBeenCalledWith('/push/unsubscribe', { endpoint: ENDPOINT })
   })
 
   it('keeps the browser subscription so the next account can claim it', async () => {
@@ -122,7 +137,7 @@ describe('forgetPushSubscription', () => {
   })
 
   it.each([404, 401, 500])('never fails, even when the server answers %i', async (status) => {
-    api.delete.mockRejectedValue(httpError(status))
+    api.post.mockRejectedValue(httpError(status))
 
     await expect(forgetPushSubscription()).resolves.toBeUndefined()
   })
