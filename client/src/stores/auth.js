@@ -10,11 +10,13 @@ const FORGET_PUSH_TIMEOUT_MS = 3000
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem(TOKEN_KEY))
   const user = ref(JSON.parse(localStorage.getItem(USER_KEY) || 'null'))
+  const sessionEnded = ref(false)
 
   const isAuthenticated = computed(() => !!token.value)
   const isAdmin = computed(() => user.value?.role === 'admin')
 
   function setSession(newToken, newUser) {
+    sessionEnded.value = false
     token.value = newToken
     user.value = newUser
     localStorage.setItem(TOKEN_KEY, newToken)
@@ -45,6 +47,11 @@ export const useAuthStore = defineStore('auth', () => {
     clearSession()
   }
 
+  function expireSession() {
+    sessionEnded.value = true
+    clearSession()
+  }
+
   async function endSession() {
     await Promise.race([
       forgetPushSubscription(),
@@ -53,5 +60,16 @@ export const useAuthStore = defineStore('auth', () => {
     clearSession()
   }
 
-  return { token, user, isAuthenticated, isAdmin, login, register, logout, endSession }
+  return {
+    token,
+    user,
+    sessionEnded,
+    isAuthenticated,
+    isAdmin,
+    login,
+    register,
+    logout,
+    expireSession,
+    endSession
+  }
 })

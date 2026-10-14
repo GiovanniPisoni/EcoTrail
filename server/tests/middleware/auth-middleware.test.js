@@ -1,6 +1,9 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest'
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
 import jwt from 'jsonwebtoken'
+import User from '../../src/models/User.js'
 import { requireAuth, requireRole } from '../../src/middleware/auth.js'
+
+vi.mock('../../src/models/User.js', () => ({ default: { exists: vi.fn() } }))
 
 const JWT_SECRET = 'test-secret'
 
@@ -16,38 +19,76 @@ function mockRes() {
 }
 
 describe('requireAuth', () => {
-  it('returns 401 when there is no token', () => {
-    const req = { headers: {} }
+  beforeEach(() => {
+    User.exists.mockReset()
+    User.exists.mockResolvedValue({ _id: '123' })
+  })
+
+  function requestWith(token) {
+    return { headers: token ? { authorization: `Bearer ${token}` } : {} }
+  }
+
+  function signed(payload = { id: '123', role: 'hiker' }) {
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
+  }
+
+  it('returns 401 when there is no token', async () => {
     const res = mockRes()
     const next = vi.fn()
 
-    requireAuth(req, res, next)
+    await requireAuth(requestWith(), res, next)
 
     expect(res.status).toHaveBeenCalledWith(401)
     expect(next).not.toHaveBeenCalled()
   })
 
-  it('returns 401 for an invalid token', () => {
-    const req = { headers: { authorization: 'Bearer not-a-real-token' } }
+  it('returns 401 for an invalid token', async () => {
     const res = mockRes()
     const next = vi.fn()
 
-    requireAuth(req, res, next)
+    await requireAuth(requestWith('not-a-real-token'), res, next)
 
     expect(res.status).toHaveBeenCalledWith(401)
     expect(next).not.toHaveBeenCalled()
   })
 
-  it('calls next and attaches the user for a valid token', () => {
-    const token = jwt.sign({ id: '123', role: 'hiker' }, JWT_SECRET, { expiresIn: '7d' })
-    const req = { headers: { authorization: `Bearer ${token}` } }
-    const res = mockRes()
+  it('calls next and attaches the user for a valid token', async () => {
+    const req = requestWith(signed())
     const next = vi.fn()
 
-    requireAuth(req, res, next)
+    await requireAuth(req, mockRes(), next)
 
-    expect(next).toHaveBeenCalled()
+    expect(User.exists).toHaveBeenCalledWith({ _id: '123' })
+    expect(next).toHaveBeenCalledWith()
     expect(req.user.role).toBe('hiker')
+  })
+
+  it('returns 401 when the account of a valid token no longer exists', async () => {
+    User.exists.mockResolvedValue(null)
+    const res = mockRes()
+    const next = vi.fn()
+
+    await requireAuth(requestWith(signed()), res, next)
+
+    expect(res.status).toHaveBeenCalledWith(401)
+    expect(res.json).toHaveBeenCalledWith({ error: 'This account no longer exists' })
+    expect(next).not.toHaveBeenCalled()
+  })
+
+  it('does not look for the account when the token is not valid', async () => {
+    await requireAuth(requestWith('not-a-real-token'), mockRes(), vi.fn())
+
+    expect(User.exists).not.toHaveBeenCalled()
+  })
+
+  it('hands the error to Express when the database fails', async () => {
+    const failure = new Error('database is down')
+    User.exists.mockRejectedValue(failure)
+    const next = vi.fn()
+
+    await requireAuth(requestWith(signed()), mockRes(), next)
+
+    expect(next).toHaveBeenCalledWith(failure)
   })
 })
 
