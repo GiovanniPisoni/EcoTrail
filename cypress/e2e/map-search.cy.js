@@ -122,3 +122,27 @@ describe('Search of a place on the map', () => {
     })
   })
 })
+
+describe('Search of a place on the admin maps', () => {
+  beforeEach(() => {
+    cy.intercept('GET', SEARCH, [andalo]).as('search')
+  })
+
+  it('is on the map of the dashboard', () => {
+    cy.visitAs('admin', '/admin')
+
+    cy.get('.admin-page__map-wrap .map-search').should('be.visible')
+    search('Andalo')
+    cy.wait('@search')
+    cy.get('.map-search__input').should('contain.value', 'Andalo')
+  })
+
+  it('is on the map of the trails page', () => {
+    cy.visitAs('admin', '/admin/trails')
+
+    cy.get('.admin-trails-page__map-card .map-search').should('be.visible')
+    search('Andalo')
+    cy.wait('@search')
+    cy.get('.map-search__input').should('contain.value', 'Andalo')
+  })
+})

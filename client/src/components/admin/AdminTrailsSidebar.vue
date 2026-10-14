@@ -1,4 +1,5 @@
 <script setup>
+import { nextTick, onMounted, ref, watch } from 'vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
 
@@ -15,6 +16,35 @@ const props = defineProps({
 
 const emit = defineEmits(['select'])
 
+const root = ref(null)
+let scrolledId = null
+
+async function scrollToSelected() {
+  if (!props.selectedId) {
+    scrolledId = null
+    return
+  }
+
+  await nextTick()
+
+  const list = root.value
+  const item = list?.querySelector(`[data-trail-id="${props.selectedId}"]`)
+  if (!list || !item) return
+  scrolledId = props.selectedId
+
+  const offset = item.getBoundingClientRect().top - list.getBoundingClientRect().top
+  list.scrollTo({ top: list.scrollTop + offset - 8, behavior: 'auto' })
+}
+
+watch(() => props.selectedId, scrollToSelected)
+watch(
+  () => props.trails,
+  () => {
+    if (props.selectedId && scrolledId !== props.selectedId) scrollToSelected()
+  }
+)
+onMounted(scrollToSelected)
+
 function trailId(trail) {
   return String(trail.properties.id)
 }
@@ -29,7 +59,7 @@ function onSelect(trail) {
 </script>
 
 <template>
-  <aside class="admin-trails-sidebar">
+  <aside ref="root" class="admin-trails-sidebar">
     <div class="admin-trails-sidebar__header">
       <h2 class="admin-trails-sidebar__title">Trails</h2>
     </div>
@@ -39,7 +69,7 @@ function onSelect(trail) {
     </p>
 
     <ul v-else class="admin-trails-sidebar__list">
-      <li v-for="trail in trails" :key="trailId(trail)">
+      <li v-for="trail in trails" :key="trailId(trail)" :data-trail-id="trailId(trail)">
         <BaseCard
           class="admin-trails-sidebar__item"
           :class="{ 'admin-trails-sidebar__item--selected': isSelected(trail) }"

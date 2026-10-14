@@ -24,9 +24,13 @@ const props = defineProps({
 const emit = defineEmits(['close', 'select', 'focus-trail'])
 
 const root = ref(null)
+let scrolledId = null
 
 async function scrollToSelected() {
-  if (!props.selectedId) return
+  if (!props.selectedId) {
+    scrolledId = null
+    return
+  }
 
   await nextTick()
   await new Promise((resolve) => requestAnimationFrame(resolve))
@@ -34,6 +38,7 @@ async function scrollToSelected() {
   const list = root.value
   const item = list?.querySelector(`[data-trail-id="${props.selectedId}"]`)
   if (!list || !item) return
+  scrolledId = props.selectedId
 
   const header = list.querySelector('.trails-sidebar__header')
   const offset = item.getBoundingClientRect().top - list.getBoundingClientRect().top
@@ -44,6 +49,12 @@ async function scrollToSelected() {
 }
 
 watch(() => props.selectedId, scrollToSelected)
+watch(
+  () => props.trails,
+  () => {
+    if (props.selectedId && scrolledId !== props.selectedId) scrollToSelected()
+  }
+)
 onMounted(scrollToSelected)
 
 function trailId(trail) {

@@ -1,10 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import TrailsMap from '@/components/trails/TrailsMap.vue'
+import MapSearch from '@/components/trails/MapSearch.vue'
 import AdminTrailsSidebar from '@/components/admin/AdminTrailsSidebar.vue'
 import AdminTrailPanel from '@/components/admin/AdminTrailPanel.vue'
 
 const mapRef = ref(null)
+const mapInstance = shallowRef(null)
 const visibleTrails = ref([])
 const selectedTrailId = ref(null)
 
@@ -34,7 +36,9 @@ function onStatusChanged() {
           :selected-trail-id="selectedTrailId"
           @trails-loaded="visibleTrails = $event"
           @trail-selected="toggleSelection"
+          @map-ready="mapInstance = $event"
         />
+        <MapSearch v-if="mapInstance" :map="mapInstance" />
       </div>
 
       <AdminTrailPanel
@@ -74,6 +78,7 @@ function onStatusChanged() {
 }
 
 .admin-trails-page__map-card {
+  position: relative;
   flex-shrink: 0;
   height: 320px;
   overflow: hidden;

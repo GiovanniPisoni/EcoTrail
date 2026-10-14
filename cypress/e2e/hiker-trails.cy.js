@@ -101,3 +101,26 @@ describe('Hiker trail list', () => {
       })
   })
 })
+
+describe('Opening a trail from a notification', () => {
+  it('shows the trail at the top of the list without scrolling', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.trails-sidebar__item').should('have.length.greaterThan', 8)
+
+    cy.get('.trails-sidebar__list li')
+      .last()
+      .invoke('attr', 'data-trail-id')
+      .then((trailId) => {
+        cy.viewport(360, 660)
+        cy.visitAs('hiker', `/?trail=${trailId}`)
+
+        cy.get('.trails-sidebar__item--selected').should(($item) => {
+          const sidebarBox = Cypress.$('.trails-sidebar')[0].getBoundingClientRect()
+          const itemBox = $item[0].getBoundingClientRect()
+
+          expect(itemBox.top).to.be.at.least(sidebarBox.top - 1)
+          expect(itemBox.top).to.be.lessThan(sidebarBox.top + 150)
+        })
+      })
+  })
+})
