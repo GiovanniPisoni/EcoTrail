@@ -12,7 +12,7 @@ const ICON_CLOSE =
 
 export const TRAIL_STATUSES = {
   free: { label: 'Open', color: '#10B981', icon: ICON_CHECK },
-  crowded: { label: 'Crowded', color: '#F59E0B', icon: ICON_USERS },
+  crowded: { label: 'Crowded', color: '#8B5CF6', icon: ICON_USERS },
   at_risk: { label: 'At risk', color: '#F97316', icon: ICON_WARNING },
   closed: { label: 'Closed', color: '#EF4444', icon: ICON_CLOSE }
 }

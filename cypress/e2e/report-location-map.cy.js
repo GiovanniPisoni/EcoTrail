@@ -32,6 +32,33 @@ describe('Map of the report form', () => {
     cy.get('.location-picker .leaflet-overlay-pane path').should('have.length.greaterThan', 0)
   })
 
+  it('shows the name of a trail when it is pointed at', function () {
+    cy.visitAs('hiker', '/', {
+      geolocation: { latitude: this.seed.trail.latitude, longitude: this.seed.trail.longitude }
+    })
+    cy.openReportDialog()
+    cy.get('.location-picker .leaflet-overlay-pane path[stroke-width="4"]').should(
+      'have.length.greaterThan',
+      0
+    )
+
+    cy.get('.location-picker .leaflet-overlay-pane path[stroke-width="4"]')
+      .first()
+      .then(($path) => {
+        const box = $path[0].getBoundingClientRect()
+        const { MouseEvent } = $path[0].ownerDocument.defaultView
+        $path[0].dispatchEvent(
+          new MouseEvent('mouseover', {
+            bubbles: true,
+            clientX: box.left + box.width / 2,
+            clientY: box.top + box.height / 2
+          })
+        )
+      })
+
+    cy.get('.location-picker .leaflet-tooltip').should('be.visible').and('not.be.empty')
+  })
+
   describe('on a phone', () => {
     beforeEach(() => {
       cy.viewport(360, 660)

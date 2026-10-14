@@ -94,6 +94,51 @@ router.get('/', async (req, res) => {
   res.json(await trailsToFeatureCollection(trails))
 })
 
+export const MAX_SEARCH_RESULTS = 8
+const MIN_SEARCH_LENGTH = 2
+
+function escapeRegex(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function pathBounds(coordinates) {
+  let west = Infinity
+  let south = Infinity
+  let east = -Infinity
+  let north = -Infinity
+  for (const [longitude, latitude] of coordinates) {
+    west = Math.min(west, longitude)
+    east = Math.max(east, longitude)
+    south = Math.min(south, latitude)
+    north = Math.max(north, latitude)
+  }
+  return [west, south, east, north]
+}
+
+router.get('/search', async (req, res) => {
+  const text = typeof req.query.q === 'string' ? req.query.q.trim() : ''
+  if (text.length < MIN_SEARCH_LENGTH) {
+    return res.json([])
+  }
+
+  const words = text.split(/\s+/).slice(0, 6)
+  const query = { $and: words.map((word) => ({ name: new RegExp(escapeRegex(word), 'i') })) }
+
+  const trails = await Trail.find(query)
+    .select('name status path')
+    .sort({ name: 1 })
+    .limit(MAX_SEARCH_RESULTS)
+
+  res.json(
+    trails.map((trail) => ({
+      id: trail._id,
+      name: trail.name,
+      status: trail.status,
+      bounds: pathBounds(trail.path.coordinates)
+    }))
+  )
+})
+
 router.get('/:id', async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: 'Invalid trail id' })

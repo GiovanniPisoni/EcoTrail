@@ -4,7 +4,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server'
 import request from 'supertest'
 import app from '../../src/index.js'
 import Trail from '../../src/models/Trail.js'
-import { MAX_TRAILS_PER_REQUEST } from '../../src/routes/trails.js'
+import { MAX_SEARCH_RESULTS, MAX_TRAILS_PER_REQUEST } from '../../src/routes/trails.js'
 
 let mongod
 
@@ -210,5 +210,89 @@ describe('GET /api/trails limit', () => {
 
     expect(res.status).toBe(200)
     expect(res.body.features).toHaveLength(MAX_TRAILS_PER_REQUEST)
+  })
+})
+
+describe('GET /api/trails/search', () => {
+  const line = (offset = 0) => ({
+    type: 'LineString',
+    coordinates: [
+      [10 + offset, 40 + offset],
+      [10.5 + offset, 40.7 + offset]
+    ]
+  })
+
+  beforeEach(async () => {
+    await Trail.create([
+      { name: 'Sentiero della Ceda', path: line(), status: 'at_risk' },
+      { name: 'Giro del Lago', path: line(1) },
+      { name: 'Sentiero Frassati - Tappa 1', path: line(2) }
+    ])
+  })
+
+  it('finds a trail by a part of its name, ignoring the case', async () => {
+    const res = await request(app).get('/api/trails/search').query({ q: 'ceda' })
+
+    expect(res.status).toBe(200)
+    expect(res.body.map((trail) => trail.name)).toEqual(['Sentiero della Ceda'])
+  })
+
+  it('finds a trail when the words are written in another order', async () => {
+    const res = await request(app).get('/api/trails/search').query({ q: 'ceda sentiero' })
+
+    expect(res.body.map((trail) => trail.name)).toEqual(['Sentiero della Ceda'])
+  })
+
+  it('needs every word to match', async () => {
+    const res = await request(app).get('/api/trails/search').query({ q: 'sentiero lago' })
+
+    expect(res.body).toEqual([])
+  })
+
+  it('returns every trail that matches, sorted by name', async () => {
+    const res = await request(app).get('/api/trails/search').query({ q: 'sentiero' })
+
+    expect(res.body.map((trail) => trail.name)).toEqual([
+      'Sentiero Frassati - Tappa 1',
+      'Sentiero della Ceda'
+    ])
+  })
+
+  it('returns the id, the status and the bounds of the trail', async () => {
+    const res = await request(app).get('/api/trails/search').query({ q: 'ceda' })
+
+    expect(res.body[0]).toEqual({
+      id: expect.any(String),
+      name: 'Sentiero della Ceda',
+      status: 'at_risk',
+      bounds: [10, 40, 10.5, 40.7]
+    })
+  })
+
+  it('treats the text as plain characters, not as a pattern', async () => {
+    const res = await request(app).get('/api/trails/search').query({ q: '.*' })
+
+    expect(res.body).toEqual([])
+  })
+
+  it('answers with an empty list when the text is missing or too short', async () => {
+    const missing = await request(app).get('/api/trails/search')
+    const short = await request(app).get('/api/trails/search').query({ q: 'a' })
+
+    expect(missing.body).toEqual([])
+    expect(short.body).toEqual([])
+  })
+
+  it('returns at most the maximum number of results', async () => {
+    await Trail.create(
+      Array.from({ length: MAX_SEARCH_RESULTS + 3 }, (_, index) => ({
+        name: `Anello ${index}`,
+        path: line(3)
+      }))
+    )
+
+    const res = await request(app).get('/api/trails/search').query({ q: 'anello' })
+
+    expect(res.body).toHaveLength(MAX_SEARCH_RESULTS)
   })
 })

@@ -1,6 +1,6 @@
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import SendReportView from '@/views/hiker/SendReportView.vue'
 import TrailsMap from '@/components/trails/TrailsMap.vue'
 import TrailsSidebar from '@/components/trails/TrailsSidebar.vue'
@@ -9,6 +9,7 @@ import MapSearch from '@/components/trails/MapSearch.vue'
 import HikeModeToggle from '@/components/common/HikeModeToggle.vue'
 
 const route = useRoute()
+const router = useRouter()
 
 const visibleTrails = ref([])
 const hiddenStatuses = ref([])
@@ -85,6 +86,18 @@ function selectFromMap(trailId) {
 function showTrailOnMap(trailId) {
   trailsMap.value?.focusOnTrail(trailId)
 }
+
+watch(
+  () => route.query.report,
+  (requested) => {
+    if (!requested) return
+    reportDialogOpen.value = true
+    const otherParams = { ...route.query }
+    delete otherParams.report
+    router.replace({ query: otherParams })
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -143,7 +156,7 @@ function showTrailOnMap(trailId) {
         @map-ready="mapInstance = $event"
       />
       <ReportsLayer v-if="mapInstance" :map="mapInstance" :sidebar-open="sidebarOpen" />
-      <MapSearch v-if="mapInstance" :map="mapInstance" />
+      <MapSearch v-if="mapInstance" :map="mapInstance" @trail-picked="showTrailOnMap" />
       <HikeModeToggle />
     </div>
 

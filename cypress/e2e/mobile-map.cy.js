@@ -28,9 +28,30 @@ describe('Map page on a phone', () => {
     cy.contains('button', 'Log out').should('not.be.visible')
 
     cy.get('.menu-button').click()
+    cy.contains('a', 'Map and trails').should('be.visible')
+    cy.contains('a', 'New report').should('be.visible')
+    cy.contains('a', 'Notifications and alerts').should('be.visible')
     cy.contains('a', 'My profile').should('be.visible')
-    cy.contains('a', 'Notifications').should('be.visible')
     cy.contains('button', 'Log out').should('be.visible')
+  })
+
+  it('opens the report form from the menu', () => {
+    cy.visitAs('hiker', '/')
+
+    cy.get('.menu-button').click()
+    cy.contains('a', 'New report').click()
+
+    cy.contains('h1', 'New trail incident report').should('be.visible')
+    cy.location('search').should('eq', '')
+  })
+
+  it('opens the notifications and alerts page from the menu', () => {
+    cy.visitAs('hiker', '/')
+
+    cy.get('.menu-button').click()
+    cy.contains('a', 'Notifications and alerts').click()
+
+    cy.location('pathname').should('eq', '/notifications')
   })
 
   it('closes the menu when the person goes to another page', () => {
@@ -78,15 +99,17 @@ describe('Map page on a phone', () => {
   it('keeps the bottom buttons above the trails list', () => {
     cy.visitAs('hiker', '/')
     cy.get('.map-page__sidebar-toggle').click()
-    cy.get('.trails-sidebar').should('be.visible')
+    cy.get('.trails-sidebar__item').should('have.length.greaterThan', 3)
 
-    rectOf('.trails-sidebar').then((list) => {
-      for (const selector of ['.map-page__new-report', '.hike-mode__button']) {
-        rectOf(selector).should((button) => {
-          expect(button.bottom, `${selector} is above the list`).to.be.at.most(list.top)
-        })
-      }
-    })
+    for (const selector of ['.map-page__new-report', '.hike-mode__button']) {
+      cy.get(selector).should(($button) => {
+        const list = Cypress.$('.trails-sidebar')[0].getBoundingClientRect()
+        expect(
+          $button[0].getBoundingClientRect().bottom,
+          `${selector} is above the list`
+        ).to.be.at.most(list.top)
+      })
+    }
   })
 
   it('places the controls: tools top left, legend top right, walking bottom left, report bottom right', () => {
