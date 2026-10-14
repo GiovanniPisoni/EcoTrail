@@ -14,7 +14,7 @@ import {
 } from '@/config/notificationTypes.js'
 import {
   PUSH_SUBSCRIPTION_CHANGED,
-  getExistingSubscription,
+  alertsAreOn,
   isPushSupported
 } from '@/utils/push/pushSubscription.js'
 import { unreadNotificationCount } from '@/utils/push/notifications.js'
@@ -59,7 +59,7 @@ async function refreshPermission() {
   if (!supported.value) return
 
   permission.value = Notification.permission
-  subscribed.value = permission.value === 'granted' && !!(await getExistingSubscription())
+  subscribed.value = await alertsAreOn()
 }
 
 async function loadPreferences() {
