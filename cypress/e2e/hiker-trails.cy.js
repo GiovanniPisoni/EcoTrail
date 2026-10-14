@@ -51,6 +51,17 @@ describe('Hiker trail list', () => {
     })
   })
 
+  it('makes the trails easy to tap with a wide invisible area around each line', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.trails-sidebar__item').should('have.length.greaterThan', 5)
+
+    cy.get('path.leaflet-interactive[stroke-opacity="0"]')
+      .should('have.length.greaterThan', 0)
+      .first()
+      .should('have.attr', 'stroke-width')
+      .and('match', /^(16|28)$/)
+  })
+
   it('opens the sidebar when a trail is picked on the map while it is hidden', () => {
     cy.visitAs('hiker', '/')
     cy.get('button[title="Hide nearby trails"]').click()
