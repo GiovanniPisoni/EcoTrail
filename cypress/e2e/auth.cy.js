@@ -43,6 +43,28 @@ describe('Authentication', () => {
     cy.location('pathname').should('eq', '/')
   })
 
+  it('sends the person to the login page when the account no longer exists', () => {
+    cy.intercept('GET', '/api/notifications/preferences', {
+      statusCode: 401,
+      body: { error: 'This account no longer exists' }
+    })
+
+    cy.visitAs('hiker', '/notifications')
+
+    cy.location('pathname').should('eq', '/login')
+    cy.contains('[role="status"]', 'no longer exists').should('be.visible')
+    cy.contains('a', 'Sign up').should('be.visible')
+    cy.window().its('localStorage.ecotrail_token').should('not.exist')
+  })
+
+  it('does not show the session notice after a wrong password', () => {
+    cy.visit('/login')
+    fillLogin({ email: E2E_USERS.hiker.email, password: 'wrong-password' })
+
+    cy.get('[role="alert"]').should('contain', 'Invalid credentials')
+    cy.contains('session has ended').should('not.exist')
+  })
+
   it('logs the hiker out', () => {
     cy.visitAs('hiker', '/')
     cy.contains('button:visible', 'Log out').click()

@@ -30,6 +30,10 @@ async function handleSubmit() {
 <template>
   <main class="auth-page">
     <h1>Log in</h1>
+    <p v-if="auth.sessionEnded" class="notice" role="status">
+      Your session has ended, or your account no longer exists. Log in again, or sign up if you
+      don’t have an account yet.
+    </p>
     <form @submit.prevent="handleSubmit">
       <label>
         Email
@@ -76,6 +80,15 @@ button {
   padding: 0.6rem;
   font-size: 1rem;
   cursor: pointer;
+}
+
+.notice {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.95rem;
 }
 
 .error {
