@@ -14,7 +14,17 @@ Cypress.Commands.add('visitAs', (role, path = '/', options = {}) => {
             win.localStorage.setItem(TOKEN_KEY, body.token)
             win.localStorage.setItem(USER_KEY, JSON.stringify({ ...me, email }))
 
-            const { geolocation } = options
+            const { geolocation, locationPermission } = options
+
+            if (locationPermission) {
+              const original = win.navigator.permissions.query.bind(win.navigator.permissions)
+              cy.stub(win.navigator.permissions, 'query').callsFake((descriptor) =>
+                descriptor.name === 'geolocation'
+                  ? Promise.resolve({ state: locationPermission })
+                  : original(descriptor)
+              )
+            }
+
             if (geolocation) {
               cy.stub(win.navigator.geolocation, 'getCurrentPosition').callsFake(
                 (success, fail) => {
