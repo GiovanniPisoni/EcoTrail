@@ -8,6 +8,7 @@ import { onRealtime, RECONNECTED } from '@/utils/realtime.js'
 import { downloadArea } from '@/utils/offline/offlineArea.js'
 import { getTrailDifficultyLabel } from '@/config/trailDifficulty.js'
 import { formatDistance, formatDuration } from '@/utils/trailFormat.js'
+import LocationPermissionDialog from '@/components/trails/LocationPermissionDialog.vue'
 
 const phoneScreen = window.matchMedia('(max-width: 640px)')
 
@@ -166,14 +167,60 @@ watch(
 
 let locationMarker = null
 
-function locateUser() {
+const locationMessage = ref('')
+let locationMessageTimer = null
+
+const LOCATION_ERRORS = {
+  1: 'Location is blocked for this site. Allow it in your browser settings and try again.',
+  2: 'Your position is not available. Check that the location is turned on.',
+  3: 'Getting your position took too long. Try again.'
+}
+
+function showLocationMessage(text, seconds = 5) {
+  clearTimeout(locationMessageTimer)
+  locationMessage.value = text
+  locationMessageTimer = setTimeout(() => (locationMessage.value = ''), seconds * 1000)
+}
+
+const permissionDialog = ref(null)
+
+async function geolocationPermission() {
+  try {
+    const status = await navigator.permissions.query({ name: 'geolocation' })
+    return status.state
+  } catch {
+    return 'prompt'
+  }
+}
+
+async function onLocateClick() {
   if (!navigator.geolocation) {
-    console.error('Geolocation is not supported by this browser.')
+    showLocationMessage('This device cannot share its position.')
     return
   }
 
+  const permission = await geolocationPermission()
+  if (permission === 'granted') {
+    locateUser()
+    return
+  }
+
+  permissionDialog.value = permission === 'denied' ? 'denied' : 'prompt'
+}
+
+function confirmLocation() {
+  permissionDialog.value = null
+  locateUser()
+}
+
+function locateUser() {
+  showLocationMessage('Finding your position…', 12)
+
   navigator.geolocation.getCurrentPosition(
     (position) => {
+      clearTimeout(locationMessageTimer)
+      locationMessage.value = ''
+
       const { latitude, longitude } = position.coords
       map.setView([latitude, longitude], 15)
 
@@ -187,7 +234,9 @@ function locateUser() {
     },
     (err) => {
       console.error('Failed to get current location:', err)
-    }
+      showLocationMessage(LOCATION_ERRORS[err.code] ?? 'Could not get your position.')
+    },
+    { timeout: 10000, maximumAge: 60000 }
   )
 }
 
@@ -202,7 +251,7 @@ function addLocateControl() {
     button.title = 'Center on my location'
     button.setAttribute('aria-label', button.title)
     L.DomEvent.disableClickPropagation(button)
-    button.addEventListener('click', locateUser)
+    button.addEventListener('click', onLocateClick)
     return button
   }
 
@@ -379,6 +428,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  clearTimeout(locationMessageTimer)
   stopRealtime.forEach((stop) => stop())
   stopRealtime = []
   resizeObserver?.disconnect()
@@ -396,6 +446,15 @@ defineExpose({ refresh: loadTrails, focusOnTrail, centerOnTrail })
     <p v-if="zoomedOutTooFar" class="trails-map__zoom-hint" role="status">
       Zoom in to see the trails
     </p>
+    <p v-if="locationMessage" class="trails-map__location-message" role="status">
+      {{ locationMessage }}
+    </p>
+    <LocationPermissionDialog
+      v-if="permissionDialog"
+      :state="permissionDialog"
+      @confirm="confirmLocation"
+      @close="permissionDialog = null"
+    />
   </div>
 </template>
 
@@ -410,6 +469,25 @@ defineExpose({ refresh: loadTrails, focusOnTrail, centerOnTrail })
 .trails-map {
   position: absolute;
   inset: 0;
+}
+
+.trails-map__location-message {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--sheet-h, 0px) + 84px);
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 10px 16px;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  text-align: center;
+  box-shadow: 0 1px 6px rgba(26, 62, 47, 0.25);
+  pointer-events: none;
 }
 
 .trails-map__zoom-hint {
