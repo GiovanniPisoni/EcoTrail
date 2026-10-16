@@ -59,6 +59,18 @@ describe('Hiker sends a report', () => {
     cy.get('@createReport.all').should('have.length', 0)
   })
 
+  it('explains what each severity level means', function () {
+    visitMap(this.seed, 'denied')
+    cy.openReportDialog()
+
+    cy.get('.send-report__severity-help')
+      .should('contain', 'Low:')
+      .and('contain', 'still easy to walk')
+      .and('contain', 'Medium:')
+      .and('contain', 'High:')
+      .and('contain', 'Dangerous or blocked')
+  })
+
   it('marks which questions are required and tells how to set the position', function () {
     visitMap(this.seed, 'denied')
     cy.openReportDialog()

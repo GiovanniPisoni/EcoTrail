@@ -3,7 +3,12 @@ import { onMounted, onUnmounted, ref, watch } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import api from '@/api/client.js'
-import { TRAIL_STATUSES, getTrailStatusColor, getTrailStatusLabel } from '@/config/trailStatus.js'
+import {
+  TRAIL_STATUSES,
+  getTrailStatusColor,
+  getTrailStatusHint,
+  getTrailStatusLabel
+} from '@/config/trailStatus.js'
 import { onRealtime, RECONNECTED } from '@/utils/realtime.js'
 import { downloadArea } from '@/utils/offline/offlineArea.js'
 import { getTrailDifficultyLabel } from '@/config/trailDifficulty.js'
@@ -51,6 +56,13 @@ function buildPopupContent(feature) {
   const status = document.createElement('span')
   status.textContent = getTrailStatusLabel(feature.properties.status)
   container.append(status)
+
+  if (feature.properties.status !== 'free') {
+    container.append(document.createElement('br'))
+    const hint = document.createElement('span')
+    hint.textContent = getTrailStatusHint(feature.properties.status)
+    container.append(hint)
+  }
 
   if (feature.properties.statusReason) {
     container.append(document.createElement('br'))
@@ -327,9 +339,10 @@ function addLegend() {
     title.textContent = 'Show trails by status'
     div.append(title)
 
-    Object.entries(TRAIL_STATUSES).forEach(([status, { label, color, icon }]) => {
+    Object.entries(TRAIL_STATUSES).forEach(([status, { label, color, icon, hint }]) => {
       const item = document.createElement('label')
       item.className = 'trail-legend-item'
+      item.title = hint
 
       const checkbox = document.createElement('input')
       checkbox.type = 'checkbox'

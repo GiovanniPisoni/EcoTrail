@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import AuthTabs from '@/components/auth/AuthTabs.vue'
 
 const email = ref('')
 const password = ref('')
@@ -38,6 +39,7 @@ async function handleSubmit() {
 
 <template>
   <main class="auth-page">
+    <AuthTabs />
     <h1>Sign up</h1>
     <form @submit.prevent="handleSubmit">
       <label>

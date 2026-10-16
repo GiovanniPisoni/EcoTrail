@@ -1,7 +1,8 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter, RouterLink } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import AuthTabs from '@/components/auth/AuthTabs.vue'
 
 const email = ref('')
 const password = ref('')
@@ -29,6 +30,7 @@ async function handleSubmit() {
 
 <template>
   <main class="auth-page">
+    <AuthTabs />
     <h1>Log in</h1>
     <p v-if="auth.sessionEnded" class="notice" role="status">
       Your session has ended, or your account no longer exists. Log in again, or sign up if you
@@ -48,10 +50,6 @@ async function handleSubmit() {
         {{ isSubmitting ? 'Logging in...' : 'Log in' }}
       </button>
     </form>
-    <div class="signup">
-      <p>New here? You need an account before you can log in.</p>
-      <RouterLink to="/register" class="signup__button">Sign up</RouterLink>
-    </div>
   </main>
 </template>
 
@@ -83,33 +81,6 @@ button {
   padding: 0.6rem;
   font-size: 1rem;
   cursor: pointer;
-}
-
-.signup {
-  margin-top: 1.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid rgba(26, 62, 47, 0.15);
-  text-align: center;
-}
-
-.signup p {
-  margin: 0 0 0.75rem;
-}
-
-.signup__button {
-  display: block;
-  padding: 0.7rem;
-  border: 2px solid var(--color-primary);
-  border-radius: var(--radius-pill);
-  color: var(--color-primary);
-  font-size: 1rem;
-  font-weight: 600;
-  text-align: center;
-  text-decoration: none;
-}
-
-.signup__button:hover {
-  background: var(--color-background);
 }
 
 .notice {

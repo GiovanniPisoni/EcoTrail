@@ -1,12 +1,39 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import api from '@/api/client.js'
 import { submitReport as sendOrQueueReport } from '@/utils/offline/offlineReports.js'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import LocationPicker from '@/components/reports/LocationPicker.vue'
 import { REPORT_SEVERITY_OPTIONS, REPORT_TYPE_OPTIONS } from '@/config/reportOptions.js'
 
+const props = defineProps({
+  trailId: {
+    type: String,
+    default: null
+  }
+})
+
 const emit = defineEmits(['close'])
+
+const trailName = ref('')
+const focusBounds = ref(null)
+
+async function loadReportedTrail() {
+  try {
+    const { data } = await api.get(`/trails/${props.trailId}`)
+    const points = data.geometry.coordinates
+    const longitudes = points.map(([longitude]) => longitude)
+    const latitudes = points.map(([, latitude]) => latitude)
+    trailName.value = data.properties.name
+    focusBounds.value = [
+      [Math.min(...latitudes), Math.min(...longitudes)],
+      [Math.max(...latitudes), Math.max(...longitudes)]
+    ]
+  } catch (err) {
+    console.error('Failed to load the trail to report on:', err)
+  }
+}
 
 const selectedType = ref(null)
 const selectedSeverity = ref(null)
@@ -132,7 +159,10 @@ function close() {
   emit('close')
 }
 
-onMounted(requestLocation)
+onMounted(() => {
+  if (props.trailId) loadReportedTrail()
+  else requestLocation()
+})
 
 onBeforeUnmount(() => {
   if (photoPreviewUrl.value) URL.revokeObjectURL(photoPreviewUrl.value)
@@ -228,6 +258,11 @@ onBeforeUnmount(() => {
                   {{ option.label }}
                 </button>
               </div>
+              <ul class="send-report__severity-help">
+                <li v-for="option in REPORT_SEVERITY_OPTIONS" :key="option.value">
+                  <strong>{{ option.label }}:</strong> {{ option.hint }}
+                </li>
+              </ul>
             </section>
           </div>
 
@@ -242,10 +277,14 @@ onBeforeUnmount(() => {
                 Tap the map where the problem is. Searching only moves the map. Tap a trail to see
                 its name.
               </p>
+              <p v-if="trailName" class="send-report__trail">
+                Reporting on <strong>{{ trailName }}</strong>
+              </p>
               <LocationPicker
                 v-model:latitude="latitude"
                 v-model:longitude="longitude"
                 :accuracy-meters="accuracyMeters"
+                :focus-bounds="focusBounds"
               />
               <BaseButton
                 variant="secondary"
@@ -439,6 +478,20 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-card);
   outline: 2px solid #ef4444;
   background: color-mix(in srgb, #ef4444 6%, white);
+}
+
+.send-report__trail {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.send-report__severity-help {
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
 }
 
 .send-report__instruction {
