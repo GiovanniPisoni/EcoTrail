@@ -388,11 +388,11 @@ async function loadTrailFeature(trailId) {
   }
 }
 
-function fitToFeature(feature) {
+function fitToFeature(feature, animate = true) {
   const bounds = L.geoJSON(feature).getBounds()
   if (!bounds.isValid()) return false
 
-  map.fitBounds(bounds, { maxZoom: 16, padding: [40, 40] })
+  map.fitBounds(bounds, { maxZoom: 16, padding: [40, 40], animate })
   return true
 }
 
@@ -401,9 +401,9 @@ async function centerOnTrail(trailId) {
   return feature ? fitToFeature(feature) : false
 }
 
-async function focusOnTrail(trailId) {
+async function focusOnTrail(trailId, animate = true) {
   const feature = await loadTrailFeature(trailId)
-  if (!feature || !fitToFeature(feature)) return false
+  if (!feature || !fitToFeature(feature, animate)) return false
 
   emit('trail-selected', String(feature.properties.id))
   return true
@@ -434,7 +434,7 @@ onMounted(async () => {
     onRealtime(RECONNECTED, loadTrails)
   ]
 
-  const focused = props.focusTrailId && (await focusOnTrail(props.focusTrailId))
+  const focused = props.focusTrailId && (await focusOnTrail(props.focusTrailId, false))
   if (!focused) loadTrails()
 
   emit('map-ready', map)

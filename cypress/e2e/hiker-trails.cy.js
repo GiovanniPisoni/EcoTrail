@@ -123,6 +123,28 @@ describe('Opening a trail from a notification', () => {
         })
       })
   })
+
+  it('shows the trails even when the page cannot run animations, as a page opened in the background', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.trails-sidebar__item').should('have.length.greaterThan', 8)
+
+    cy.get('.trails-sidebar__list li')
+      .last()
+      .invoke('attr', 'data-trail-id')
+      .then((trailId) => {
+        cy.visitAs('hiker', `/?trail=${trailId}`, {
+          onBeforeLoad(win) {
+            win.requestAnimationFrame = () => 0
+          }
+        })
+
+        cy.get('.trails-sidebar__item').should('have.length.greaterThan', 0)
+        cy.get('.trails-sidebar__item--selected')
+          .parent()
+          .should('have.attr', 'data-trail-id', trailId)
+        cy.contains('.trails-sidebar__empty', 'No trails in view').should('not.exist')
+      })
+  })
 })
 
 describe('What the trail details say', () => {
