@@ -1,9 +1,11 @@
 <script setup>
 import { nextTick, onMounted, ref, watch } from 'vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
 import TrailAlternative from '@/components/trails/TrailAlternative.vue'
 import { getTrailDifficultyColor, getTrailDifficultyLabel } from '@/config/trailDifficulty.js'
+import { getTrailStatusColor, getTrailStatusHint } from '@/config/trailStatus.js'
 import { formatDistance, formatDuration } from '@/utils/trailFormat.js'
 
 const props = defineProps({
@@ -21,7 +23,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'select', 'focus-trail'])
+const emit = defineEmits(['close', 'select', 'focus-trail', 'report-trail'])
 
 const root = ref(null)
 let scrolledId = null
@@ -116,12 +118,28 @@ function onSelect(trail) {
             <StatusBadge :status="trail.properties.status" />
           </div>
 
+          <p
+            v-if="trail.properties.status !== 'free'"
+            class="trails-sidebar__hint"
+            :style="{ borderColor: getTrailStatusColor(trail.properties.status) }"
+          >
+            {{ getTrailStatusHint(trail.properties.status) }}
+          </p>
+
           <p v-if="trail.properties.statusReason" class="trails-sidebar__reason">
             <span class="trails-sidebar__reason-label">Why:</span>
             {{ trail.properties.statusReason }}
           </p>
 
           <div v-if="isSelected(trail)" class="trails-sidebar__details">
+            <BaseButton
+              variant="secondary"
+              class="trails-sidebar__report"
+              @click.stop="emit('report-trail', trailId(trail))"
+            >
+              Report a problem on this trail
+            </BaseButton>
+
             <img
               v-if="trail.properties.photoUrl"
               :src="trail.properties.photoUrl"
@@ -147,6 +165,14 @@ function onSelect(trail) {
               </div>
             </dl>
 
+            <p class="trails-sidebar__authority">
+              {{
+                trail.properties.status === 'closed'
+                  ? 'Closed by the park authority.'
+                  : 'Only the park authority can close a trail.'
+              }}
+            </p>
+
             <TrailAlternative
               v-if="trail.properties.status !== 'free'"
               :trail-id="trailId(trail)"
@@ -167,6 +193,29 @@ function onSelect(trail) {
   gap: 0.75rem;
   padding: 0 1rem 1rem;
   overflow-y: auto;
+}
+
+.trails-sidebar__hint {
+  margin: 0.5rem 0 0;
+  padding-left: 0.6rem;
+  border-left: 4px solid var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text);
+}
+
+.trails-sidebar__authority {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.trails-sidebar__report {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
 }
 
 .trails-sidebar__reason {

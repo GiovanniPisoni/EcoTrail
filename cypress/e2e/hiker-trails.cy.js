@@ -124,3 +124,66 @@ describe('Opening a trail from a notification', () => {
       })
   })
 })
+
+describe('What the trail details say', () => {
+  it('says that an at-risk trail is open but dangerous, and who can close a trail', () => {
+    cy.task('db:updateTrail', { set: { status: 'at_risk' } })
+    cy.visitAs('hiker', '/')
+    cy.contains('.trails-sidebar__item', E2E_TRAIL_NAME).click()
+
+    cy.contains('.trails-sidebar__item--selected', 'Open, but dangerous: take care.').should(
+      'be.visible'
+    )
+    cy.contains('.trails-sidebar__item--selected', 'Only the park authority can close a trail.')
+  })
+
+  it('says that a closed trail was closed by the park authority', () => {
+    cy.task('db:updateTrail', { set: { status: 'closed' } })
+    cy.visitAs('hiker', '/')
+    cy.contains('.trails-sidebar__item', E2E_TRAIL_NAME).click()
+
+    cy.contains('.trails-sidebar__item--selected', 'Closed: do not use this trail.')
+    cy.contains('.trails-sidebar__item--selected', 'Closed by the park authority.')
+  })
+
+  it('does not add a note to a free trail', () => {
+    cy.visitAs('hiker', '/')
+
+    cy.contains('.trails-sidebar__item', E2E_TRAIL_NAME)
+      .find('.trails-sidebar__hint')
+      .should('not.exist')
+  })
+})
+
+describe('Reporting from the details of a trail', () => {
+  it('opens the report form on that trail', () => {
+    cy.visitAs('hiker', '/')
+    cy.contains('.trails-sidebar__item', E2E_TRAIL_NAME).click()
+
+    cy.contains('.trails-sidebar__item--selected button', 'Report a problem on this trail').click()
+
+    cy.contains('h1', 'New trail incident report').should('be.visible')
+    cy.get('.send-report__trail').should('contain', E2E_TRAIL_NAME)
+    cy.get('.location-picker .leaflet-overlay-pane path[stroke-width="4"]').should(
+      'have.length.greaterThan',
+      0
+    )
+  })
+
+  it('keeps the trail selected in the list when the form is closed', () => {
+    cy.visitAs('hiker', '/')
+    cy.contains('.trails-sidebar__item', E2E_TRAIL_NAME).click()
+    cy.contains('.trails-sidebar__item--selected button', 'Report a problem on this trail').click()
+
+    cy.contains('button', 'Cancel').click()
+
+    cy.get('.trails-sidebar__item--selected').should('contain', E2E_TRAIL_NAME)
+  })
+
+  it('does not name a trail when the report starts from the New Report button', () => {
+    cy.visitAs('hiker', '/')
+    cy.openReportDialog()
+
+    cy.get('.send-report__trail').should('not.exist')
+  })
+})

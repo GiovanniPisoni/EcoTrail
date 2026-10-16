@@ -18,6 +18,10 @@ const props = defineProps({
   accuracyMeters: {
     type: Number,
     default: null
+  },
+  focusBounds: {
+    type: Array,
+    default: null
   }
 })
 
@@ -59,6 +63,10 @@ function setAccuracyCircle(latitude, longitude, accuracyMeters) {
     weight: 1,
     fillOpacity: 0.08
   }).addTo(map)
+}
+
+function showBounds(bounds) {
+  map.fitBounds(bounds, { maxZoom: 16, padding: [20, 20] })
 }
 
 async function loadTrails() {
@@ -113,7 +121,8 @@ onMounted(() => {
 
   mapInstance.value = map
   map.on('moveend', loadTrails)
-  loadTrails()
+  if (props.focusBounds && props.latitude == null) showBounds(props.focusBounds)
+  else loadTrails()
 
   map.on('click', (event) => {
     emit('update:latitude', event.latlng.lat)
@@ -127,6 +136,13 @@ onUnmounted(() => {
   mapInstance.value = null
   trailsLayer = null
 })
+
+watch(
+  () => props.focusBounds,
+  (bounds) => {
+    if (map && bounds && props.latitude == null) showBounds(bounds)
+  }
+)
 
 watch(
   () => [props.latitude, props.longitude],

@@ -14,6 +14,7 @@ const router = useRouter()
 const visibleTrails = ref([])
 const hiddenStatuses = ref([])
 const reportDialogOpen = ref(false)
+const reportTrailId = ref(null)
 const mapInstance = shallowRef(null)
 const trailsMap = ref(null)
 
@@ -83,6 +84,16 @@ function selectFromMap(trailId) {
   if (selecting) sidebarOpen.value = true
 }
 
+function openReportForTrail(trailId) {
+  reportTrailId.value = trailId
+  reportDialogOpen.value = true
+}
+
+function closeReport() {
+  reportDialogOpen.value = false
+  reportTrailId.value = null
+}
+
 function showTrailOnMap(trailId) {
   trailsMap.value?.focusOnTrail(trailId)
 }
@@ -111,6 +122,7 @@ watch(
       @close="closeSidebar"
       @select="selectFromSidebar"
       @focus-trail="showTrailOnMap"
+      @report-trail="openReportForTrail"
     />
     <button
       v-else
@@ -183,7 +195,7 @@ watch(
       <span>New Report</span>
     </button>
 
-    <SendReportView v-if="reportDialogOpen" @close="reportDialogOpen = false" />
+    <SendReportView v-if="reportDialogOpen" :trail-id="reportTrailId" @close="closeReport" />
   </main>
 </template>
 

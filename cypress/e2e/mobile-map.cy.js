@@ -197,6 +197,20 @@ describe('Map page on a phone', () => {
       .and('contain', 'Fallen tree after the storm')
   })
 
+  it('reports on the selected trail from its details in the list', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.map-page__sidebar-toggle').click()
+    cy.contains('.trails-sidebar__item', E2E_TRAIL_NAME).click()
+
+    cy.contains('.trails-sidebar__item--selected button', 'Report a problem on this trail')
+      .scrollIntoView()
+      .should('be.visible')
+      .click()
+
+    cy.contains('h1', 'New trail incident report').should('be.visible')
+    cy.get('.send-report__trail').should('contain', E2E_TRAIL_NAME)
+  })
+
   it('keeps the offline message clear of the legend', () => {
     cy.visitAs('hiker', '/')
     cy.get('.download-area-message').invoke('text', 'Area saved for offline use')

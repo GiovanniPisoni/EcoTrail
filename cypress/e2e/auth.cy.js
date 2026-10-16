@@ -27,13 +27,17 @@ describe('Authentication', () => {
     cy.get('html').should('have.attr', 'lang', 'en')
   })
 
-  it('shows a clear Sign up button for who has no account yet', () => {
+  it('offers Log in and Sign up as two choices at the top of the page', () => {
     cy.visit('/login')
 
-    cy.contains('You need an account').should('be.visible')
-    cy.contains('a.signup__button', 'Sign up').should('be.visible').click()
+    cy.get('.auth-tabs a').should('have.length', 2)
+    cy.contains('.auth-tabs a', 'Log in').should('have.class', 'auth-tabs__tab--active')
+    cy.contains('.auth-tabs a', 'Sign up').should('be.visible').click()
 
     cy.location('pathname').should('eq', '/register')
+    cy.contains('.auth-tabs a', 'Sign up').should('have.class', 'auth-tabs__tab--active')
+    cy.contains('.auth-tabs a', 'Log in').click()
+    cy.location('pathname').should('eq', '/login')
   })
 
   it('logs an admin in and lands on the admin area', () => {
