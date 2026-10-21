@@ -295,134 +295,133 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
     <p v-if="loading && !trail" class="admin-trail-panel__loading">Loading trail…</p>
 
     <template v-else-if="trail">
-      <BaseCard class="admin-trail-panel__section">
+      <BaseCard class="admin-trail-panel__section admin-trail-panel__trail">
         <div class="admin-trail-panel__header">
           <h3 class="admin-trail-panel__name">{{ trail.properties.name }}</h3>
           <StatusBadge :status="trail.properties.status" />
         </div>
-
-        <form class="admin-trail-panel__status-form" @submit.prevent="changeStatus">
-          <label class="admin-trail-panel__field">
-            <span>New status</span>
-            <select v-model="statusDraft">
-              <option value="" disabled>Choose a status</option>
-              <option v-for="status in statusOptions" :key="status" :value="status">
-                {{ getTrailStatusLabel(status) }}
-              </option>
-            </select>
-          </label>
-
-          <label class="admin-trail-panel__field">
-            <span>Reason</span>
-            <textarea v-model="reasonDraft" rows="2" placeholder="Why is the status changing?" />
-          </label>
-
-          <p v-if="submitError" class="admin-trail-panel__error">{{ submitError }}</p>
-
-          <BaseButton type="submit" :disabled="submitting">Change status</BaseButton>
-        </form>
-      </BaseCard>
-
-      <BaseCard
-        v-if="alertRules?.closureProposal"
-        class="admin-trail-panel__section admin-trail-panel__proposal"
-      >
-        <h4 class="admin-trail-panel__section-title">Closure proposed</h4>
-        <p class="admin-trail-panel__hint">
-          {{ alertRules.closureProposal.reportCount }} reliable high-severity reports. Closing the
-          trail needs your confirmation.
-        </p>
-        <p class="admin-trail-panel__hint">
-          {{ alertRules.closureProposal.reason }} ({{
-            formatDate(alertRules.closureProposal.proposedAt)
-          }})
-        </p>
-        <p v-if="proposalError" class="admin-trail-panel__error">{{ proposalError }}</p>
-        <div class="admin-trail-panel__proposal-actions">
-          <BaseButton :disabled="submitting || proposalBusy" @click="confirmClosure">
-            Close trail
-          </BaseButton>
-          <BaseButton
-            variant="secondary"
-            :disabled="submitting || proposalBusy"
-            @click="dismissProposal"
-          >
-            Dismiss
-          </BaseButton>
-        </div>
-      </BaseCard>
-
-      <BaseCard v-if="crowdThresholds" class="admin-trail-panel__section">
-        <h4 class="admin-trail-panel__section-title">Crowding alert</h4>
-        <p class="admin-trail-panel__hint">
-          The trail is marked as crowded when this many hikers with hike mode on are on it, and goes
-          back to free when they drop to the lower number. Only app users are counted, so the real
-          crowd is usually larger.
-        </p>
-
-        <form class="admin-trail-panel__status-form" @submit.prevent="saveCrowdThresholds">
-          <label class="admin-trail-panel__field">
-            <span>Crowded at (hikers)</span>
-            <input
-              v-model="enterDraft"
-              type="number"
-              min="2"
-              step="1"
-              :placeholder="`Default: ${crowdThresholds.defaults.enter}`"
-              @input="crowdSaved = false"
-            />
-          </label>
-
-          <label class="admin-trail-panel__field">
-            <span>Back to free at (hikers)</span>
-            <input
-              v-model="releaseDraft"
-              type="number"
-              min="1"
-              step="1"
-              :placeholder="`Default: ${crowdThresholds.defaults.release}`"
-              @input="crowdSaved = false"
-            />
-          </label>
-
+        <BaseCard
+          v-if="alertRules?.closureProposal"
+          class="admin-trail-panel__subcard admin-trail-panel__proposal"
+        >
+          <h4 class="admin-trail-panel__section-title">Closure proposed</h4>
           <p class="admin-trail-panel__hint">
-            Currently in use: {{ crowdThresholds.effective.enter }} /
-            {{ crowdThresholds.effective.release }}
+            {{ alertRules.closureProposal.reportCount }} reliable high-severity reports. Closing the
+            trail needs your confirmation.
+          </p>
+          <p class="admin-trail-panel__hint">
+            {{ alertRules.closureProposal.reason }} ({{
+              formatDate(alertRules.closureProposal.proposedAt)
+            }})
+          </p>
+          <p v-if="proposalError" class="admin-trail-panel__error">{{ proposalError }}</p>
+          <div class="admin-trail-panel__proposal-actions">
+            <BaseButton :disabled="submitting || proposalBusy" @click="confirmClosure">
+              Close trail
+            </BaseButton>
+            <BaseButton
+              variant="secondary"
+              :disabled="submitting || proposalBusy"
+              @click="dismissProposal"
+            >
+              Dismiss
+            </BaseButton>
+          </div>
+        </BaseCard>
+        <BaseCard class="admin-trail-panel__subcard">
+          <h4 class="admin-trail-panel__section-title">Status</h4>
+          <form class="admin-trail-panel__status-form" @submit.prevent="changeStatus">
+            <label class="admin-trail-panel__field">
+              <span>New status</span>
+              <select v-model="statusDraft">
+                <option value="" disabled>Choose a status</option>
+                <option v-for="status in statusOptions" :key="status" :value="status">
+                  {{ getTrailStatusLabel(status) }}
+                </option>
+              </select>
+            </label>
+
+            <label class="admin-trail-panel__field">
+              <span>Reason</span>
+              <textarea v-model="reasonDraft" rows="2" placeholder="Why is the status changing?" />
+            </label>
+
+            <p v-if="submitError" class="admin-trail-panel__error">{{ submitError }}</p>
+
+            <BaseButton type="submit" :disabled="submitting">Change status</BaseButton>
+          </form>
+        </BaseCard>
+        <BaseCard v-if="crowdThresholds" class="admin-trail-panel__subcard">
+          <h4 class="admin-trail-panel__section-title">Crowding alert</h4>
+          <p class="admin-trail-panel__hint">
+            The trail is marked as crowded when this many hikers with hike mode on are on it, and
+            goes back to free when they drop to the lower number. Only app users are counted, so the
+            real crowd is usually larger.
           </p>
 
-          <p v-if="crowdError" class="admin-trail-panel__error">{{ crowdError }}</p>
-          <p v-else-if="crowdSaved" class="admin-trail-panel__success">Thresholds saved</p>
+          <form class="admin-trail-panel__status-form" @submit.prevent="saveCrowdThresholds">
+            <label class="admin-trail-panel__field">
+              <span>Crowded at (hikers)</span>
+              <input
+                v-model="enterDraft"
+                type="number"
+                min="2"
+                step="1"
+                :placeholder="`Default: ${crowdThresholds.defaults.enter}`"
+                @input="crowdSaved = false"
+              />
+            </label>
 
-          <BaseButton type="submit" :disabled="crowdSaving">Save thresholds</BaseButton>
-        </form>
-      </BaseCard>
+            <label class="admin-trail-panel__field">
+              <span>Back to free at (hikers)</span>
+              <input
+                v-model="releaseDraft"
+                type="number"
+                min="1"
+                step="1"
+                :placeholder="`Default: ${crowdThresholds.defaults.release}`"
+                @input="crowdSaved = false"
+              />
+            </label>
 
-      <BaseCard v-if="alertRules" class="admin-trail-panel__section">
-        <h4 class="admin-trail-panel__section-title">Automatic alerts</h4>
-        <p class="admin-trail-panel__hint">
-          A report counts when another user has confirmed it nearby, or its author has a good track
-          record. Enough of them on this trail mark it at risk by themselves; for a closure the
-          system only proposes and you decide.
-        </p>
+            <p class="admin-trail-panel__hint">
+              Currently in use: {{ crowdThresholds.effective.enter }} /
+              {{ crowdThresholds.effective.release }}
+            </p>
 
-        <form class="admin-trail-panel__status-form" @submit.prevent="saveAlertRules">
-          <label v-for="field in ALERT_FIELDS" :key="field.key" class="admin-trail-panel__field">
-            <span>{{ field.label }}</span>
-            <input
-              v-model="alertDrafts[field.key]"
-              type="number"
-              :min="field.min"
-              step="1"
-              :placeholder="`Default: ${alertRules.defaults[field.key]}`"
-              @input="alertSaved = false"
-            />
-          </label>
+            <p v-if="crowdError" class="admin-trail-panel__error">{{ crowdError }}</p>
+            <p v-else-if="crowdSaved" class="admin-trail-panel__success">Thresholds saved</p>
 
-          <p v-if="alertError" class="admin-trail-panel__error">{{ alertError }}</p>
-          <p v-else-if="alertSaved" class="admin-trail-panel__success">Rules saved</p>
+            <BaseButton type="submit" :disabled="crowdSaving">Save thresholds</BaseButton>
+          </form>
+        </BaseCard>
+        <BaseCard v-if="alertRules" class="admin-trail-panel__subcard">
+          <h4 class="admin-trail-panel__section-title">Automatic alerts</h4>
+          <p class="admin-trail-panel__hint">
+            A report counts when another user has confirmed it nearby, or its author has a good
+            track record. Enough of them on this trail mark it at risk by themselves; for a closure
+            the system only proposes and you decide.
+          </p>
 
-          <BaseButton type="submit" :disabled="alertSaving">Save rules</BaseButton>
-        </form>
+          <form class="admin-trail-panel__status-form" @submit.prevent="saveAlertRules">
+            <label v-for="field in ALERT_FIELDS" :key="field.key" class="admin-trail-panel__field">
+              <span>{{ field.label }}</span>
+              <input
+                v-model="alertDrafts[field.key]"
+                type="number"
+                :min="field.min"
+                step="1"
+                :placeholder="`Default: ${alertRules.defaults[field.key]}`"
+                @input="alertSaved = false"
+              />
+            </label>
+
+            <p v-if="alertError" class="admin-trail-panel__error">{{ alertError }}</p>
+            <p v-else-if="alertSaved" class="admin-trail-panel__success">Rules saved</p>
+
+            <BaseButton type="submit" :disabled="alertSaving">Save rules</BaseButton>
+          </form>
+        </BaseCard>
       </BaseCard>
 
       <BaseCard class="admin-trail-panel__section">
@@ -496,6 +495,19 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.admin-trail-panel__trail {
+  gap: 1rem;
+}
+
+.admin-trail-panel__trail .admin-trail-panel__subcard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background-color: var(--color-background);
+  box-shadow: none;
+  border: 1px solid rgba(26, 62, 47, 0.12);
 }
 
 .admin-trail-panel__header {
