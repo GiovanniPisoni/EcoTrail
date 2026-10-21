@@ -1,17 +1,43 @@
 <script setup>
-import { ref, shallowRef } from 'vue'
+import { onBeforeUnmount, ref, shallowRef } from 'vue'
 import TrailsMap from '@/components/trails/TrailsMap.vue'
 import MapSearch from '@/components/trails/MapSearch.vue'
 import AdminTrailsSidebar from '@/components/admin/AdminTrailsSidebar.vue'
 import AdminTrailPanel from '@/components/admin/AdminTrailPanel.vue'
+import AdminMapFrame from '@/components/admin/AdminMapFrame.vue'
 
 const mapRef = ref(null)
 const mapInstance = shallowRef(null)
 const visibleTrails = ref([])
 const selectedTrailId = ref(null)
 
+function onMapReady(map) {
+  map.zoomControl?.setPosition('bottomright')
+  mapInstance.value = map
+}
+
+const phoneScreen = window.matchMedia('(max-width: 640px)')
+const isPhone = ref(phoneScreen.matches)
+const mapCard = ref(null)
+
+function updatePhone(event) {
+  isPhone.value = event.matches
+}
+
+phoneScreen.addEventListener('change', updatePhone)
+onBeforeUnmount(() => phoneScreen.removeEventListener('change', updatePhone))
+
+function showMap() {
+  mapCard.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 function toggleSelection(trailId) {
+  const selecting = Boolean(trailId) && selectedTrailId.value !== trailId
   selectedTrailId.value = selectedTrailId.value === trailId ? null : trailId
+  if (selecting && isPhone.value) {
+    mapRef.value?.centerOnTrail(trailId)
+    showMap()
+  }
 }
 
 function onStatusChanged() {
@@ -25,29 +51,44 @@ function onStatusChanged() {
       class="admin-trails-page__sidebar"
       :trails="visibleTrails"
       :selected-id="selectedTrailId"
+      :expand-selected="isPhone"
       @select="toggleSelection"
-    />
+    >
+      <template #selected>
+        <AdminTrailPanel
+          :trail-id="selectedTrailId"
+          class="admin-trails-page__panel"
+          @status-changed="onStatusChanged"
+        />
+      </template>
+    </AdminTrailsSidebar>
 
     <div class="admin-trails-page__side">
-      <div class="admin-trails-page__map-card">
-        <TrailsMap
-          ref="mapRef"
-          class="admin-trails-page__map"
-          :selected-trail-id="selectedTrailId"
-          @trails-loaded="visibleTrails = $event"
-          @trail-selected="toggleSelection"
-          @map-ready="mapInstance = $event"
-        />
-        <MapSearch v-if="mapInstance" :map="mapInstance" @trail-picked="selectedTrailId = $event" />
+      <div ref="mapCard" class="admin-trails-page__map-card">
+        <AdminMapFrame>
+          <TrailsMap
+            ref="mapRef"
+            class="admin-trails-page__map"
+            :selected-trail-id="selectedTrailId"
+            @trails-loaded="visibleTrails = $event"
+            @trail-selected="toggleSelection"
+            @map-ready="onMapReady"
+          />
+          <MapSearch
+            v-if="mapInstance"
+            :map="mapInstance"
+            @trail-picked="selectedTrailId = $event"
+          />
+        </AdminMapFrame>
       </div>
 
       <AdminTrailPanel
-        v-if="selectedTrailId"
+        v-if="selectedTrailId && !isPhone"
         class="admin-trails-page__panel"
         :trail-id="selectedTrailId"
         @status-changed="onStatusChanged"
       />
-      <p v-else class="admin-trails-page__hint">
+      <p v-else-if="!isPhone" class="admin-trails-page__hint">
         Select a trail on the map or from the list to see its details.
       </p>
     </div>
@@ -119,10 +160,20 @@ function onStatusChanged() {
     max-height: none;
     border-right: none;
     order: 1;
+    overflow-y: visible;
   }
 
   .admin-trails-page__side {
-    order: 2;
+    flex: none;
+    order: 0;
+    overflow-y: visible;
+    padding: 0.75rem 0.75rem 0;
+  }
+
+  .admin-trails-page__map-card {
+    height: 38vh;
+    min-height: 260px;
+    scroll-margin-top: 96px;
   }
 }
 </style>

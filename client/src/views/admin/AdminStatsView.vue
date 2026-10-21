@@ -215,7 +215,7 @@ watch([params, trailFilter, eventType], load)
 
 @media (max-width: 800px) {
   .stats-page {
-    padding: 1rem 1rem 5rem;
+    padding: 1rem;
   }
 
   .stats-page__grid {

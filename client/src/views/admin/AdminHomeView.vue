@@ -1,17 +1,17 @@
 <script setup>
-import { computed, onMounted, ref, shallowRef } from 'vue'
+import { computed, onMounted, ref, shallowRef, watch } from 'vue'
 import TrailsMap from '@/components/trails/TrailsMap.vue'
 import MapSearch from '@/components/trails/MapSearch.vue'
 import AdminReportsLayer from '@/components/admin/AdminReportsLayer.vue'
 import AdminReportsSidebar from '@/components/admin/AdminReportsSidebar.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
-import BaseButton from '@/components/base/BaseButton.vue'
 import { REPORT_TYPE_OPTIONS } from '@/config/reportOptions.js'
 import { REPORT_VALIDATION_STATUSES } from '@/config/reportValidationStatus.js'
 import api from '@/api/client.js'
+import AdminMapFrame from '@/components/admin/AdminMapFrame.vue'
 
 const mapInstance = shallowRef(null)
-const mobileMapVisible = ref(false)
+const mapCard = ref(null)
 const visibleReports = ref([])
 const visibleTrails = ref([])
 const selectedId = ref(null)
@@ -19,6 +19,19 @@ const pendingCount = ref(null)
 const criticalCount = ref(null)
 const verifiedTodayCount = ref(null)
 const recentActivity = ref([])
+
+function onMapReady(map) {
+  map.zoomControl?.setPosition('bottomright')
+  mapInstance.value = map
+}
+
+const phoneScreen = window.matchMedia('(max-width: 640px)')
+
+watch(selectedId, (id) => {
+  if (id && phoneScreen.matches) {
+    mapCard.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+})
 
 const activeTrailsCount = computed(
   () => visibleTrails.value.filter((trail) => trail.properties.status !== 'closed').length
@@ -170,57 +183,24 @@ onMounted(() => {
       </AdminReportsSidebar>
 
       <div class="admin-page__side">
-        <BaseButton
-          type="button"
-          class="admin-page__view-map-btn"
-          @click="mobileMapVisible = !mobileMapVisible"
-        >
-          <svg
-            v-if="!mobileMapVisible"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M1 6v15l7-3 8 3 7-3V3l-7 3-8-3-7 3Z" />
-            <path d="M8 3v15" />
-            <path d="M16 6v15" />
-          </svg>
-          <svg
-            v-else
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <polyline points="18 15 12 9 6 15" />
-          </svg>
-          {{ mobileMapVisible ? 'Hide active map' : 'View active map' }}
-        </BaseButton>
-
-        <div
-          class="admin-page__map-card"
-          :class="{ 'admin-page__map-card--mobile-hidden': !mobileMapVisible }"
-        >
+        <div ref="mapCard" class="admin-page__map-card">
           <h3 class="admin-page__map-title">Park district live hazard map</h3>
           <div class="admin-page__map-wrap">
-            <TrailsMap
-              class="admin-page__map"
-              @map-ready="mapInstance = $event"
-              @trails-loaded="visibleTrails = $event"
-            />
-            <MapSearch v-if="mapInstance" :map="mapInstance" />
-            <AdminReportsLayer
-              v-if="mapInstance"
-              :map="mapInstance"
-              :reports="visibleReports"
-              :selected-id="selectedId"
-              @select="selectedId = $event"
-            />
+            <AdminMapFrame>
+              <TrailsMap
+                class="admin-page__map"
+                @map-ready="onMapReady"
+                @trails-loaded="visibleTrails = $event"
+              />
+              <MapSearch v-if="mapInstance" :map="mapInstance" />
+              <AdminReportsLayer
+                v-if="mapInstance"
+                :map="mapInstance"
+                :reports="visibleReports"
+                :selected-id="selectedId"
+                @select="selectedId = $event"
+              />
+            </AdminMapFrame>
           </div>
         </div>
 
@@ -318,16 +298,16 @@ onMounted(() => {
 }
 
 .admin-page__sidebar {
-  flex: 1 1 calc(70% - 0.5rem);
-  max-width: calc(70% - 0.5rem);
+  flex: 1 1 calc(60% - 0.5rem);
+  max-width: calc(60% - 0.5rem);
   min-width: 0;
   border-radius: var(--radius-card);
   background-color: var(--color-background);
 }
 
 .admin-page__side {
-  flex: 1 1 calc(30% - 0.5rem);
-  max-width: calc(30% - 0.5rem);
+  flex: 1 1 calc(40% - 0.5rem);
+  max-width: calc(40% - 0.5rem);
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -347,16 +327,6 @@ onMounted(() => {
   display: none;
 }
 
-.admin-page__view-map-btn {
-  display: none;
-}
-
-.admin-page__view-map-btn svg {
-  width: 18px;
-  height: 18px;
-  margin-right: 0.5rem;
-}
-
 .admin-page__map-title {
   position: relative;
   z-index: 10;
@@ -370,7 +340,7 @@ onMounted(() => {
 
 .admin-page__map-wrap {
   position: relative;
-  height: 260px;
+  height: clamp(260px, 52vh, 520px);
   overflow: hidden;
 }
 
@@ -382,7 +352,7 @@ onMounted(() => {
 
 .admin-page__activity {
   flex: 1;
-  min-height: 0;
+  min-height: 120px;
   overflow-y: auto;
   padding: 1rem;
   border-radius: var(--radius-card);
@@ -479,29 +449,17 @@ onMounted(() => {
     display: none;
   }
 
-  .admin-page__view-map-btn {
-    display: flex;
-    position: fixed;
-    bottom: calc(64px + 0.6rem);
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 30;
-    width: auto;
-    margin-top: 0;
-    box-shadow: 0 4px 12px rgba(26, 62, 47, 0.3);
+  .admin-page__map-card {
+    scroll-margin-top: 96px;
   }
 
-  .admin-page__map-card--mobile-hidden {
+  .admin-page__map-title {
     display: none;
   }
 
-  .admin-page__map-wrap :deep(.trail-legend) {
-    padding: 4px 6px;
-    font-size: 0.7rem;
-  }
-
-  .admin-page__map-wrap :deep(.trail-legend-item) {
-    gap: 4px;
+  .admin-page__map-wrap {
+    height: 38vh;
+    min-height: 260px;
   }
 }
 </style>
