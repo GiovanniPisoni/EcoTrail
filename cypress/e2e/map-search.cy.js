@@ -1,6 +1,7 @@
 import { E2E_TRAIL_NAME } from '../support/e2e-config.js'
 
 const SEARCH = 'https://nominatim.openstreetmap.org/search*'
+const SUGGEST = 'https://photon.komoot.io/api/*'
 const MARKER = '.leaflet-overlay-pane path[fill="#1a3e2f"]'
 
 const andalo = {
@@ -19,6 +20,26 @@ const molveno = {
   lat: '46.1428',
   lon: '10.9582',
   boundingbox: ['46.1328', '46.1528', '10.9482', '10.9682']
+}
+
+function place(
+  name,
+  { id = 1, countrycode = 'IT', osmKey = 'place', county = 'Provincia di Trento' } = {}
+) {
+  return {
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: [10.9033, 46.1637] },
+    properties: {
+      osm_id: id,
+      osm_type: 'N',
+      osm_key: osmKey,
+      name,
+      county,
+      state: 'Trentino-Alto Adige',
+      countrycode,
+      extent: [10.8933, 46.1737, 10.9133, 46.1537]
+    }
+  }
 }
 
 function search(text) {
@@ -206,5 +227,176 @@ describe('Search of a trail by name', () => {
     cy.contains('.map-search__result--trail', E2E_TRAIL_NAME).click()
 
     cy.get('.admin-trail-panel__name').should('contain', E2E_TRAIL_NAME)
+  })
+})
+
+describe('Suggestions while typing', () => {
+  it('suggests the places that start with the letters typed', () => {
+    cy.intercept('GET', SUGGEST, { features: [place('Andalo'), place('Andriano', { id: 2 })] }).as(
+      'suggest'
+    )
+    cy.visitAs('hiker', '/')
+
+    cy.get('.map-search__input').type('And')
+
+    cy.wait('@suggest').its('request.url').should('include', 'q=And')
+    cy.get('.map-search__result--place').should('have.length', 2)
+    cy.contains('.map-search__result--place', 'Andalo').should('contain', 'Provincia di Trento')
+  })
+
+  it('goes to the suggested place when it is chosen', () => {
+    cy.intercept('GET', SUGGEST, { features: [place('Andalo')] })
+    cy.visitAs('hiker', '/')
+    cy.get('.map-search__input').type('And')
+
+    cy.contains('.map-search__result--place', 'Andalo').click()
+
+    cy.get('.map-search__input').should('have.value', 'Andalo')
+    cy.get(MARKER).should('exist')
+    cy.get('.map-search__result').should('not.exist')
+  })
+
+  it('shows trails and places together, each with its own icon', () => {
+    cy.intercept('GET', SUGGEST, { features: [place('Ceda', { id: 3 })] })
+    cy.visitAs('hiker', '/')
+
+    cy.get('.map-search__input').type('ceda')
+
+    cy.contains('.map-search__result--trail', E2E_TRAIL_NAME)
+      .find('.map-search__result-icon')
+      .should('be.visible')
+    cy.contains('.map-search__result--place', 'Ceda')
+      .find('.map-search__result-icon')
+      .should('be.visible')
+  })
+
+  it('leaves out what is not a place in Italy', () => {
+    cy.intercept('GET', SUGGEST, {
+      features: [
+        place('Andalo'),
+        place('Andalo Slovenia', { id: 4, countrycode: 'SI' }),
+        place('Andalo road', { id: 5, osmKey: 'highway' })
+      ]
+    })
+    cy.visitAs('hiker', '/')
+
+    cy.get('.map-search__input').type('And')
+
+    cy.get('.map-search__result--place').should('have.length', 1)
+  })
+
+  it('does not look for places before the third letter', () => {
+    cy.intercept('GET', SUGGEST, cy.spy().as('suggest'))
+    cy.visitAs('hiker', '/')
+
+    cy.get('.map-search__input').type('an')
+    cy.wait(600)
+
+    cy.get('@suggest').should('not.have.been.called')
+  })
+
+  it('still suggests the trails when the places cannot be reached', () => {
+    cy.intercept('GET', SUGGEST, { forceNetworkError: true })
+    cy.visitAs('hiker', '/')
+
+    cy.get('.map-search__input').type('ceda')
+
+    cy.contains('.map-search__result--trail', E2E_TRAIL_NAME).should('be.visible')
+    cy.get('.map-search__result--place').should('not.exist')
+  })
+
+  it('suggests the places on the admin maps too', () => {
+    cy.intercept('GET', SUGGEST, { features: [place('Andalo')] })
+    cy.visitAs('admin', '/admin/stats')
+
+    cy.get('.stats-page__heatmap .map-search__input').type('And')
+
+    cy.contains('.map-search__result--place', 'Andalo').should('be.visible')
+  })
+})
+
+describe('Choosing what to search', () => {
+  const TRAIL_SEARCH = '/api/trails/search*'
+
+  beforeEach(() => {
+    cy.intercept('GET', SUGGEST, { features: [place('Ceda', { id: 3 })] })
+  })
+
+  it('offers All, Trails and Places once the person starts typing', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.map-search__scope').should('not.exist')
+
+    cy.get('.map-search__input').type('ce')
+
+    cy.get('.map-search__scope').should('have.length', 3)
+    cy.contains('.map-search__scope', 'All').should('have.attr', 'aria-pressed', 'true')
+  })
+
+  it('shows only the trails when Trails is chosen', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.map-search__input').type('ceda')
+    cy.get('.map-search__result--place').should('exist')
+
+    cy.contains('.map-search__scope', 'Trails').click()
+
+    cy.contains('.map-search__result--trail', E2E_TRAIL_NAME).should('be.visible')
+    cy.get('.map-search__result--place').should('not.exist')
+  })
+
+  it('shows only the places when Places is chosen', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.map-search__input').type('ceda')
+    cy.get('.map-search__result--trail').should('exist')
+
+    cy.contains('.map-search__scope', 'Places').click()
+
+    cy.contains('.map-search__result--place', 'Ceda').should('be.visible')
+    cy.get('.map-search__result--trail').should('not.exist')
+  })
+
+  it('searches only the places when the search is sent with Places chosen', () => {
+    cy.intercept('GET', TRAIL_SEARCH).as('trailSearch')
+    cy.intercept('GET', SEARCH, [andalo]).as('places')
+    cy.visitAs('hiker', '/')
+    cy.get('.map-search__input').type('ce')
+    cy.contains('.map-search__scope', 'Places').click()
+
+    cy.get('.map-search__input').type('da{enter}')
+
+    cy.wait('@places').its('request.url').should('include', 'q=ceda')
+    cy.get('@trailSearch.all').should('have.length', 0)
+  })
+
+  it('says which group has nothing when the search finds no match', () => {
+    cy.intercept('GET', SEARCH, [])
+    cy.visitAs('hiker', '/')
+    cy.get('.map-search__input').type('Nowhere')
+    cy.contains('.map-search__scope', 'Trails').click()
+
+    cy.get('.map-search__input').type('land{enter}')
+
+    cy.contains('.map-search__message', 'No trail found').should('be.visible')
+  })
+
+  it('keeps the bar, the choice and the results in one card', () => {
+    cy.visitAs('hiker', '/')
+
+    cy.get('.map-search--open').should('not.exist')
+    cy.get('.map-search__input').type('ceda')
+
+    cy.get('.map-search--open').within(() => {
+      cy.get('.map-search__input').should('exist')
+      cy.get('.map-search__scope').should('have.length', 3)
+      cy.get('.map-search__result--trail').should('exist')
+    })
+  })
+
+  it('hides the choice once a result is picked', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.map-search__input').type('ceda')
+
+    cy.contains('.map-search__result--trail', E2E_TRAIL_NAME).click()
+
+    cy.get('.map-search__scope').should('not.exist')
   })
 })
