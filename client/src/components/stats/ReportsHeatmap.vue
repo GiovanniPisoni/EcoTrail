@@ -3,6 +3,8 @@ import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import L from 'leaflet'
 import 'leaflet.heat'
 import 'leaflet/dist/leaflet.css'
+import MapSearch from '@/components/trails/MapSearch.vue'
+import AdminMapFrame from '@/components/admin/AdminMapFrame.vue'
 
 const PILOT_AREA_CENTER = [46.1667, 10.9167]
 const PILOT_AREA_ZOOM = 12
@@ -43,6 +45,7 @@ function render() {
 
 onMounted(() => {
   map.value = L.map(container.value).setView(PILOT_AREA_CENTER, PILOT_AREA_ZOOM)
+  map.value.zoomControl.setPosition('bottomright')
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution:
@@ -63,10 +66,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="reports-heatmap">
+  <AdminMapFrame class="reports-heatmap" search-only>
     <div ref="container" class="reports-heatmap__map" />
+    <MapSearch v-if="map" :map="map" />
     <p v-if="points.length === 0" class="reports-heatmap__empty">No reports in this period</p>
-  </div>
+  </AdminMapFrame>
 </template>
 
 <style scoped>
@@ -83,7 +87,7 @@ onBeforeUnmount(() => {
 
 .reports-heatmap__empty {
   position: absolute;
-  top: 0.75rem;
+  bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 500;
