@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
 
@@ -11,12 +11,21 @@ const props = defineProps({
   selectedId: {
     type: String,
     default: null
+  },
+  expandSelected: {
+    type: Boolean,
+    default: false
   }
 })
 
 const emit = defineEmits(['select'])
 
 const root = ref(null)
+
+const expanded = computed(() => props.expandSelected && props.selectedId != null)
+const listedTrails = computed(() =>
+  expanded.value ? props.trails.filter((trail) => !isSelected(trail)) : props.trails
+)
 let scrolledId = null
 
 async function scrollToSelected() {
@@ -64,12 +73,23 @@ function onSelect(trail) {
       <h2 class="admin-trails-sidebar__title">Trails</h2>
     </div>
 
-    <p v-if="trails.length === 0" class="admin-trails-sidebar__empty">
+    <div v-if="expanded" class="admin-trails-sidebar__expanded">
+      <button
+        type="button"
+        class="admin-trails-sidebar__close"
+        @click="emit('select', props.selectedId)"
+      >
+        Close trail
+      </button>
+      <slot name="selected" />
+    </div>
+
+    <p v-if="trails.length === 0 && !expanded" class="admin-trails-sidebar__empty">
       No trails in view. Move or zoom the map to see nearby trails.
     </p>
 
-    <ul v-else class="admin-trails-sidebar__list">
-      <li v-for="trail in trails" :key="trailId(trail)" :data-trail-id="trailId(trail)">
+    <ul v-else-if="listedTrails.length > 0" class="admin-trails-sidebar__list">
+      <li v-for="trail in listedTrails" :key="trailId(trail)" :data-trail-id="trailId(trail)">
         <BaseCard
           class="admin-trails-sidebar__item"
           :class="{ 'admin-trails-sidebar__item--selected': isSelected(trail) }"
@@ -103,6 +123,24 @@ function onSelect(trail) {
   font-family: var(--font-heading);
   font-weight: 400;
   font-size: 1.3rem;
+}
+
+.admin-trails-sidebar__expanded {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.admin-trails-sidebar__close {
+  align-self: flex-end;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 
 .admin-trails-sidebar__empty {
