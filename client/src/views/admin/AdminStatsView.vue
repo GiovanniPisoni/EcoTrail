@@ -11,6 +11,8 @@ const params = ref(null)
 const trailFilter = ref('')
 const eventType = ref(null)
 
+const TOP_TRAILS = 10
+
 const attendance = ref({ trails: [], byHour: [] })
 const heatmapPoints = ref([])
 const events = ref({ totals: { closures: 0, alerts: 0, notifications: 0 }, events: [] })
@@ -20,8 +22,9 @@ const loading = ref(false)
 const error = ref('')
 let requestId = 0
 
-const trailLabels = computed(() => attendance.value.trails.map((trail) => trail.name))
-const trailValues = computed(() => attendance.value.trails.map((trail) => trail.hikers))
+const topTrails = computed(() => attendance.value.trails.slice(0, TOP_TRAILS))
+const trailLabels = computed(() => topTrails.value.map((trail) => trail.name))
+const trailValues = computed(() => topTrails.value.map((trail) => trail.hikers))
 const hourLabels = computed(() =>
   attendance.value.byHour.map((slot) => `${String(slot.hour).padStart(2, '0')}:00`)
 )
@@ -86,15 +89,20 @@ watch([params, trailFilter, eventType], load)
       <BaseCard class="stats-page__card">
         <h2>Hikers per trail</h2>
         <p v-if="trailLabels.length === 0" class="stats-page__empty">No activity in this period</p>
-        <div v-else class="stats-page__chart" :style="{ height: trailsChartHeight }">
-          <BarChart
-            :labels="trailLabels"
-            :values="trailValues"
-            horizontal
-            dataset-label="Distinct hikers"
-            aria-label="Distinct hikers per trail"
-          />
-        </div>
+        <template v-else>
+          <p v-if="attendance.trails.length > TOP_TRAILS" class="stats-page__note">
+            Top {{ TOP_TRAILS }} of {{ attendance.trails.length }} trails
+          </p>
+          <div class="stats-page__chart" :style="{ height: trailsChartHeight }">
+            <BarChart
+              :labels="trailLabels"
+              :values="trailValues"
+              horizontal
+              dataset-label="Distinct hikers"
+              aria-label="Distinct hikers per trail"
+            />
+          </div>
+        </template>
       </BaseCard>
 
       <BaseCard class="stats-page__card">
@@ -199,6 +207,12 @@ watch([params, trailFilter, eventType], load)
   height: 380px;
   overflow: hidden;
   border-radius: 12px;
+}
+
+.stats-page__note {
+  margin: 0 0 0.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
 }
 
 .stats-page__empty,

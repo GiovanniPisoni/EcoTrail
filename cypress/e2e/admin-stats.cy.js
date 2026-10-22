@@ -58,6 +58,28 @@ describe('Admin statistics', () => {
       cy.get('canvas[aria-label="Hikers by hour of the day"]').should('be.visible')
     })
 
+    it('limits the trail chart to the most visited trails', () => {
+      const trails = Array.from({ length: 40 }, (_, i) => ({
+        trailId: `trail-${i}`,
+        name: `Trail ${i}`,
+        hikers: 100 - i
+      }))
+      const byHour = Array.from({ length: 24 }, (_, hour) => ({
+        hour,
+        hikers: hour === 10 ? 5 : 0
+      }))
+      cy.intercept('GET', '/api/stats/attendance*', { trails, byHour }).as('manyTrails')
+
+      cy.contains('button', '30 days').click()
+      cy.wait('@manyTrails')
+
+      cy.contains('.stats-page__card', 'Hikers per trail').should('contain', 'Top 10 of 40 trails')
+      cy.get('canvas[aria-label="Distinct hikers per trail"]')
+        .should('be.visible')
+        .invoke('height')
+        .should('be.lessThan', 1000)
+    })
+
     it('filters the hourly chart by trail', () => {
       cy.get('select[aria-label="Filter by trail"]').select('Sentiero della Ceda')
       cy.wait('@attendance').its('request.url').should('include', 'trail=')
