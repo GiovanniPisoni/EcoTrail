@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BarChart from '@/components/stats/BarChart.vue'
+import HorizontalBars from '@/components/stats/HorizontalBars.vue'
 import ReportsHeatmap from '@/components/stats/ReportsHeatmap.vue'
 import EventsTimeline from '@/components/stats/EventsTimeline.vue'
 import StatsPeriodPicker from '@/components/stats/StatsPeriodPicker.vue'
@@ -29,7 +30,6 @@ const hourLabels = computed(() =>
   attendance.value.byHour.map((slot) => `${String(slot.hour).padStart(2, '0')}:00`)
 )
 const hourValues = computed(() => attendance.value.byHour.map((slot) => slot.hikers))
-const trailsChartHeight = computed(() => `${Math.max(180, trailLabels.value.length * 34 + 50)}px`)
 const hasAttendance = computed(() => hourValues.value.some((value) => value > 0))
 
 async function load() {
@@ -93,20 +93,11 @@ watch([params, trailFilter, eventType], load)
           <p v-if="attendance.trails.length > TOP_TRAILS" class="stats-page__note">
             Top {{ TOP_TRAILS }} of {{ attendance.trails.length }} trails
           </p>
-          <div class="stats-page__scroll">
-            <div
-              class="stats-page__chart stats-page__chart--trails"
-              :style="{ height: trailsChartHeight }"
-            >
-              <BarChart
-                :labels="trailLabels"
-                :values="trailValues"
-                horizontal
-                dataset-label="Distinct hikers"
-                aria-label="Distinct hikers per trail"
-              />
-            </div>
-          </div>
+          <HorizontalBars
+            :labels="trailLabels"
+            :values="trailValues"
+            aria-label="Distinct hikers per trail"
+          />
         </template>
       </BaseCard>
 
@@ -210,14 +201,6 @@ watch([params, trailFilter, eventType], load)
   border: 1px solid rgba(26, 62, 47, 0.3);
   border-radius: 8px;
   font-family: var(--font-body);
-}
-
-.stats-page__scroll {
-  overflow-x: auto;
-}
-
-.stats-page__chart--trails {
-  min-width: 520px;
 }
 
 .stats-page__chart--hours {
