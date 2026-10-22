@@ -175,6 +175,10 @@ watch([params, trailFilter, eventType], load)
   gap: 1rem;
 }
 
+.stats-page__card {
+  min-width: 0;
+}
+
 .stats-page__card h2 {
   margin: 0 0 0.75rem;
   font-size: 1rem;
@@ -233,7 +237,7 @@ watch([params, trailFilter, eventType], load)
   }
 
   .stats-page__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>
