@@ -31,18 +31,19 @@ const HOUR_WEIGHTS = {
 }
 
 function parseArgs(argv) {
-  const options = { days: DEFAULT_DAYS, users: DEFAULT_USERS, cleanup: false }
+  const options = { days: DEFAULT_DAYS, users: DEFAULT_USERS, cleanup: false, validated: false }
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--days') options.days = Number(argv[++i])
     else if (argv[i] === '--users') options.users = Number(argv[++i])
     else if (argv[i] === '--cleanup') options.cleanup = true
+    else if (argv[i] === '--validated') options.validated = true
   }
   return options
 }
 
 function usage() {
   console.log('Usage:')
-  console.log('  npm run simulate:stats -w server -- [--days <n>] [--users <n>]')
+  console.log('  npm run simulate:stats -w server -- [--days <n>] [--users <n>] [--validated]')
   console.log('  npm run simulate:stats -w server -- --cleanup')
 }
 
@@ -127,7 +128,7 @@ async function simulateActivity(trails, userIds, days) {
   return operations.length
 }
 
-async function simulateReports(trails, userIds, days) {
+async function simulateReports(trails, userIds, days, validated) {
   const hotSpots = trails.slice(0, 2).map((trail) => pointAlong(trail.path.coordinates))
   const count = days * 4
 
@@ -145,7 +146,8 @@ async function simulateReports(trails, userIds, days) {
       severity: pick(REPORT_SEVERITIES),
       description: `${MARKER} simulated report`,
       location: { type: 'Point', coordinates: [lon, lat] },
-      createdAt: new Date(Date.now() - random(0, days * DAY_MS))
+      createdAt: new Date(Date.now() - random(0, days * DAY_MS)),
+      ...(validated && { validationStatus: 'validated', validatedAt: new Date() })
     }
   })
 
@@ -192,7 +194,7 @@ async function simulateEvents(trails, userIds, days) {
 }
 
 async function main() {
-  const { days, users, cleanup } = parseArgs(process.argv.slice(2))
+  const { days, users, cleanup, validated } = parseArgs(process.argv.slice(2))
 
   if (!cleanup && !(Number.isInteger(days) && days > 0 && Number.isInteger(users) && users > 0)) {
     usage()
@@ -217,11 +219,11 @@ async function main() {
 
     const userIds = await createUsers(users)
     const buckets = await simulateActivity(trails, userIds, days)
-    const reports = await simulateReports(trails, userIds, days)
+    const reports = await simulateReports(trails, userIds, days, validated)
     const events = await simulateEvents(trails, userIds, days)
 
     console.log(`Simulated ${days} days on ${trails.length} trails with ${users} hikers:`)
-    console.log(`  ${buckets} attendance hours, ${reports} reports`)
+    console.log(`  ${buckets} attendance hours, ${reports} reports${validated ? ' (already validated)' : ''}`)
     console.log(`  ${events.events} status events, ${events.notifications} notifications`)
   } finally {
     await mongoose.disconnect()
