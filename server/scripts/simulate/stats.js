@@ -13,6 +13,9 @@ const MARKER = '[sim]'
 const DAY_MS = 24 * 60 * 60 * 1000
 const DEFAULT_DAYS = 14
 const DEFAULT_USERS = 40
+const ACTIVE_TRAILS = 25
+const POPULARITY_DECAY = 0.8
+const MIN_AUDIENCE = 3
 
 const HOUR_WEIGHTS = {
   6: 0.2,
@@ -95,7 +98,14 @@ async function createUsers(count) {
 }
 
 async function simulateActivity(trails, userIds, days) {
-  const popularity = new Map(trails.map((trail) => [String(trail._id), random(0.3, 1)]))
+  const ranked = pickSome(trails, ACTIVE_TRAILS)
+  const audiences = new Map(
+    ranked.map((trail, rank) => {
+      const share = 1 / (rank + 1) ** POPULARITY_DECAY
+      const size = Math.max(MIN_AUDIENCE, Math.round(userIds.length * share))
+      return [String(trail._id), pickSome(userIds, size)]
+    })
+  )
   const operations = []
   const now = Date.now()
 
@@ -103,20 +113,21 @@ async function simulateActivity(trails, userIds, days) {
     const dayStart = now - day * DAY_MS
     const weekend = [0, 6].includes(new Date(dayStart).getDay())
 
-    for (const trail of trails) {
+    for (const trail of ranked) {
+      const audience = audiences.get(String(trail._id))
       for (const [hour, weight] of Object.entries(HOUR_WEIGHTS)) {
         const at = new Date(startOfHour(new Date(dayStart)).getTime())
         at.setUTCHours(Number(hour) - 2, 0, 0, 0)
         if (at.getTime() > now) continue
 
-        const expected = popularity.get(String(trail._id)) * weight * (weekend ? 5 : 3)
-        const visitors = Math.min(userIds.length, Math.round(expected * random(0.5, 1.5)))
+        const expected = (audience.length / userIds.length) * weight * (weekend ? 5 : 3)
+        const visitors = Math.min(audience.length, Math.round(expected * random(0.5, 1.5)))
         if (visitors === 0) continue
 
         operations.push({
           updateOne: {
             filter: { trail: trail._id, hour: at },
-            update: { $addToSet: { users: { $each: pickSome(userIds, visitors) } } },
+            update: { $addToSet: { users: { $each: pickSome(audience, visitors) } } },
             upsert: true
           }
         })
@@ -223,7 +234,9 @@ async function main() {
     const events = await simulateEvents(trails, userIds, days)
 
     console.log(`Simulated ${days} days on ${trails.length} trails with ${users} hikers:`)
-    console.log(`  ${buckets} attendance hours, ${reports} reports${validated ? ' (already validated)' : ''}`)
+    console.log(
+      `  ${buckets} attendance hours, ${reports} reports${validated ? ' (already validated)' : ''}`
+    )
     console.log(`  ${events.events} status events, ${events.notifications} notifications`)
   } finally {
     await mongoose.disconnect()
