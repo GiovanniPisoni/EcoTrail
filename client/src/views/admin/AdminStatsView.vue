@@ -93,14 +93,19 @@ watch([params, trailFilter, eventType], load)
           <p v-if="attendance.trails.length > TOP_TRAILS" class="stats-page__note">
             Top {{ TOP_TRAILS }} of {{ attendance.trails.length }} trails
           </p>
-          <div class="stats-page__chart" :style="{ height: trailsChartHeight }">
-            <BarChart
-              :labels="trailLabels"
-              :values="trailValues"
-              horizontal
-              dataset-label="Distinct hikers"
-              aria-label="Distinct hikers per trail"
-            />
+          <div class="stats-page__scroll">
+            <div
+              class="stats-page__chart stats-page__chart--trails"
+              :style="{ height: trailsChartHeight }"
+            >
+              <BarChart
+                :labels="trailLabels"
+                :values="trailValues"
+                horizontal
+                dataset-label="Distinct hikers"
+                aria-label="Distinct hikers per trail"
+              />
+            </div>
           </div>
         </template>
       </BaseCard>
@@ -197,10 +202,22 @@ watch([params, trailFilter, eventType], load)
 }
 
 .stats-page__card-head select {
+  flex: 0 1 16rem;
+  min-width: 0;
+  max-width: 100%;
+  text-overflow: ellipsis;
   padding: 0.3rem 0.5rem;
   border: 1px solid rgba(26, 62, 47, 0.3);
   border-radius: 8px;
   font-family: var(--font-body);
+}
+
+.stats-page__scroll {
+  overflow-x: auto;
+}
+
+.stats-page__chart--trails {
+  min-width: 520px;
 }
 
 .stats-page__chart--hours {
