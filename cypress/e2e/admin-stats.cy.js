@@ -54,7 +54,7 @@ describe('Admin statistics', () => {
     })
 
     it('draws the attendance charts', () => {
-      cy.get('canvas[aria-label="Distinct hikers per trail"]').should('be.visible')
+      cy.get('[aria-label^="Distinct hikers per trail"]').should('be.visible')
       cy.get('canvas[aria-label="Hikers by hour of the day"]').should('be.visible')
     })
 
@@ -74,10 +74,9 @@ describe('Admin statistics', () => {
       cy.wait('@manyTrails')
 
       cy.contains('.stats-page__card', 'Hikers per trail').should('contain', 'Top 10 of 40 trails')
-      cy.get('canvas[aria-label="Distinct hikers per trail"]')
-        .should('be.visible')
-        .invoke('height')
-        .should('be.lessThan', 1000)
+      cy.get('[aria-label^="Distinct hikers per trail"]')
+        .find('.hbars__bar')
+        .should('have.length', 10)
     })
 
     it('filters the hourly chart by trail', () => {

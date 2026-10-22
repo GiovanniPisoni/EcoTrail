@@ -8,7 +8,6 @@ const props = defineProps({
   labels: { type: Array, required: true },
   values: { type: Array, required: true },
   datasetLabel: { type: String, default: 'Hikers' },
-  horizontal: { type: Boolean, default: false },
   color: { type: String, default: '#1a3e2f' },
   ariaLabel: { type: String, default: 'Bar chart' }
 })
@@ -19,11 +18,10 @@ let chart = null
 function buildOptions() {
   const valueAxis = { beginAtZero: true, ticks: { precision: 0 } }
   return {
-    indexAxis: props.horizontal ? 'y' : 'x',
     responsive: true,
     maintainAspectRatio: false,
     plugins: { legend: { display: false } },
-    scales: props.horizontal ? { x: valueAxis } : { y: valueAxis }
+    scales: { y: valueAxis }
   }
 }
 
