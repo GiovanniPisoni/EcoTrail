@@ -23,7 +23,7 @@ const TAB_OPTIONS = [
   { value: 'pending', label: 'Review queue' },
   { value: 'suspicious', label: 'Suspicious' },
   { value: 'validated', label: 'Verified logs' },
-  { value: 'rejected', label: 'Flagged/Archived' }
+  { value: 'rejected', label: 'Rejected' }
 ]
 
 const tab = ref('pending')
@@ -36,6 +36,26 @@ const suspiciousCount = ref(null)
 const spamConfirmId = ref(null)
 
 const REVIEWABLE_TABS = ['pending', 'suspicious']
+const REVISABLE_TABS = ['validated', 'rejected']
+const FEEDBACK_MS = 4000
+const feedback = ref('')
+let feedbackTimer = null
+
+function showFeedback(message) {
+  feedback.value = message
+  clearTimeout(feedbackTimer)
+  feedbackTimer = setTimeout(() => {
+    feedback.value = ''
+  }, FEEDBACK_MS)
+}
+
+function isRevisable() {
+  return REVISABLE_TABS.includes(tab.value)
+}
+
+function canAddNote() {
+  return isReviewable() || isRevisable()
+}
 
 function isReviewable() {
   return REVIEWABLE_TABS.includes(tab.value)
@@ -137,6 +157,13 @@ async function review(report, status, { spam } = {}) {
       spam
     })
     spamConfirmId.value = null
+    showFeedback(
+      status === 'validated'
+        ? 'Report validated.'
+        : spam
+          ? 'Report rejected as spam. The author’s reputation was lowered.'
+          : 'Report rejected.'
+    )
     emit('select', null)
     emit('reviewed')
     await loadReports()
@@ -166,6 +193,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  clearTimeout(feedbackTimer)
   stopRealtime.forEach((stop) => stop())
   stopRealtime = []
 })
@@ -177,9 +205,11 @@ onUnmounted(() => {
       <h2 class="admin-reports-sidebar__title">Reports</h2>
       <div v-if="pendingCount !== null" class="admin-reports-sidebar__pending-stat">
         <span class="admin-reports-sidebar__pending-dot" />
-        <span>{{ pendingCount }} pending</span>
+        <span>{{ pendingCount }} waiting for review</span>
       </div>
     </div>
+
+    <p v-if="feedback" class="admin-reports-sidebar__feedback" role="status">{{ feedback }}</p>
 
     <div class="admin-reports-sidebar__tabs">
       <button
@@ -296,10 +326,33 @@ onUnmounted(() => {
               hidden from the public until you review it.
             </p>
 
-            <label v-if="isReviewable()" class="admin-reports-sidebar__note-field">
+            <p
+              v-if="tab === 'suspicious'"
+              class="admin-reports-sidebar__reputation-notice"
+              @click.stop
+            >
+              <strong>Reject as spam</strong> lowers the author's reputation. Use plain
+              <strong>Reject</strong> when the report is just wrong or unhelpful.
+            </p>
+
+            <label v-if="canAddNote()" class="admin-reports-sidebar__note-field">
               <span>Note (optional)</span>
               <textarea v-model="noteDraft" rows="2" @click.stop />
             </label>
+
+            <div v-if="isRevisable()" class="admin-reports-sidebar__actions" @click.stop>
+              <BaseButton
+                v-if="tab === 'validated'"
+                variant="secondary"
+                :disabled="reviewing"
+                @click="review(report, 'rejected')"
+              >
+                Change to rejected
+              </BaseButton>
+              <BaseButton v-else :disabled="reviewing" @click="review(report, 'validated')">
+                Change to validated
+              </BaseButton>
+            </div>
 
             <div v-if="isReviewable()" class="admin-reports-sidebar__actions" @click.stop>
               <BaseButton
@@ -321,6 +374,19 @@ onUnmounted(() => {
                 >Validate</BaseButton
               >
             </div>
+
+            <p v-if="isReviewable()" class="admin-reports-sidebar__legend" @click.stop>
+              <strong>Validate</strong> publishes the report. <strong>Reject</strong> hides it, with
+              no penalty for the author.
+              <template v-if="tab === 'suspicious'">
+                <strong>Reject as spam</strong> hides it and lowers the author's reputation (asks
+                for confirmation).
+              </template>
+            </p>
+            <p v-else-if="isRevisable()" class="admin-reports-sidebar__legend" @click.stop>
+              You can change your decision. Any reputation change from the previous decision is
+              reverted.
+            </p>
 
             <p
               v-if="spamConfirmId === reportId(report)"
@@ -629,5 +695,29 @@ onUnmounted(() => {
   .admin-reports-sidebar__severity-option {
     flex: 0 0 auto;
   }
+}
+
+.admin-reports-sidebar__feedback {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-surface);
+  border-left: 3px solid var(--color-primary);
+  font-size: 0.85rem;
+}
+
+.admin-reports-sidebar__reputation-notice {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md, 8px);
+  background: rgba(214, 140, 30, 0.14);
+  border-left: 3px solid var(--color-status-crowded);
+  font-size: 0.8rem;
+}
+
+.admin-reports-sidebar__legend {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
 }
 </style>
