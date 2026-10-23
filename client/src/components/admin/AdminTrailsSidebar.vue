@@ -15,10 +15,14 @@ const props = defineProps({
   expandSelected: {
     type: Boolean,
     default: false
+  },
+  attentionTrails: {
+    type: Array,
+    default: () => []
   }
 })
 
-const emit = defineEmits(['select'])
+const emit = defineEmits(['select', 'pick-attention'])
 
 const root = ref(null)
 
@@ -84,6 +88,33 @@ function onSelect(trail) {
       <slot name="selected" />
     </div>
 
+    <section
+      v-if="attentionTrails.length > 0 && !expanded"
+      class="admin-trails-sidebar__attention"
+      aria-labelledby="needs-attention-title"
+    >
+      <h3 id="needs-attention-title" class="admin-trails-sidebar__attention-title">
+        Needs attention ({{ attentionTrails.length }})
+      </h3>
+      <ul class="admin-trails-sidebar__list">
+        <li v-for="trail in attentionTrails" :key="trail.id">
+          <BaseCard
+            class="admin-trails-sidebar__item"
+            :class="{ 'admin-trails-sidebar__item--selected': selectedId === String(trail.id) }"
+            @click="emit('pick-attention', String(trail.id))"
+          >
+            <span class="admin-trails-sidebar__name">
+              {{ trail.name }}
+              <span v-if="trail.closureProposed" class="admin-trails-sidebar__flag">
+                Closure proposed
+              </span>
+            </span>
+            <StatusBadge :status="trail.status" />
+          </BaseCard>
+        </li>
+      </ul>
+    </section>
+
     <p v-if="trails.length === 0 && !expanded" class="admin-trails-sidebar__empty">
       No trails in view. Move or zoom the map to see nearby trails.
     </p>
@@ -104,6 +135,29 @@ function onSelect(trail) {
 </template>
 
 <style scoped>
+.admin-trails-sidebar__attention {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border-radius: var(--radius-card);
+  border-left: 4px solid var(--color-status-closed, #ef4444);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.admin-trails-sidebar__attention-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.admin-trails-sidebar__flag {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-status-closed, #ef4444);
+}
+
 .admin-trails-sidebar {
   display: flex;
   flex-direction: column;

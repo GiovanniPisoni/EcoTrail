@@ -6,12 +6,14 @@ import MapSearch from '@/components/trails/MapSearch.vue'
 import AdminTrailsSidebar from '@/components/admin/AdminTrailsSidebar.vue'
 import AdminTrailPanel from '@/components/admin/AdminTrailPanel.vue'
 import AdminMapFrame from '@/components/admin/AdminMapFrame.vue'
+import api from '@/api/client.js'
 
 const route = useRoute()
 const mapRef = ref(null)
 const mapInstance = shallowRef(null)
 const visibleTrails = ref([])
 const selectedTrailId = ref(null)
+const attentionTrails = ref([])
 
 function onMapReady(map) {
   map.zoomControl?.setPosition('bottomright')
@@ -42,13 +44,32 @@ function toggleSelection(trailId) {
   }
 }
 
+async function loadAttentionTrails() {
+  try {
+    const { data } = await api.get('/trails/attention')
+    attentionTrails.value = data
+  } catch (err) {
+    console.error('Failed to load the trails that need attention:', err)
+  }
+}
+
+function pickAttentionTrail(trailId) {
+  if (selectedTrailId.value === trailId) {
+    toggleSelection(trailId)
+    return
+  }
+  mapRef.value?.focusOnTrail(trailId)
+}
+
 onMounted(() => {
+  loadAttentionTrails()
   const trailId = route.query.trail
   if (typeof trailId === 'string' && trailId) mapRef.value?.focusOnTrail(trailId)
 })
 
 function onStatusChanged() {
   mapRef.value?.refresh()
+  loadAttentionTrails()
 }
 </script>
 
@@ -59,7 +80,9 @@ function onStatusChanged() {
       :trails="visibleTrails"
       :selected-id="selectedTrailId"
       :expand-selected="isPhone"
+      :attention-trails="attentionTrails"
       @select="toggleSelection"
+      @pick-attention="pickAttentionTrail"
     >
       <template #selected>
         <AdminTrailPanel

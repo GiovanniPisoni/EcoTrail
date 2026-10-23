@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import Trail from '../models/Trail.js'
 import TrailStatusHistory from '../models/TrailStatusHistory.js'
 import { parseBbox } from '../utils/bbox.js'
+import { requireAuth, requireRole } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -114,6 +115,29 @@ function pathBounds(coordinates) {
   }
   return [west, south, east, north]
 }
+
+export const MAX_ATTENTION_TRAILS = 50
+
+router.get('/attention', requireAuth, requireRole('admin'), async (req, res) => {
+  const trails = await Trail.find({
+    status: { $ne: 'closed' },
+    $or: [{ status: 'at_risk' }, { closureProposal: { $exists: true } }]
+  })
+    .select('name status path closureProposal')
+    .sort({ name: 1 })
+    .limit(MAX_ATTENTION_TRAILS)
+
+  const items = trails.map((trail) => ({
+    id: trail._id,
+    name: trail.name,
+    status: trail.status,
+    closureProposed: Boolean(trail.closureProposal),
+    bounds: pathBounds(trail.path.coordinates)
+  }))
+  items.sort((a, b) => Number(b.closureProposed) - Number(a.closureProposed))
+
+  res.json(items)
+})
 
 router.get('/search', async (req, res) => {
   const text = typeof req.query.q === 'string' ? req.query.q.trim() : ''
