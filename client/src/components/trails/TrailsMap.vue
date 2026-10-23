@@ -147,6 +147,8 @@ async function loadTrails() {
     return
   }
 
+  if (!map) return
+
   lastTrailsData = data
   renderTrailsLayer()
   emitVisibleTrails()
