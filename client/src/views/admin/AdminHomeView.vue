@@ -122,15 +122,15 @@ onMounted(() => {
   <main class="admin-page">
     <div class="admin-page__stats">
       <div class="admin-page__stat-card">
-        <span class="admin-page__stat-label">Pending verification</span>
+        <span class="admin-page__stat-label">Total waiting for review</span>
         <span class="admin-page__stat-value admin-page__stat-value--pending">
           <span class="admin-page__stat-dot" />{{ pendingCount ?? '-' }}
         </span>
       </div>
       <div class="admin-page__stat-card">
-        <span class="admin-page__stat-label">Critical warnings</span>
+        <span class="admin-page__stat-label">Of which critical</span>
         <span class="admin-page__stat-value admin-page__stat-value--critical">
-          <span class="admin-page__stat-dot" />{{ criticalCount ?? '-' }}
+          <span class="admin-page__stat-dot" />{{ criticalCount ?? '-' }} / {{ pendingCount ?? '-' }} total waiting 
         </span>
       </div>
       <div class="admin-page__stat-card">

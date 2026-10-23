@@ -61,7 +61,7 @@ describe('Admin moderates reports', () => {
     cy.wait('@review').its('response.statusCode').should('eq', 200)
     cy.contains('.admin-reports-sidebar__item', 'Overcrowding').should('not.exist')
 
-    cy.contains('.admin-reports-sidebar__tab', 'Flagged/Archived').click()
+    cy.contains('.admin-reports-sidebar__tab', 'Rejected').click()
     openReport('Overcrowding')
     cy.contains('Note: Not on the trail').should('be.visible')
 
@@ -78,5 +78,30 @@ describe('Admin moderates reports', () => {
     cy.contains('.admin-reports-sidebar__severity-option', 'High').click()
     cy.contains('.admin-reports-sidebar__item', 'Overcrowding').should('be.visible')
     cy.contains('.admin-reports-sidebar__item', 'Fallen tree').should('not.exist')
+  })
+
+  it('shows a legend and a confirmation message after a review', () => {
+    openReport('Fallen tree')
+    inReport('Fallen tree').should('contain', 'hides it, with no penalty')
+    inReport('Fallen tree').contains('button', 'Validate').click()
+
+    cy.wait('@review')
+    cy.get('[role="status"]').should('contain', 'Report validated')
+  })
+
+  it('lets the authority change a rejected report to validated', () => {
+    openReport('Overcrowding')
+    inReport('Overcrowding').contains('button', 'Reject').click()
+    cy.wait('@review')
+
+    cy.contains('.admin-reports-sidebar__tab', 'Rejected').click()
+    openReport('Overcrowding')
+    inReport('Overcrowding').contains('button', 'Change to validated').click()
+
+    cy.wait('@review').its('response.statusCode').should('eq', 200)
+    cy.task('db:reports').then((reports) => {
+      const report = reports.find((item) => item.type === 'overcrowding')
+      expect(report.validationStatus).to.eq('validated')
+    })
   })
 })
