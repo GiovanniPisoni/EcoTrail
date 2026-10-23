@@ -298,6 +298,7 @@ async function dismissProposal() {
   try {
     const { data } = await api.delete(`/trails/${props.trailId}/closure-proposal`)
     applyAlertRules(data)
+    emit('status-changed')
   } catch (err) {
     proposalError.value = err.response?.data?.error ?? 'Failed to dismiss the proposal'
   } finally {
