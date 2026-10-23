@@ -7,6 +7,7 @@ import app from '../../src/index.js'
 import User from '../../src/models/User.js'
 import Trail from '../../src/models/Trail.js'
 import TrailStatusHistory from '../../src/models/TrailStatusHistory.js'
+import Report from '../../src/models/Report.js'
 import { TRAIL_STATUS_CHANGED, trailEvents } from '../../src/services/trails/trailEvents.js'
 
 const JWT_SECRET = 'test-secret'
@@ -47,7 +48,12 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
-  await Promise.all([User.deleteMany({}), Trail.deleteMany({}), TrailStatusHistory.deleteMany({})])
+  await Promise.all([
+    User.deleteMany({}),
+    Trail.deleteMany({}),
+    TrailStatusHistory.deleteMany({}),
+    Report.deleteMany({})
+  ])
 })
 
 describe('PATCH /api/trails/:id/status', () => {
@@ -161,6 +167,90 @@ describe('PATCH /api/trails/:id/status', () => {
         reason: 'Rockfall reported'
       })
     )
+  })
+})
+
+describe('PATCH /api/trails/:id/status with validateReports', () => {
+  async function setup({ proposed = true } = {}) {
+    const trail = await Trail.create({
+      name: 'Test trail',
+      path: samplePath(),
+      status: 'at_risk',
+      ...(proposed && {
+        closureProposal: { reason: 'Automatic', reportCount: 3, proposedAt: new Date() }
+      })
+    })
+    const { token } = await createUserAndToken()
+    const { user: hiker } = await createUserAndToken('hiker', 'hiker@ecotrail.test')
+
+    const make = (overrides) =>
+      Report.create({
+        author: hiker._id,
+        trail: trail._id,
+        type: 'fallen_tree',
+        severity: 'high',
+        location: { type: 'Point', coordinates: [10.905, 46.18] },
+        validationStatus: 'pending',
+        trustScore: 3,
+        ...overrides
+      })
+
+    const behind = await make({})
+    const others = {
+      suspicious: await make({ isSuspicious: true }),
+      rejected: await make({ validationStatus: 'rejected' }),
+      medium: await make({ severity: 'medium' }),
+      unreliable: await make({ trustScore: 0 })
+    }
+    return { trail, token, behind, others }
+  }
+
+  async function statusOf(report) {
+    return (await Report.findById(report._id)).validationStatus
+  }
+
+  it('validates the pending reports behind the proposal when the trail is closed', async () => {
+    const { trail, token, behind, others } = await setup()
+
+    const res = await patchStatus(trail._id, token, {
+      status: 'closed',
+      reason: 'Closed after admin review',
+      validateReports: true
+    })
+
+    expect(res.status).toBe(200)
+    expect(res.body.validatedReports).toBe(1)
+    expect(await statusOf(behind)).toBe('validated')
+    expect(await statusOf(others.suspicious)).toBe('pending')
+    expect(await statusOf(others.rejected)).toBe('rejected')
+    expect(await statusOf(others.medium)).toBe('pending')
+    expect(await statusOf(others.unreliable)).toBe('pending')
+  })
+
+  it('leaves the reports alone unless the admin asks for it', async () => {
+    const { trail, token, behind } = await setup()
+
+    const res = await patchStatus(trail._id, token, {
+      status: 'closed',
+      reason: 'Closed after admin review'
+    })
+
+    expect(res.status).toBe(200)
+    expect(res.body.validatedReports).toBe(0)
+    expect(await statusOf(behind)).toBe('pending')
+  })
+
+  it('validates nothing when there was no closure proposal', async () => {
+    const { trail, token, behind } = await setup({ proposed: false })
+
+    const res = await patchStatus(trail._id, token, {
+      status: 'closed',
+      reason: 'Closed by hand',
+      validateReports: true
+    })
+
+    expect(res.body.validatedReports).toBe(0)
+    expect(await statusOf(behind)).toBe('pending')
   })
 })
 

@@ -253,6 +253,9 @@ onUnmounted(() => {
             <span class="admin-reports-sidebar__time">{{ timeAgo(report.createdAt) }}</span>
             <span v-if="report.isSuspicious" class="admin-reports-sidebar__flag">Suspicious</span>
             <span v-else-if="report.markedAsSpam" class="admin-reports-sidebar__flag">Spam</span>
+            <span v-if="report.trail?.closureProposed" class="admin-reports-sidebar__flag">
+              Closure proposed
+            </span>
             <span
               v-if="report.trustScore !== undefined"
               class="admin-reports-sidebar__trust"
@@ -278,6 +281,16 @@ onUnmounted(() => {
               Reported by {{ report.author?.email ?? 'unknown' }}
             </p>
 
+            <p
+              v-if="report.trail?.closureProposed"
+              class="admin-reports-sidebar__proposal-hint"
+              @click.stop
+            >
+              The system proposed closing this trail and is waiting for your decision.
+              <RouterLink :to="{ name: 'admin-trails', query: { trail: report.trail.id } }">
+                Review the closure proposal
+              </RouterLink>
+            </p>
             <p v-if="report.isSuspicious" class="admin-reports-sidebar__suspicious-hint">
               Sent right after another identical report by the same user at the same spot. It stays
               hidden from the public until you review it.
@@ -572,6 +585,22 @@ onUnmounted(() => {
   font-weight: 600;
   color: var(--color-status-closed);
   background-color: color-mix(in srgb, var(--color-status-closed) 10%, white);
+}
+
+.admin-reports-sidebar__proposal-hint {
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  border-left: 3px solid var(--color-status-closed);
+  border-radius: 6px;
+  background-color: color-mix(in srgb, var(--color-status-closed) 8%, white);
+  font-size: 0.8rem;
+}
+
+.admin-reports-sidebar__proposal-hint a {
+  display: block;
+  margin-top: 0.25rem;
+  font-weight: 600;
+  color: var(--color-status-closed);
 }
 
 .admin-reports-sidebar__suspicious-hint {

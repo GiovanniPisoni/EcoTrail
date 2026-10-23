@@ -22,6 +22,21 @@ describe('Admin moderates reports', () => {
     cy.contains('.admin-reports-sidebar__item', 'Overcrowding').should('be.visible')
   })
 
+  it('points a report to the closure proposal of its trail', () => {
+    cy.task('db:proposeClosure', {
+      reason: 'Three reliable high-severity reports in 24 hours',
+      reportCount: 3
+    })
+    cy.reload()
+
+    inReport('Fallen tree').should('contain', 'Closure proposed')
+    openReport('Fallen tree')
+    inReport('Fallen tree').contains('a', 'Review the closure proposal').click()
+
+    cy.location('pathname').should('eq', '/admin/trails')
+    cy.contains('.admin-trail-panel__proposal', 'Closure proposed').should('be.visible')
+  })
+
   it('validates a report and moves it to the verified logs', () => {
     openReport('Fallen tree')
     inReport('Fallen tree').contains('button', 'Validate').click()

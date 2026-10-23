@@ -78,6 +78,34 @@ describe('Admin trail settings', () => {
       cy.task('db:trailStatus', E2E_TRAIL_NAME).should('eq', 'free')
     })
 
+    it('validates the reports behind it when the trail is closed', () => {
+      cy.task('db:insertReports', [{ severity: 'high', trustScore: 3 }])
+      openTrail()
+      cy.intercept('PATCH', '/api/trails/*/status').as('changeStatus')
+
+      cy.contains('.admin-trail-panel__proposal button', 'Close trail').click()
+
+      cy.wait('@changeStatus').its('response.body.validatedReports').should('eq', 1)
+      cy.contains('Trail closed. 1 report validated.').should('be.visible')
+      cy.task('db:reports').then((reports) => {
+        expect(reports[0].validationStatus).to.eq('validated')
+      })
+    })
+
+    it('keeps the reports pending when the admin unchecks the option', () => {
+      cy.task('db:insertReports', [{ severity: 'high', trustScore: 3 }])
+      openTrail()
+      cy.intercept('PATCH', '/api/trails/*/status').as('changeStatus')
+
+      cy.contains('.admin-trail-panel__proposal label', 'Also validate').find('input').uncheck()
+      cy.contains('.admin-trail-panel__proposal button', 'Close trail').click()
+
+      cy.wait('@changeStatus').its('response.body.validatedReports').should('eq', 0)
+      cy.task('db:reports').then((reports) => {
+        expect(reports[0].validationStatus).to.eq('pending')
+      })
+    })
+
     it('can be confirmed to close the trail', () => {
       cy.intercept('PATCH', '/api/trails/*/status').as('changeStatus')
 

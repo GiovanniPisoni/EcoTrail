@@ -177,6 +177,24 @@ describe('GET /api/reports/admin', () => {
     expect(res.body.pagination).toMatchObject({ page: 1, limit: 20, total: 1, pages: 1 })
   })
 
+  it("tells whether the report's trail has a closure proposal", async () => {
+    const { token } = await createUser('admin', 'admin@ecotrail.test')
+    const { user: hiker } = await createUser('hiker', 'hiker@ecotrail.test')
+    const proposed = await Trail.create({
+      ...trailAt('Proposed', 40.5),
+      closureProposal: { reason: 'Automatic', reportCount: 3, proposedAt: new Date() }
+    })
+    const plain = await Trail.create(trailAt('Plain', 40.6))
+    await createReport(hiker, proposed)
+    await createReport(hiker, plain)
+
+    const res = await getAdminReports(token)
+
+    const byName = Object.fromEntries(res.body.reports.map((r) => [r.trail.name, r.trail]))
+    expect(byName.Proposed.closureProposed).toBe(true)
+    expect(byName.Plain.closureProposed).toBe(false)
+  })
+
   it('filters by validationStatus', async () => {
     const { token } = await createUser('admin', 'admin@ecotrail.test')
     const { user: hiker } = await createUser('hiker', 'hiker@ecotrail.test')

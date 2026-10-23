@@ -1,11 +1,13 @@
 <script setup>
-import { onBeforeUnmount, ref, shallowRef } from 'vue'
+import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
+import { useRoute } from 'vue-router'
 import TrailsMap from '@/components/trails/TrailsMap.vue'
 import MapSearch from '@/components/trails/MapSearch.vue'
 import AdminTrailsSidebar from '@/components/admin/AdminTrailsSidebar.vue'
 import AdminTrailPanel from '@/components/admin/AdminTrailPanel.vue'
 import AdminMapFrame from '@/components/admin/AdminMapFrame.vue'
 
+const route = useRoute()
 const mapRef = ref(null)
 const mapInstance = shallowRef(null)
 const visibleTrails = ref([])
@@ -39,6 +41,11 @@ function toggleSelection(trailId) {
     showMap()
   }
 }
+
+onMounted(() => {
+  const trailId = route.query.trail
+  if (typeof trailId === 'string' && trailId) mapRef.value?.focusOnTrail(trailId)
+})
 
 function onStatusChanged() {
   mapRef.value?.refresh()

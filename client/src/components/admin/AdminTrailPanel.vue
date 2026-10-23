@@ -68,7 +68,11 @@ const crowdSaved = ref(false)
 
 const ALERT_FIELDS = [
   { key: 'riskCount', label: 'At risk after (reliable reports)', min: 1 },
-  { key: 'closeCount', label: 'Propose closure after (high-severity reports)', min: 1 },
+  {
+    key: 'closeCount',
+    label: 'Propose closing after this many serious (high-severity) reports',
+    min: 1
+  },
   { key: 'windowHours', label: 'Reports from the last (hours)', min: 1 },
   { key: 'radiusMeters', label: 'Reports within (metres)', min: 50 }
 ]
@@ -80,6 +84,9 @@ const alertError = ref('')
 const alertSaved = ref(false)
 const proposalBusy = ref(false)
 const proposalError = ref('')
+const validateOnClose = ref(true)
+const sendValidateOnClose = ref(false)
+const closeMessage = ref('')
 
 const statusOptions = computed(() =>
   Object.keys(TRAIL_STATUSES).filter((status) => status !== trail.value?.properties.status)
@@ -139,6 +146,7 @@ async function loadAlertRules() {
 
 async function loadAll() {
   loading.value = true
+  closeMessage.value = ''
   try {
     await Promise.all([
       loadTrail(),
@@ -169,18 +177,24 @@ async function changeStatus() {
   const newStatus = statusDraft.value
   submitting.value = true
   try {
-    await api.patch(`/trails/${props.trailId}/status`, {
+    const { data } = await api.patch(`/trails/${props.trailId}/status`, {
       status: newStatus,
-      reason: reasonDraft.value.trim()
+      reason: reasonDraft.value.trim(),
+      ...(sendValidateOnClose.value && { validateReports: validateOnClose.value })
     })
+    closeMessage.value =
+      data.validatedReports > 0
+        ? `Trail closed. ${data.validatedReports} ${data.validatedReports === 1 ? 'report' : 'reports'} validated.`
+        : ''
     statusDraft.value = ''
     reasonDraft.value = ''
-    await Promise.all([loadTrail(), loadHistory(), loadAlertRules()])
+    await Promise.all([loadTrail(), loadReports(), loadHistory(), loadAlertRules()])
     if (isEmergencyStatus(newStatus)) refreshWhileAlertsInProgress()
     emit('status-changed')
   } catch (err) {
     submitError.value = err.response?.data?.error ?? 'Failed to change trail status'
   } finally {
+    sendValidateOnClose.value = false
     submitting.value = false
   }
 }
@@ -282,6 +296,7 @@ async function dismissProposal() {
 async function confirmClosure() {
   statusDraft.value = 'closed'
   reasonDraft.value = `Closed after admin review. ${alertRules.value.closureProposal.reason}`
+  sendValidateOnClose.value = true
   await changeStatus()
 }
 
@@ -300,20 +315,28 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
           <h3 class="admin-trail-panel__name">{{ trail.properties.name }}</h3>
           <StatusBadge :status="trail.properties.status" />
         </div>
+        <p v-if="closeMessage" class="admin-trail-panel__success">{{ closeMessage }}</p>
         <BaseCard
           v-if="alertRules?.closureProposal"
           class="admin-trail-panel__subcard admin-trail-panel__proposal"
         >
           <h4 class="admin-trail-panel__section-title">Closure proposed</h4>
           <p class="admin-trail-panel__hint">
-            {{ alertRules.closureProposal.reportCount }} reliable high-severity reports. Closing the
-            trail needs your confirmation.
+            {{ alertRules.closureProposal.reportCount }} serious (high-severity) reports from
+            reliable users were sent on this trail in a short time. Read them below, then decide:
+            closing the trail needs your confirmation.
           </p>
           <p class="admin-trail-panel__hint">
             {{ alertRules.closureProposal.reason }} ({{
               formatDate(alertRules.closureProposal.proposedAt)
             }})
           </p>
+          <label class="admin-trail-panel__check">
+            <input v-model="validateOnClose" type="checkbox" />
+            <span>
+              Also validate the pending serious reports from reliable users behind this proposal
+            </span>
+          </label>
           <p v-if="proposalError" class="admin-trail-panel__error">{{ proposalError }}</p>
           <div class="admin-trail-panel__proposal-actions">
             <BaseButton :disabled="submitting || proposalBusy" @click="confirmClosure">
@@ -327,6 +350,40 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
               Dismiss
             </BaseButton>
           </div>
+        </BaseCard>
+        <BaseCard class="admin-trail-panel__subcard admin-trail-panel__reports-card">
+          <h4 class="admin-trail-panel__section-title">Connected reports ({{ reports.length }})</h4>
+          <p v-if="reports.length === 0" class="admin-trail-panel__empty">
+            No reports for this trail.
+          </p>
+          <ul v-else class="admin-trail-panel__reports">
+            <li v-for="report in reports" :key="report.id" class="admin-trail-panel__report">
+              <span
+                class="admin-trail-panel__report-icon"
+                v-html="reportTypeOption(report.type)?.icon"
+              />
+              <span class="admin-trail-panel__report-text">
+                {{ reportTypeOption(report.type)?.label ?? report.type }}
+                <span
+                  class="admin-trail-panel__report-severity"
+                  :style="{ '--severity-color': severityOption(report.severity)?.color }"
+                >
+                  {{ severityOption(report.severity)?.label }}
+                </span>
+                <span
+                  v-if="report.trustScore !== undefined"
+                  class="admin-trail-panel__report-trust"
+                  title="Trust score: confirmations from other nearby users and the author's reputation"
+                >
+                  Trust {{ report.trustScore }}
+                </span>
+              </span>
+              <StatusBadge
+                :status="report.validationStatus"
+                :statuses="REPORT_VALIDATION_STATUSES"
+              />
+            </li>
+          </ul>
         </BaseCard>
         <BaseCard class="admin-trail-panel__subcard">
           <h4 class="admin-trail-panel__section-title">Status</h4>
@@ -422,38 +479,6 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
             <BaseButton type="submit" :disabled="alertSaving">Save rules</BaseButton>
           </form>
         </BaseCard>
-      </BaseCard>
-
-      <BaseCard class="admin-trail-panel__section">
-        <h4 class="admin-trail-panel__section-title">Connected reports ({{ reports.length }})</h4>
-        <p v-if="reports.length === 0" class="admin-trail-panel__empty">
-          No reports for this trail.
-        </p>
-        <ul v-else class="admin-trail-panel__reports">
-          <li v-for="report in reports" :key="report.id" class="admin-trail-panel__report">
-            <span
-              class="admin-trail-panel__report-icon"
-              v-html="reportTypeOption(report.type)?.icon"
-            />
-            <span class="admin-trail-panel__report-text">
-              {{ reportTypeOption(report.type)?.label ?? report.type }}
-              <span
-                class="admin-trail-panel__report-severity"
-                :style="{ '--severity-color': severityOption(report.severity)?.color }"
-              >
-                {{ severityOption(report.severity)?.label }}
-              </span>
-              <span
-                v-if="report.trustScore !== undefined"
-                class="admin-trail-panel__report-trust"
-                title="Trust score: confirmations from other nearby users and the author's reputation"
-              >
-                Trust {{ report.trustScore }}
-              </span>
-            </span>
-            <StatusBadge :status="report.validationStatus" :statuses="REPORT_VALIDATION_STATUSES" />
-          </li>
-        </ul>
       </BaseCard>
 
       <BaseCard class="admin-trail-panel__section">
@@ -572,6 +597,17 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
   border-left: 4px solid var(--color-status-closed);
 }
 
+.admin-trail-panel__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.admin-trail-panel__check input {
+  margin-top: 0.15rem;
+}
+
 .admin-trail-panel__proposal-actions {
   display: flex;
   flex-wrap: wrap;
@@ -588,6 +624,11 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
   margin: 0;
   color: var(--color-text-muted);
   font-size: 0.85rem;
+}
+
+.admin-trail-panel__reports-card .admin-trail-panel__reports {
+  max-height: 14rem;
+  overflow-y: auto;
 }
 
 .admin-trail-panel__reports {

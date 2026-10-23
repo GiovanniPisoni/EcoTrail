@@ -83,6 +83,7 @@ export async function insertReports(entries) {
       severity: entry.severity ?? 'medium',
       validationStatus: entry.validationStatus ?? 'pending',
       isSuspicious: entry.isSuspicious ?? false,
+      ...(entry.trustScore !== undefined && { trustScore: entry.trustScore }),
       ...(entry.validationNote && { validationNote: entry.validationNote }),
       description: entry.description ?? `E2E report ${index + 1}`,
       location: { type: 'Point', coordinates: [longitude + index * 0.002, latitude] },

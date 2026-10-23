@@ -11,10 +11,11 @@ import {
   processReportPhoto,
   storeReportPhoto
 } from '../services/reports/reportPhoto.js'
-import { reportEvents, REPORT_CREATED, REPORT_UPDATED } from '../services/reports/reportEvents.js'
+import { reportEvents, REPORT_CREATED } from '../services/reports/reportEvents.js'
 import { parseBbox } from '../utils/bbox.js'
-import { adjustReputation, refreshTrustSafely } from '../services/reports/reportTrust.js'
-import { isSuspiciousReport, SPAM_REPUTATION_PENALTY } from '../services/reports/reportSpam.js'
+import { refreshTrustSafely } from '../services/reports/reportTrust.js'
+import { isSuspiciousReport } from '../services/reports/reportSpam.js'
+import { reviewReport } from '../services/reports/reviewReport.js'
 import { reportRateLimit } from '../middleware/reportRateLimit.js'
 import { evaluateTrailAlertSafely } from '../services/trails/autoTrailAlert.js'
 import { clampCapturedAt, readIdempotencyKey } from '../services/reports/reportCapture.js'
@@ -109,7 +110,13 @@ function reportToAdminResponse(report) {
     photoUrl: report.photoUrl,
     latitude,
     longitude,
-    trail: report.trail ? { id: report.trail._id, name: report.trail.name } : null,
+    trail: report.trail
+      ? {
+          id: report.trail._id,
+          name: report.trail.name,
+          closureProposed: Boolean(report.trail.closureProposal)
+        }
+      : null,
     author: report.author ? { id: report.author._id, email: report.author.email } : null,
     validationStatus: report.validationStatus,
     validationNote: report.validationNote,
@@ -202,7 +209,7 @@ router.get('/admin', requireAuth, requireRole('admin'), async (req, res) => {
       .sort({ createdAt: -1 })
       .skip((pageNumber - 1) * pageSize)
       .limit(pageSize)
-      .populate('trail', 'name')
+      .populate('trail', 'name closureProposal')
       .populate('author', 'email'),
     Report.countDocuments(query)
   ])
@@ -236,59 +243,13 @@ router.patch('/:id/validate', requireAuth, requireRole('admin'), async (req, res
   }
 
   const report = await Report.findById(req.params.id)
-    .populate('trail', 'name')
+    .populate('trail', 'name closureProposal')
     .populate('author', 'email')
   if (!report) {
     return res.status(404).json({ error: 'Report not found' })
   }
 
-  const wasValidated = report.validationStatus === 'validated'
-
-  report.validationStatus = status
-  report.validationNote = note || undefined
-  report.validatedBy = req.user.id
-  report.validatedAt = new Date()
-  report.isSuspicious = false
-
-  const authorId = report.author?._id
-  if (spam === true && !report.markedAsSpam) {
-    const applied = authorId
-      ? await adjustReputation(authorId, -SPAM_REPUTATION_PENALTY, {
-          reason: 'spam',
-          report: report._id
-        })
-      : 0
-    report.markedAsSpam = true
-    report.spamPenalty = -applied
-  } else if (spam !== true && report.markedAsSpam) {
-    if (authorId && report.spamPenalty > 0) {
-      await adjustReputation(authorId, report.spamPenalty, {
-        reason: 'spam_reverted',
-        report: report._id
-      })
-    }
-    report.markedAsSpam = false
-    report.spamPenalty = 0
-  }
-
-  await report.save()
-
-  const reputationChange = Number(status === 'validated') - Number(wasValidated)
-  if (reputationChange !== 0 && authorId) {
-    await adjustReputation(authorId, reputationChange, {
-      reason: reputationChange > 0 ? 'report_validated' : 'validation_revoked',
-      report: report._id
-    })
-  }
-  const trustScore = await refreshTrustSafely(report)
-  if (trustScore !== null) report.trustScore = trustScore
-  if (status === 'validated') await evaluateTrailAlertSafely(report)
-
-  reportEvents.emit(REPORT_UPDATED, {
-    reportId: report._id,
-    trailId: report.trail?._id,
-    validationStatus: report.validationStatus
-  })
+  await reviewReport(report, { status, note, spam, reviewerId: req.user.id })
 
   res.json(reportToAdminResponse(report))
 })

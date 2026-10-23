@@ -27,6 +27,22 @@ export function getAlertRules(trail) {
   }
 }
 
+export async function findReportsBehindProposal(trail) {
+  const proposal = trail.closureProposal
+  if (!proposal) return []
+
+  const { windowHours } = getAlertRules(trail)
+  return Report.find({
+    trail: trail._id,
+    type: { $in: HAZARD_TYPES },
+    severity: 'high',
+    validationStatus: 'pending',
+    isSuspicious: { $ne: true },
+    trustScore: { $gte: MIN_RELIABLE_TRUST },
+    createdAt: { $gte: new Date(proposal.proposedAt.getTime() - windowHours * HOUR_MS) }
+  }).populate('author', 'email')
+}
+
 async function lastAdminChangeAt(trailId) {
   const entry = await TrailStatusHistory.findOne({ trail: trailId, changedBy: { $ne: null } })
     .sort({ changedAt: -1 })
