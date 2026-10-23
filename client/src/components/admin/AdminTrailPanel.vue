@@ -3,6 +3,7 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import StatusBadge from '@/components/base/StatusBadge.vue'
+import EmergencyNoticeDialog from '@/components/admin/EmergencyNoticeDialog.vue'
 import { TRAIL_STATUSES, getTrailStatusLabel } from '@/config/trailStatus.js'
 import { REPORT_TYPE_OPTIONS, REPORT_SEVERITY_OPTIONS } from '@/config/reportOptions.js'
 import { REPORT_VALIDATION_STATUSES } from '@/config/reportValidationStatus.js'
@@ -87,6 +88,7 @@ const proposalError = ref('')
 const validateOnClose = ref(true)
 const sendValidateOnClose = ref(false)
 const closeMessage = ref('')
+const emergencyNotice = ref(null)
 
 const statusOptions = computed(() =>
   Object.keys(TRAIL_STATUSES).filter((status) => status !== trail.value?.properties.status)
@@ -182,10 +184,20 @@ async function changeStatus() {
       reason: reasonDraft.value.trim(),
       ...(sendValidateOnClose.value && { validateReports: validateOnClose.value })
     })
-    closeMessage.value =
-      data.validatedReports > 0
-        ? `Trail closed. ${data.validatedReports} ${data.validatedReports === 1 ? 'report' : 'reports'} validated.`
-        : ''
+    const parts = []
+    if (data.validatedReports > 0) {
+      parts.push(
+        `Trail closed. ${data.validatedReports} ${data.validatedReports === 1 ? 'report' : 'reports'} validated.`
+      )
+    }
+    closeMessage.value = parts.join(' ')
+    if (isEmergencyStatus(newStatus)) {
+      emergencyNotice.value = {
+        trailName: trail.value.properties.name,
+        status: newStatus,
+        validatedReports: data.validatedReports ?? 0
+      }
+    }
     statusDraft.value = ''
     reasonDraft.value = ''
     await Promise.all([loadTrail(), loadReports(), loadHistory(), loadAlertRules()])
@@ -307,6 +319,11 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
 
 <template>
   <div class="admin-trail-panel">
+    <EmergencyNoticeDialog
+      v-if="emergencyNotice"
+      v-bind="emergencyNotice"
+      @close="emergencyNotice = null"
+    />
     <p v-if="loading && !trail" class="admin-trail-panel__loading">Loading trail…</p>
 
     <template v-else-if="trail">
@@ -403,9 +420,17 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
               <textarea v-model="reasonDraft" rows="2" placeholder="Why is the status changing?" />
             </label>
 
+            <p v-if="isEmergencyStatus(statusDraft)" class="admin-trail-panel__notice">
+              Hikers who enabled emergency alerts and were recently near this trail will receive a
+              notification containing this reason, so write it clearly.
+            </p>
+
             <p v-if="submitError" class="admin-trail-panel__error">{{ submitError }}</p>
 
             <BaseButton type="submit" :disabled="submitting">Change status</BaseButton>
+            <p v-if="closeMessage" class="admin-trail-panel__success" role="status">
+              {{ closeMessage }}
+            </p>
           </form>
         </BaseCard>
         <BaseCard v-if="crowdThresholds" class="admin-trail-panel__subcard">
@@ -579,6 +604,13 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
   border: 1px solid rgba(26, 62, 47, 0.15);
   border-radius: 8px;
   resize: vertical;
+}
+
+.admin-trail-panel__notice {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-status-closed, #ef4444);
 }
 
 .admin-trail-panel__error {

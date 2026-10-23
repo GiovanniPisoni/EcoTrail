@@ -20,8 +20,21 @@ describe('Admin trail settings', () => {
     cy.contains('button', 'Change status').click()
 
     cy.wait('@changeStatus').its('response.statusCode').should('eq', 200)
+    cy.get('[role="alertdialog"]').should('contain', 'is now at risk')
+    cy.get('[role="alertdialog"]').contains('button', 'OK').click()
+    cy.get('[role="alertdialog"]').should('not.exist')
     cy.contains('.admin-trail-panel__timeline-change', 'Open → At risk').should('be.visible')
     cy.task('db:trailStatus', E2E_TRAIL_NAME).should('eq', 'at_risk')
+  })
+
+  it('warns that hikers are notified only for at risk and closed', () => {
+    openTrail()
+
+    cy.contains('Hikers who enabled emergency alerts').should('not.exist')
+    cy.get('.admin-trail-panel select').select('Closed')
+    cy.contains('Hikers who enabled emergency alerts').should('be.visible')
+    cy.get('.admin-trail-panel select').select('Crowded')
+    cy.contains('Hikers who enabled emergency alerts').should('not.exist')
   })
 
   it('requires a status to be chosen', () => {
@@ -87,6 +100,7 @@ describe('Admin trail settings', () => {
 
       cy.wait('@changeStatus').its('response.body.validatedReports').should('eq', 1)
       cy.contains('Trail closed. 1 report validated.').should('be.visible')
+      cy.get('[role="alertdialog"]').should('contain', 'is now closed')
       cy.task('db:reports').then((reports) => {
         expect(reports[0].validationStatus).to.eq('validated')
       })
