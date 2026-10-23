@@ -13,6 +13,9 @@ Cypress.Commands.add('visitAs', (role, path = '/', options = {}) => {
           onBeforeLoad(win) {
             win.localStorage.setItem(TOKEN_KEY, body.token)
             win.localStorage.setItem(USER_KEY, JSON.stringify({ ...me, email }))
+            if (!options.showAdminIntro) {
+              win.localStorage.setItem('ecotrail:admin-intro-dismissed', '1')
+            }
 
             const { geolocation, locationPermission } = options
 
