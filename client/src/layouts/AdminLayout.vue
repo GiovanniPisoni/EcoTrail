@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -23,6 +24,27 @@ const NAV_ITEMS = [
     label: 'Statistics'
   }
 ]
+
+const INTRO_STORAGE_KEY = 'ecotrail:admin-intro-dismissed'
+
+function introAlreadyDismissed() {
+  try {
+    return localStorage.getItem(INTRO_STORAGE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+const introVisible = ref(!introAlreadyDismissed())
+
+function dismissIntro() {
+  introVisible.value = false
+  try {
+    localStorage.setItem(INTRO_STORAGE_KEY, '1')
+  } catch {
+    // The intro simply shows again on the next visit.
+  }
+}
 
 async function handleLogout() {
   await auth.endSession()
@@ -64,10 +86,30 @@ async function handleLogout() {
         >
           {{ item.label }}
         </RouterLink>
+        <button type="button" class="admin-layout__help" @click="introVisible = true">Help</button>
         <span class="user-email">{{ auth.user?.email }}</span>
         <button type="button" class="admin-layout__logout" @click="handleLogout">Log out</button>
       </nav>
     </header>
+    <section v-if="introVisible" class="admin-layout__intro" aria-labelledby="admin-intro-title">
+      <div class="admin-layout__intro-text">
+        <h2 id="admin-intro-title" class="admin-layout__intro-title">Welcome to the board</h2>
+        <ul class="admin-layout__intro-list">
+          <li>
+            <strong>Dashboard:</strong> review the reports sent by hikers and validate or reject
+            them.
+          </li>
+          <li>
+            <strong>Trails:</strong> change a trail's status, handle closure proposals and set the
+            alert thresholds.
+          </li>
+          <li><strong>Statistics:</strong> see visits and reports over time.</li>
+        </ul>
+      </div>
+      <button type="button" class="admin-layout__intro-dismiss" @click="dismissIntro">
+        Got it
+      </button>
+    </section>
     <RouterView />
   </div>
 </template>
@@ -131,6 +173,35 @@ button:hover {
   display: none;
 }
 
+.admin-layout__intro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid rgba(26, 62, 47, 0.1);
+  border-left: 4px solid var(--color-primary);
+}
+
+.admin-layout__intro-title {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-heading);
+  font-weight: 400;
+  font-size: 1.15rem;
+}
+
+.admin-layout__intro-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.admin-layout__intro-dismiss {
+  flex-shrink: 0;
+}
+
 @media (max-width: 640px) {
   .layout-header {
     position: sticky;
@@ -170,6 +241,15 @@ button:hover {
   .user-email,
   .admin-layout__logout {
     display: none;
+  }
+
+  .admin-layout__help {
+    display: none;
+  }
+
+  .admin-layout__intro {
+    flex-direction: column;
+    padding: 0.75rem;
   }
 
   .admin-layout__nav-link {
