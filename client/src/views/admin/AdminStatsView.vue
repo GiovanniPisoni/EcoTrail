@@ -177,7 +177,7 @@ watch([params, trailFilter, eventType], load)
 
 .stats-page__card h2 {
   margin: 0 0 0.75rem;
-  font-size: 1rem;
+  font-size: 1.1rem;
 }
 
 .stats-page__card--wide {

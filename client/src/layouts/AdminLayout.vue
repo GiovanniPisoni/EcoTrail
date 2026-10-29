@@ -173,6 +173,26 @@ button:hover {
   display: none;
 }
 
+.admin-layout {
+  --color-background: #e9eee9;
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+.admin-layout :deep(.base-card),
+.admin-layout :deep(.admin-page__stat-card),
+.admin-layout :deep(.admin-page__map-card),
+.admin-layout :deep(.admin-page__activity),
+.admin-layout :deep(.admin-trails-page__map-card) {
+  border: 1px solid rgba(26, 62, 47, 0.16);
+}
+
+.admin-layout :deep(.base-button) {
+  min-height: 40px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.9rem;
+}
+
 .admin-layout__intro {
   display: flex;
   align-items: flex-start;
@@ -245,6 +265,10 @@ button:hover {
 
   .admin-layout__help {
     display: none;
+  }
+
+  .admin-layout :deep(.base-button) {
+    min-height: 44px;
   }
 
   .admin-layout__intro {

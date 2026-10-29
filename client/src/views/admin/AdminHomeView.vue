@@ -130,7 +130,8 @@ onMounted(() => {
       <div class="admin-page__stat-card">
         <span class="admin-page__stat-label">Of which critical</span>
         <span class="admin-page__stat-value admin-page__stat-value--critical">
-          <span class="admin-page__stat-dot" />{{ criticalCount ?? '-' }} / {{ pendingCount ?? '-' }} total waiting 
+          <span class="admin-page__stat-dot" />{{ criticalCount ?? '-' }} /
+          {{ pendingCount ?? '-' }} total waiting
         </span>
       </div>
       <div class="admin-page__stat-card">
@@ -334,7 +335,7 @@ onMounted(() => {
   padding: 0.75rem 1rem 0.5rem;
   font-family: var(--font-heading);
   font-weight: 400;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   background-color: var(--color-surface);
 }
 
@@ -364,7 +365,7 @@ onMounted(() => {
   margin: 0 0 0.6rem;
   font-family: var(--font-heading);
   font-weight: 400;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
 }
 
 .admin-page__activity-empty {
