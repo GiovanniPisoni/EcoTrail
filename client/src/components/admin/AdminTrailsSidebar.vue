@@ -81,9 +81,10 @@ function onSelect(trail) {
       <button
         type="button"
         class="admin-trails-sidebar__close"
+        aria-label="Back to the trails list"
         @click="emit('select', props.selectedId)"
       >
-        Close trail
+        &larr; Back to list
       </button>
       <slot name="selected" />
     </div>
@@ -176,7 +177,7 @@ function onSelect(trail) {
   margin: 0;
   font-family: var(--font-heading);
   font-weight: 400;
-  font-size: 1.3rem;
+  font-size: 1.5rem;
 }
 
 .admin-trails-sidebar__expanded {
@@ -186,7 +187,7 @@ function onSelect(trail) {
 }
 
 .admin-trails-sidebar__close {
-  align-self: flex-end;
+  align-self: flex-start;
   padding: 0.35rem 0.8rem;
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-pill);

@@ -31,11 +31,15 @@ function zoneOffsetMs(timestamp) {
   return wallClock - Math.floor(timestamp / 1000) * 1000
 }
 
-export function zonedMidnight(year, month, day) {
-  const utcMidnight = Date.UTC(year, month - 1, day)
-  let result = utcMidnight - zoneOffsetMs(utcMidnight)
-  result = utcMidnight - zoneOffsetMs(result)
+export function zonedTime(year, month, day, hour = 0) {
+  const asUtc = Date.UTC(year, month - 1, day, hour)
+  let result = asUtc - zoneOffsetMs(asUtc)
+  result = asUtc - zoneOffsetMs(result)
   return new Date(result)
+}
+
+export function zonedMidnight(year, month, day) {
+  return zonedTime(year, month, day)
 }
 
 function parseDay(value) {

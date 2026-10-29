@@ -3,7 +3,8 @@ import {
   DEFAULT_PERIOD_DAYS,
   MAX_PERIOD_DAYS,
   parsePeriod,
-  zonedMidnight
+  zonedMidnight,
+  zonedTime
 } from '../../../src/services/stats/statsPeriod.js'
 
 const NOW = new Date('2026-10-08T10:00:00Z')
@@ -20,6 +21,17 @@ describe('zonedMidnight', () => {
   it('follows the daylight saving change at the end of October', () => {
     expect(zonedMidnight(2026, 10, 25).toISOString()).toBe('2026-10-24T22:00:00.000Z')
     expect(zonedMidnight(2026, 10, 26).toISOString()).toBe('2026-10-25T23:00:00.000Z')
+  })
+})
+
+describe('zonedTime', () => {
+  it('gives the same local hour before and after the daylight saving change', () => {
+    expect(zonedTime(2026, 10, 24, 10).toISOString()).toBe('2026-10-24T08:00:00.000Z')
+    expect(zonedTime(2026, 10, 26, 10).toISOString()).toBe('2026-10-26T09:00:00.000Z')
+  })
+
+  it('is midnight when no hour is given', () => {
+    expect(zonedTime(2026, 10, 8)).toEqual(zonedMidnight(2026, 10, 8))
   })
 })
 

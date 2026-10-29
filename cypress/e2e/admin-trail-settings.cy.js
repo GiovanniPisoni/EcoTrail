@@ -30,11 +30,11 @@ describe('Admin trail settings', () => {
   it('warns that hikers are notified only for at risk and closed', () => {
     openTrail()
 
-    cy.contains('Hikers who enabled emergency alerts').should('not.exist')
+    cy.contains('Nearby hikers with emergency alerts on will be notified').should('not.exist')
     cy.get('.admin-trail-panel select').select('Closed')
-    cy.contains('Hikers who enabled emergency alerts').should('be.visible')
+    cy.contains('Nearby hikers with emergency alerts on will be notified').should('be.visible')
     cy.get('.admin-trail-panel select').select('Crowded')
-    cy.contains('Hikers who enabled emergency alerts').should('not.exist')
+    cy.contains('Nearby hikers with emergency alerts on will be notified').should('not.exist')
   })
 
   it('requires a status to be chosen', () => {
@@ -57,6 +57,17 @@ describe('Admin trail settings', () => {
     cy.wait('@saveThresholds').its('response.statusCode').should('eq', 200)
     cy.contains('Thresholds saved').should('be.visible')
     cy.contains('Currently in use: 6 / 2').should('be.visible')
+  })
+
+  it('warns that the crowding thresholds are not saved until the button is pressed', () => {
+    openTrail()
+
+    cy.contains('Not saved yet').should('not.exist')
+    field('Crowded at').type('6')
+    cy.contains('Not saved yet').should('be.visible')
+    cy.contains('button', 'Save thresholds').click()
+    cy.contains('Not saved yet').should('not.exist')
+    cy.contains('Thresholds saved').should('be.visible')
   })
 
   it('saves the automatic alert rules', () => {

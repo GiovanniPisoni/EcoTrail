@@ -113,7 +113,10 @@ async function loadSuspiciousCount() {
   }
 }
 
+let latestLoad = 0
+
 async function loadReports() {
+  const thisLoad = ++latestLoad
   loading.value = true
   loadSuspiciousCount()
   try {
@@ -124,12 +127,13 @@ async function loadReports() {
         limit: 100
       }
     })
+    if (thisLoad !== latestLoad) return
     reports.value = data.reports
     emit('reports-loaded', data.reports)
   } catch (err) {
     console.error('Failed to load reports:', err)
   } finally {
-    loading.value = false
+    if (thisLoad === latestLoad) loading.value = false
   }
 }
 
@@ -429,7 +433,7 @@ onUnmounted(() => {
   margin: 0;
   font-family: var(--font-heading);
   font-weight: 400;
-  font-size: 1.3rem;
+  font-size: 1.5rem;
 }
 
 .admin-reports-sidebar__pending-stat {

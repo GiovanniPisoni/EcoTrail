@@ -6,7 +6,7 @@ import Report, { REPORT_SEVERITIES, REPORT_TYPES } from '../../src/models/Report
 import TrailActivity from '../../src/models/TrailActivity.js'
 import TrailStatusHistory from '../../src/models/TrailStatusHistory.js'
 import Notification from '../../src/models/Notification.js'
-import { startOfHour } from '../../src/services/trails/trailActivity.js'
+import { STATS_TIMEZONE, zonedTime } from '../../src/services/stats/statsPeriod.js'
 
 const SIMULATED_EMAIL_DOMAIN = '@simulated.ecotrail.test'
 const MARKER = '[sim]'
@@ -16,6 +16,26 @@ const DEFAULT_USERS = 40
 const ACTIVE_TRAILS = 25
 const POPULARITY_DECAY = 0.8
 const MIN_AUDIENCE = 3
+
+const dayFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: STATS_TIMEZONE,
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  weekday: 'short'
+})
+
+function localDay(timestamp) {
+  const parts = Object.fromEntries(
+    dayFormatter.formatToParts(new Date(timestamp)).map((part) => [part.type, part.value])
+  )
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+    weekend: ['Sat', 'Sun'].includes(parts.weekday)
+  }
+}
 
 const HOUR_WEIGHTS = {
   6: 0.2,
@@ -111,13 +131,12 @@ async function simulateActivity(trails, userIds, days) {
 
   for (let day = days; day >= 0; day--) {
     const dayStart = now - day * DAY_MS
-    const weekend = [0, 6].includes(new Date(dayStart).getDay())
+    const { year, month, day: dayOfMonth, weekend } = localDay(dayStart)
 
     for (const trail of ranked) {
       const audience = audiences.get(String(trail._id))
       for (const [hour, weight] of Object.entries(HOUR_WEIGHTS)) {
-        const at = new Date(startOfHour(new Date(dayStart)).getTime())
-        at.setUTCHours(Number(hour) - 2, 0, 0, 0)
+        const at = zonedTime(year, month, dayOfMonth, Number(hour))
         if (at.getTime() > now) continue
 
         const expected = (audience.length / userIds.length) * weight * (weekend ? 5 : 3)
