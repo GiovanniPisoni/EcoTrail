@@ -66,6 +66,7 @@ const releaseDraft = ref('')
 const crowdSaving = ref(false)
 const crowdError = ref('')
 const crowdSaved = ref(false)
+const crowdDirty = ref(false)
 
 const ALERT_FIELDS = [
   { key: 'riskCount', label: 'At risk after (reliable reports)', min: 1 },
@@ -241,9 +242,15 @@ function draftToValue(draft) {
   return Number(draft)
 }
 
+function onCrowdInput() {
+  crowdSaved.value = false
+  crowdDirty.value = true
+}
+
 async function saveCrowdThresholds() {
   crowdError.value = ''
   crowdSaved.value = false
+  crowdDirty.value = false
 
   const body = {
     crowdThreshold: draftToValue(enterDraft.value),
@@ -421,9 +428,24 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
               <textarea v-model="reasonDraft" rows="2" placeholder="Why is the status changing?" />
             </label>
 
-            <p v-if="isEmergencyStatus(statusDraft)" class="admin-trail-panel__notice">
-              Hikers who enabled emergency alerts and were recently near this trail will receive a
-              notification containing this reason, so write it clearly.
+            <p v-if="isEmergencyStatus(statusDraft)" class="admin-trail-panel__notice" role="note">
+              <svg
+                class="admin-trail-panel__notice-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path
+                  d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <span>Nearby hikers with emergency alerts on will be notified with this reason.</span>
             </p>
 
             <p v-if="submitError" class="admin-trail-panel__error">{{ submitError }}</p>
@@ -451,7 +473,7 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
                 min="2"
                 step="1"
                 :placeholder="`Default: ${crowdThresholds.defaults.enter}`"
-                @input="crowdSaved = false"
+                @input="onCrowdInput"
               />
             </label>
 
@@ -463,7 +485,7 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
                 min="1"
                 step="1"
                 :placeholder="`Default: ${crowdThresholds.defaults.release}`"
-                @input="crowdSaved = false"
+                @input="onCrowdInput"
               />
             </label>
 
@@ -473,7 +495,14 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
             </p>
 
             <p v-if="crowdError" class="admin-trail-panel__error">{{ crowdError }}</p>
-            <p v-else-if="crowdSaved" class="admin-trail-panel__success">Thresholds saved</p>
+            <p v-else-if="crowdDirty" class="admin-trail-panel__unsaved" role="status">
+              Not saved yet: press “Save thresholds” to apply these values.
+            </p>
+            <p v-else-if="crowdSaved" class="admin-trail-panel__success" role="status">
+              Thresholds saved. The trail is now crowded at
+              {{ crowdThresholds.effective.enter }} hikers and free again at
+              {{ crowdThresholds.effective.release }}.
+            </p>
 
             <BaseButton type="submit" :disabled="crowdSaving">Save thresholds</BaseButton>
           </form>
@@ -572,14 +601,14 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
   margin: 0;
   font-family: var(--font-heading);
   font-weight: 400;
-  font-size: 1.2rem;
+  font-size: 1.4rem;
 }
 
 .admin-trail-panel__section-title {
   margin: 0;
   font-family: var(--font-heading);
   font-weight: 400;
-  font-size: 1rem;
+  font-size: 1.15rem;
 }
 
 .admin-trail-panel__status-form {
@@ -608,10 +637,33 @@ onUnmounted(() => clearTimeout(alertCountRefreshTimer))
 }
 
 .admin-trail-panel__notice {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   margin: 0;
-  font-size: 0.8rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--color-status-closed, #ef4444);
+  background: rgba(239, 68, 68, 0.1);
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-status-closed, #ef4444);
+}
+
+.admin-trail-panel__notice-icon {
+  flex-shrink: 0;
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.admin-trail-panel__unsaved {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--color-status-crowded);
+  background: rgba(214, 140, 30, 0.14);
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .admin-trail-panel__error {
