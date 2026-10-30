@@ -174,17 +174,14 @@ button:hover {
 }
 
 .admin-layout {
-  --color-background: #e9eee9;
   min-height: 100vh;
-  background-color: var(--color-background);
 }
 
-.admin-layout :deep(.base-card),
 .admin-layout :deep(.admin-page__stat-card),
 .admin-layout :deep(.admin-page__map-card),
 .admin-layout :deep(.admin-page__activity),
 .admin-layout :deep(.admin-trails-page__map-card) {
-  border: 1px solid rgba(26, 62, 47, 0.16);
+  border: 1px solid var(--color-card-border);
 }
 
 .admin-layout :deep(.base-button) {
