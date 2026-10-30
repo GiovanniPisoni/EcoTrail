@@ -7,7 +7,13 @@ dist/
 .vscode/
 .idea/
 
-server/uploads/
+# Raw Overpass exports used to generate server/data/trails-*.json
+server/data/raw/
+
+# Cypress
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
 
 #LaTeX
 docs/*.aux

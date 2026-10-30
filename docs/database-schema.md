@@ -8,15 +8,13 @@ erDiagram
     User ||--o{ Report : "validatedBy"
     User ||--o| UserPresence : "user"
     User ||--o{ TrailStatusHistory : "changedBy"
-    User ||--o{ NotificationLog : "recipient"
+    User ||--o{ Notification : "user"
     User ||--o{ SentAlert : "user"
 
     Trail ||--o{ Report : "trail"
     Trail ||--o{ TrailStatusHistory : "trail"
-    Trail ||--o{ NotificationLog : "relatedTrail"
+    Trail ||--o{ Notification : "trail"
     Trail ||--o{ SentAlert : "trail"
-
-    Report ||--o{ NotificationLog : "relatedReport"
 
     User {
         string email
@@ -63,10 +61,12 @@ erDiagram
         date updatedAt "TTL 15 min"
     }
 
-    NotificationLog {
+    Notification {
         string type "emergency | approach | overcrowd"
-        string message
-        date sentAt
+        string title
+        string body
+        date sentAt "TTL 30 days"
+        date readAt
     }
 
     SentAlert {
@@ -119,6 +119,15 @@ Una segnalazione fatta da un escursionista: cosa ha visto, dove, con che foto, e
 | `trustScore` | Number, default 0 | Cresce con conferme indipendenti di altri utenti; alimenta le soglie automatiche (4.3, 4.5) |
 | `isSuspicious` | Boolean, default false | Segnala un pattern di abuso da un singolo utente; nasconde il report al pubblico ed esclude che faccia salire il trustScore di altri (4.4) |
 
+### `ReportPhoto`
+La foto allegata a una segnalazione, già ridimensionata a JPEG (lato massimo 1280 px, senza metadati EXIF). Sta nel database e non su disco perché il disco dei servizi di hosting gratuiti viene azzerato a ogni riavvio. Non ha un riferimento verso `Report`: la segnalazione conserva solo l'indirizzo `/api/uploads/reports/<id>.jpg` (campo `photoUrl`), che il server risolve cercando il documento con quell'`_id` (4.10).
+
+| Campo | Tipo | A cosa serve |
+|---|---|---|
+| `_id` | String (UUID) | Identificativo casuale e non indovinabile, parte dell'indirizzo pubblico della foto |
+| `data` | Buffer | I byte del JPEG |
+| `createdAt` | Date | Quando è stata caricata |
+
 ### `TrailStatusHistory`
 La traccia di "chi ha cambiato cosa e perché" su un sentiero. Separata da `Trail` perché cresce senza limite nel tempo, un documento per ogni cambio di stato, tenerla embedded avrebbe fatto crescere `Trail` indefinitamente e appesantito ogni singola lettura della mappa.
 
@@ -139,16 +148,17 @@ La posizione attuale di un utente durante un'escursione. Separata da `User` perc
 | `location` | GeoJSON Point | Interrogata con `$nearSphere` per trovare utenti vicini a un evento (3.5) |
 | `updatedAt` | Date, TTL 15 min | Il documento scompare da solo se l'utente smette di inviare la posizione |
 
-### `NotificationLog` 
-Le notifiche push effettivamente inviate. Unica collezione con un campo `type` a discriminare, così "storico notifiche di un utente" (3.10) e le statistiche (4.6) restano una query sola.
+### `Notification`
+Le notifiche push effettivamente inviate, una per destinatario. Unica collezione con un campo `type` a discriminare lo scenario, così il centro notifiche dell'utente (3.10) e le statistiche (4.6) leggono la stessa fonte. Un indice TTL elimina le notifiche dopo 30 giorni: lo storico delle statistiche sulle notifiche copre al massimo gli ultimi 30 giorni. La notifica viene salvata anche se la push non parte (utente con le notifiche silenziate o senza sottoscrizione): le statistiche contano quindi le persone avvisate dal sistema, non le push effettivamente recapitate.
 
 | Campo | Tipo | A cosa serve |
 |---|---|---|
-| `recipient` | ref `User` | A chi è stata mandata — per il centro notifiche dell'utente (3.10) |
+| `user` | ref `User` | A chi è stata mandata — per il centro notifiche dell'utente (3.10) |
 | `type` | enum `emergency`/`approach`/`overcrowd` | Distingue lo scenario che l'ha generata |
-| `relatedTrail`, `relatedReport` | ref, opzionali | Collegamento per il link cliccabile nella notifica (3.6) |
-| `message` | String | Testo della notifica |
-| `sentAt` | Date | Il conteggio per un evento risponde a "quante persone sono state avvisate" (3.6) |
+| `trail` | ref `Trail`, opzionale | Sentiero a cui si riferisce, per il link cliccabile nella notifica (3.6) |
+| `title`, `body`, `url` | String | Testo e destinazione della notifica |
+| `sentAt` | Date, TTL 30 giorni | Quando è stata inviata; raggruppando per sentiero e minuto si ricava "quante persone sono state avvisate" (3.6, 4.6) |
+| `readAt` | Date, default `null` | Quando l'utente l'ha letta |
 
 ### `SentAlert` 
 Un flag di deduplica: evita di mandare la stessa allerta più volte alla stessa persona. Durante un'escursione la posizione arriva ogni pochi secondi — senza questo controllo, un utente fermo vicino a un sentiero chiuso riceverebbe la stessa notifica decine di volte.

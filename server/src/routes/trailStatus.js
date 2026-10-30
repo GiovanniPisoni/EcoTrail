@@ -3,7 +3,9 @@ import mongoose from 'mongoose'
 import Trail, { TRAIL_STATUSES } from '../models/Trail.js'
 import TrailStatusHistory from '../models/TrailStatusHistory.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { trailEvents, TRAIL_STATUS_CHANGED } from '../services/trailEvents.js'
+import { trailEvents, TRAIL_STATUS_CHANGED } from '../services/trails/trailEvents.js'
+import { findReportsBehindProposal } from '../services/trails/autoTrailAlert.js'
+import { reviewReport } from '../services/reports/reviewReport.js'
 
 const router = Router()
 
@@ -50,7 +52,12 @@ router.patch('/:id/status', requireAuth, requireRole('admin'), async (req, res) 
   }
 
   const previousStatus = trail.status
+  const reportsToValidate =
+    req.body.validateReports === true && status === 'closed'
+      ? await findReportsBehindProposal(trail)
+      : []
   trail.status = status
+  trail.closureProposal = undefined
   await trail.save()
 
   const historyEntry = await TrailStatusHistory.create({
@@ -71,11 +78,20 @@ router.patch('/:id/status', requireAuth, requireRole('admin'), async (req, res) 
     historyEntryId: historyEntry._id
   })
 
+  for (const report of reportsToValidate) {
+    await reviewReport(report, {
+      status: 'validated',
+      note: 'Validated when the trail was closed',
+      reviewerId: req.user.id
+    })
+  }
+
   res.json({
     id: trail._id,
     name: trail.name,
     status: trail.status,
-    historyEntry: historyEntryToResponse(historyEntry)
+    historyEntry: historyEntryToResponse(historyEntry),
+    validatedReports: reportsToValidate.length
   })
 })
 

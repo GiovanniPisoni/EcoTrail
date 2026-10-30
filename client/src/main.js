@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { registerSW } from 'virtual:pwa-register'
 
 import './styles/tokens.css'
 
@@ -12,3 +13,5 @@ app.use(createPinia())
 app.use(router)
 
 app.mount('#app')
+
+registerSW({ immediate: true })

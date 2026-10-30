@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: ecotrail
+    runtime: node
+    plan: free
+    branch: develop
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22.18.0
+      # Test tools that download large binaries are not needed to build the app
+      - key: MONGOMS_DISABLE_POSTINSTALL
+        value: '1'
+      - key: CYPRESS_INSTALL_BINARY
+        value: '0'
+      # Secrets: filled in from the Render dashboard, never written here
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

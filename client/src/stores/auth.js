@@ -1,18 +1,22 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import api from '@/api/client'
+import { forgetPushSubscription } from '@/utils/push/pushSubscription.js'
 
 const TOKEN_KEY = 'ecotrail_token'
 const USER_KEY = 'ecotrail_user'
+const FORGET_PUSH_TIMEOUT_MS = 3000
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem(TOKEN_KEY))
   const user = ref(JSON.parse(localStorage.getItem(USER_KEY) || 'null'))
+  const sessionEnded = ref(false)
 
   const isAuthenticated = computed(() => !!token.value)
   const isAdmin = computed(() => user.value?.role === 'admin')
 
   function setSession(newToken, newUser) {
+    sessionEnded.value = false
     token.value = newToken
     user.value = newUser
     localStorage.setItem(TOKEN_KEY, newToken)
@@ -43,5 +47,29 @@ export const useAuthStore = defineStore('auth', () => {
     clearSession()
   }
 
-  return { token, user, isAuthenticated, isAdmin, login, register, logout }
+  function expireSession() {
+    sessionEnded.value = true
+    clearSession()
+  }
+
+  async function endSession() {
+    await Promise.race([
+      forgetPushSubscription(),
+      new Promise((resolve) => setTimeout(resolve, FORGET_PUSH_TIMEOUT_MS))
+    ])
+    clearSession()
+  }
+
+  return {
+    token,
+    user,
+    sessionEnded,
+    isAuthenticated,
+    isAdmin,
+    login,
+    register,
+    logout,
+    expireSession,
+    endSession
+  }
 })

@@ -1,0 +1,211 @@
+import { E2E_TRAIL_NAME } from '../support/e2e-config.js'
+
+function selectTrail() {
+  cy.contains('.trails-sidebar__item', E2E_TRAIL_NAME).click()
+}
+
+describe('Hiker trail list', () => {
+  it('shows the details of a selected trail and hides them again', () => {
+    cy.visitAs('hiker', '/')
+    selectTrail()
+
+    cy.get('.trails-sidebar__details')
+      .should('contain', 'Distance')
+      .and('contain', 'Duration')
+      .and('contain', 'Difficulty')
+    cy.get('.trail-alternative').should('not.exist')
+
+    selectTrail()
+    cy.get('.trails-sidebar__details').should('not.exist')
+  })
+
+  it('centers the map on the trail selected in the list', () => {
+    cy.visitAs('hiker', '/')
+    selectTrail()
+
+    cy.get('.leaflet-container').then(($map) => {
+      cy.get('path.leaflet-interactive[stroke-width="7"]').should(($path) => {
+        const mapBox = $map[0].getBoundingClientRect()
+        const pathBox = $path[0].getBoundingClientRect()
+        const offsetX = pathBox.left + pathBox.width / 2 - (mapBox.left + mapBox.width / 2)
+        const offsetY = pathBox.top + pathBox.height / 2 - (mapBox.top + mapBox.height / 2)
+
+        expect(Math.abs(offsetX)).to.be.lessThan(40)
+        expect(Math.abs(offsetY)).to.be.lessThan(40)
+      })
+    })
+  })
+
+  it('brings the list to the trail picked on the map', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.trails-sidebar__item').should('have.length.greaterThan', 5)
+
+    cy.get('path.leaflet-interactive').last().trigger('click', { force: true })
+
+    cy.get('.trails-sidebar__item--selected').should(($item) => {
+      const sidebarBox = Cypress.$('.trails-sidebar')[0].getBoundingClientRect()
+      const itemBox = $item[0].getBoundingClientRect()
+
+      expect(itemBox.top).to.be.at.least(sidebarBox.top - 1)
+      expect(itemBox.top).to.be.lessThan(sidebarBox.bottom)
+    })
+  })
+
+  it('makes the trails easy to tap with a wide invisible area around each line', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.trails-sidebar__item').should('have.length.greaterThan', 5)
+
+    cy.get('path.leaflet-interactive[stroke-opacity="0"]')
+      .should('have.length.greaterThan', 0)
+      .first()
+      .should('have.attr', 'stroke-width')
+      .and('match', /^(16|28)$/)
+  })
+
+  it('opens the sidebar when a trail is picked on the map while it is hidden', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('button[title="Hide nearby trails"]').click()
+
+    cy.get('path.leaflet-interactive').first().trigger('click', { force: true })
+
+    cy.get('.trails-sidebar').should('be.visible')
+    cy.get('.trails-sidebar__item--selected').should('exist')
+  })
+
+  it('hides and shows the sidebar', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.trails-sidebar').should('be.visible')
+
+    cy.get('button[title="Hide nearby trails"]').click()
+    cy.get('.trails-sidebar').should('not.exist')
+
+    cy.get('button[title="Show nearby trails"]').click()
+    cy.get('.trails-sidebar').should('be.visible')
+  })
+
+  it('suggests the closest free trail as an alternative to a closed one', () => {
+    cy.intercept('GET', '/api/trails/*/alternative').as('alternative')
+    cy.task('db:updateTrail', { set: { status: 'closed' } })
+    cy.visitAs('hiker', '/')
+    selectTrail()
+
+    cy.wait('@alternative').its('response.statusCode').should('eq', 200)
+    cy.get('.trail-alternative')
+      .should('contain', 'Suggested alternative')
+      .and('contain', 'Closest free trail')
+    cy.get('.trail-alternative__name')
+      .invoke('text')
+      .then((alternativeName) => {
+        cy.contains('.trail-alternative button', 'Show on map').click()
+        cy.get('.trails-sidebar__item--selected').should('contain', alternativeName.trim())
+      })
+  })
+})
+
+describe('Opening a trail from a notification', () => {
+  it('shows the trail at the top of the list without scrolling', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.trails-sidebar__item').should('have.length.greaterThan', 8)
+
+    cy.get('.trails-sidebar__list li')
+      .last()
+      .invoke('attr', 'data-trail-id')
+      .then((trailId) => {
+        cy.viewport(360, 660)
+        cy.visitAs('hiker', `/?trail=${trailId}`)
+
+        cy.get('.trails-sidebar__item--selected').should(($item) => {
+          const sidebarBox = Cypress.$('.trails-sidebar')[0].getBoundingClientRect()
+          const itemBox = $item[0].getBoundingClientRect()
+
+          expect(itemBox.top).to.be.at.least(sidebarBox.top - 1)
+          expect(itemBox.top).to.be.lessThan(sidebarBox.top + 150)
+        })
+      })
+  })
+
+  it('shows the trails even when the page cannot run animations, as a page opened in the background', () => {
+    cy.visitAs('hiker', '/')
+    cy.get('.trails-sidebar__item').should('have.length.greaterThan', 8)
+
+    cy.get('.trails-sidebar__list li')
+      .last()
+      .invoke('attr', 'data-trail-id')
+      .then((trailId) => {
+        cy.visitAs('hiker', `/?trail=${trailId}`, {
+          onBeforeLoad(win) {
+            win.requestAnimationFrame = () => 0
+          }
+        })
+
+        cy.get('.trails-sidebar__item').should('have.length.greaterThan', 0)
+        cy.get('.trails-sidebar__item--selected')
+          .parent()
+          .should('have.attr', 'data-trail-id', trailId)
+        cy.contains('.trails-sidebar__empty', 'No trails in view').should('not.exist')
+      })
+  })
+})
+
+describe('What the trail details say', () => {
+  it('says that an at-risk trail is open but dangerous, and who can close a trail', () => {
+    cy.task('db:updateTrail', { set: { status: 'at_risk' } })
+    cy.visitAs('hiker', '/')
+    cy.contains('.trails-sidebar__item', E2E_TRAIL_NAME).click()
+
+    cy.contains('.trails-sidebar__item--selected', 'Open, but dangerous: take care.').should(
+      'be.visible'
+    )
+    cy.contains('.trails-sidebar__item--selected', 'Only the park authority can close a trail.')
+  })
+
+  it('says that a closed trail was closed by the park authority', () => {
+    cy.task('db:updateTrail', { set: { status: 'closed' } })
+    cy.visitAs('hiker', '/')
+    cy.contains('.trails-sidebar__item', E2E_TRAIL_NAME).click()
+
+    cy.contains('.trails-sidebar__item--selected', 'Closed: do not use this trail.')
+    cy.contains('.trails-sidebar__item--selected', 'Closed by the park authority.')
+  })
+
+  it('does not add a note to a free trail', () => {
+    cy.visitAs('hiker', '/')
+
+    cy.contains('.trails-sidebar__item', E2E_TRAIL_NAME)
+      .find('.trails-sidebar__hint')
+      .should('not.exist')
+  })
+})
+
+describe('Reporting from the details of a trail', () => {
+  it('opens the report form on that trail', () => {
+    cy.visitAs('hiker', '/')
+    cy.contains('.trails-sidebar__item', E2E_TRAIL_NAME).click()
+
+    cy.contains('.trails-sidebar__item--selected button', 'Report a problem on this trail').click()
+
+    cy.contains('h1', 'New trail incident report').should('be.visible')
+    cy.get('.send-report__trail').should('contain', E2E_TRAIL_NAME)
+    cy.get('.location-picker .leaflet-overlay-pane path[stroke-width="4"]').should(
+      'have.length.greaterThan',
+      0
+    )
+  })
+
+  it('keeps the trail selected in the list when the form is closed', () => {
+    cy.visitAs('hiker', '/')
+    cy.contains('.trails-sidebar__item', E2E_TRAIL_NAME).click()
+    cy.contains('.trails-sidebar__item--selected button', 'Report a problem on this trail').click()
+
+    cy.contains('button', 'Cancel').click()
+
+    cy.get('.trails-sidebar__item--selected').should('contain', E2E_TRAIL_NAME)
+  })
+
+  it('does not name a trail when the report starts from the New Report button', () => {
+    cy.visitAs('hiker', '/')
+    cy.openReportDialog()
+
+    cy.get('.send-report__trail').should('not.exist')
+  })
+})

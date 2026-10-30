@@ -2,7 +2,7 @@ import { Router } from 'express'
 import User from '../models/User.js'
 import Trail from '../models/Trail.js'
 import { requireAuth } from '../middleware/auth.js'
-import { sendPush } from '../services/sendPush.js'
+import { sendPush } from '../services/notifications/sendPush.js'
 
 const router = Router()
 
@@ -17,6 +17,11 @@ router.post('/subscribe', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Invalid subscription' })
   }
 
+  await User.updateMany(
+    { _id: { $ne: req.user.id }, 'pushSubscriptions.endpoint': endpoint },
+    { $pull: { pushSubscriptions: { endpoint } } }
+  )
+
   const user = await User.findById(req.user.id)
   const alreadySubscribed = user.pushSubscriptions.some((sub) => sub.endpoint === endpoint)
 
@@ -26,6 +31,22 @@ router.post('/subscribe', requireAuth, async (req, res) => {
   }
 
   res.status(201).json({ ok: true })
+})
+
+router.post('/unsubscribe', requireAuth, async (req, res) => {
+  const { endpoint } = req.body
+
+  if (!endpoint) {
+    return res.status(400).json({ error: 'endpoint is required' })
+  }
+
+  const user = await User.findById(req.user.id)
+  const initialLength = user.pushSubscriptions.length
+  user.pushSubscriptions = user.pushSubscriptions.filter((sub) => sub.endpoint !== endpoint)
+
+  if (user.pushSubscriptions.length !== initialLength) await user.save()
+
+  res.json({ ok: true })
 })
 
 router.delete('/subscribe', requireAuth, async (req, res) => {
@@ -66,9 +87,13 @@ router.post('/test', requireAuth, async (req, res) => {
     payload.url = `/?trail=${trail._id}`
   }
 
-  await sendPush(user, payload)
-
-  res.json({ ok: true })
+  try {
+    const results = await sendPush(user, payload)
+    res.json({ ok: true, results })
+  } catch (err) {
+    if (!err.results) throw err
+    res.status(502).json({ error: 'The notification could not be delivered', results: err.results })
+  }
 })
 
 export default router

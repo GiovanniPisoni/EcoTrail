@@ -13,6 +13,12 @@ export default [
   ...pluginVue.configs['flat/essential'],
 
   {
+    rules: {
+      'no-empty': ['error', { allowEmptyCatch: true }]
+    }
+  },
+
+  {
     files: ['client/**/*.{js,vue}'],
     languageOptions: {
       globals: { ...globals.browser }
@@ -23,6 +29,20 @@ export default [
     files: ['server/**/*.js'],
     languageOptions: {
       globals: { ...globals.node }
+    }
+  },
+
+  {
+    files: ['cypress.config.js', 'cypress/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+        ...globals.mocha,
+        cy: 'readonly',
+        expect: 'readonly',
+        Cypress: 'readonly'
+      }
     }
   },
 

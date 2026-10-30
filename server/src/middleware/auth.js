@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
+import User from '../models/User.js'
 
-export function requireAuth(req, res, next) {
+export async function requireAuth(req, res, next) {
   const header = req.headers.authorization
   const token = header && header.startsWith('Bearer ') ? header.slice(7) : null
 
@@ -8,12 +9,23 @@ export function requireAuth(req, res, next) {
     return res.status(401).json({ error: 'Missing or invalid token' })
   }
 
+  let payload
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET)
-    next()
+    payload = jwt.verify(token, process.env.JWT_SECRET)
   } catch {
     return res.status(401).json({ error: 'Missing or invalid token' })
   }
+
+  try {
+    if (!(await User.exists({ _id: payload.id }))) {
+      return res.status(401).json({ error: 'This account no longer exists' })
+    }
+  } catch (err) {
+    return next(err)
+  }
+
+  req.user = payload
+  next()
 }
 
 export function requireRole(role) {

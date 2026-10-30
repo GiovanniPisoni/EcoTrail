@@ -2,7 +2,8 @@ import { Router } from 'express'
 import mongoose from 'mongoose'
 import Report from '../models/Report.js'
 import { requireAuth } from '../middleware/auth.js'
-import { reportEvents, REPORT_UPDATED } from '../services/reportEvents.js'
+import { reportEvents, REPORT_UPDATED } from '../services/reports/reportEvents.js'
+import { refreshTrustSafely } from '../services/reports/reportTrust.js'
 
 const router = Router()
 
@@ -51,6 +52,7 @@ router.patch('/:id/withdraw', requireAuth, async (req, res) => {
 
   report.validationStatus = 'withdrawn'
   await report.save()
+  await refreshTrustSafely(report)
 
   reportEvents.emit(REPORT_UPDATED, {
     reportId: report._id,

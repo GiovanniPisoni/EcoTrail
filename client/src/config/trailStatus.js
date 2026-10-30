@@ -11,10 +11,25 @@ const ICON_CLOSE =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
 
 export const TRAIL_STATUSES = {
-  free: { label: 'Open', color: '#10B981', icon: ICON_CHECK },
-  crowded: { label: 'Crowded', color: '#F59E0B', icon: ICON_USERS },
-  at_risk: { label: 'At risk', color: '#F97316', icon: ICON_WARNING },
-  closed: { label: 'Closed', color: '#EF4444', icon: ICON_CLOSE }
+  free: { label: 'Open', color: '#10B981', icon: ICON_CHECK, hint: 'Open and free to use.' },
+  crowded: {
+    label: 'Crowded',
+    color: '#8B5CF6',
+    icon: ICON_USERS,
+    hint: 'Open, but busy right now.'
+  },
+  at_risk: {
+    label: 'At risk',
+    color: '#F97316',
+    icon: ICON_WARNING,
+    hint: 'Open, but dangerous: take care.'
+  },
+  closed: {
+    label: 'Closed',
+    color: '#EF4444',
+    icon: ICON_CLOSE,
+    hint: 'Closed: do not use this trail.'
+  }
 }
 
 export function getTrailStatusColor(status) {
@@ -23,6 +38,10 @@ export function getTrailStatusColor(status) {
 
 export function getTrailStatusLabel(status) {
   return TRAIL_STATUSES[status]?.label ?? status
+}
+
+export function getTrailStatusHint(status) {
+  return TRAIL_STATUSES[status]?.hint ?? ''
 }
 
 export function getTrailStatusIcon(status) {

@@ -37,7 +37,22 @@ export const REPORT_TYPE_OPTIONS = [
 ]
 
 export const REPORT_SEVERITY_OPTIONS = [
-  { value: 'low', label: 'Low', color: '#10B981' },
-  { value: 'medium', label: 'Medium', color: '#FBBF24' },
-  { value: 'high', label: 'High', color: '#EF4444' }
+  {
+    value: 'low',
+    label: 'Low',
+    color: '#10B981',
+    hint: 'A small problem: the trail is still easy to walk.'
+  },
+  {
+    value: 'medium',
+    label: 'Medium',
+    color: '#FBBF24',
+    hint: 'It slows you down or needs care.'
+  },
+  {
+    value: 'high',
+    label: 'High',
+    color: '#EF4444',
+    hint: 'Dangerous or blocked: others should avoid it.'
+  }
 ]
