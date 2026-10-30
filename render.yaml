@@ -3,7 +3,7 @@ services:
     name: ecotrail
     runtime: node
     plan: free
-    branch: develop
+    branch: main
     buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
